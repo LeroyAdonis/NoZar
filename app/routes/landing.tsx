@@ -23,6 +23,12 @@ import FooterSection from "~/components/landing/footer-section";
 import type { Route } from "./+types/landing";
 import { ScrollReveal } from "~/components/motion/scroll-reveal";
 import { MagneticButton } from "~/components/motion/magnetic-button";
+import { getOptionalSession } from "~/lib/auth.server";
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const session = await getOptionalSession(request);
+  return { isLoggedIn: !!session };
+}
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -46,7 +52,10 @@ const SECTION_IDS = [
 
 type SectionId = (typeof SECTION_IDS)[number];
 
-export default function LandingPage() {
+export default function LandingPage({
+  loaderData,
+}: Route.ComponentProps) {
+  const { isLoggedIn } = loaderData;
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionId | null>(null);
@@ -176,18 +185,29 @@ export default function LandingPage() {
 
           {/* Desktop Auth + CTA */}
           <div className="hidden md:flex items-center gap-4">
-            <Link
-              to="/dashboard"
-              className="text-xs font-mono uppercase tracking-widest text-slate-400 hover:text-white transition-colors px-4"
-            >
-              [ Auth ]
-            </Link>
-            <Link
-              to="/dashboard"
-              className="text-sm font-bold bg-emerald-500 text-slate-950 px-6 py-2.5 rounded-lg hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all flex items-center gap-2"
-            >
-              Access Network
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                to="/dashboard"
+                className="text-sm font-bold bg-emerald-500 text-slate-950 px-6 py-2.5 rounded-lg hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all flex items-center gap-2"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link
+                  to="/register"
+                  className="text-xs font-mono uppercase tracking-widest text-slate-400 hover:text-white transition-colors px-4"
+                >
+                  [ Auth ]
+                </Link>
+                <Link
+                  to="/register"
+                  className="text-sm font-bold bg-emerald-500 text-slate-950 px-6 py-2.5 rounded-lg hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all flex items-center gap-2"
+                >
+                  Get Started Free
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -236,15 +256,26 @@ export default function LandingPage() {
               );
             })}
             <hr className="border-white/10 my-2" />
-            <Link to="/dashboard" className="w-full text-left text-slate-300">
-              [ Authenticate ]
-            </Link>
-            <Link
-              to="/dashboard"
-              className="w-full bg-emerald-500 text-slate-950 py-4 rounded-xl font-bold mt-2 text-center"
-            >
-              Access Network
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                to="/dashboard"
+                className="w-full bg-emerald-500 text-slate-950 py-4 rounded-xl font-bold mt-2 text-center"
+              >
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link to="/register" className="w-full text-left text-slate-300">
+                  [ Authenticate ]
+                </Link>
+                <Link
+                  to="/register"
+                  className="w-full bg-emerald-500 text-slate-950 py-4 rounded-xl font-bold mt-2 text-center"
+                >
+                  Get Started Free
+                </Link>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -273,10 +304,11 @@ export default function LandingPage() {
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
           <MagneticButton>
             <Link
-              to="/dashboard"
+              to={isLoggedIn ? "/dashboard" : "/register"}
               className="w-full sm:w-auto px-10 py-5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-lg hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-3"
             >
-              Initialize Trade <ArrowRight className="w-5 h-5" />
+              {isLoggedIn ? "Go to Dashboard" : "Get Started Free"}{" "}
+              <ArrowRight className="w-5 h-5" />
             </Link>
           </MagneticButton>
           <Link
@@ -540,10 +572,10 @@ export default function LandingPage() {
           </ScrollReveal>
           <MagneticButton>
             <Link
-              to="/dashboard"
+              to={isLoggedIn ? "/dashboard" : "/register"}
               className="inline-block px-12 py-6 rounded-2xl bg-white text-slate-950 font-black text-xl hover:scale-105 transition-transform shadow-[0_0_40px_rgba(255,255,255,0.1)] uppercase tracking-widest"
             >
-              Execute Join Protocol
+              {isLoggedIn ? "Go to Dashboard" : "Get Started Free"}
             </Link>
           </MagneticButton>
         </div>

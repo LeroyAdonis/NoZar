@@ -1,6 +1,35 @@
-import type { Asset, Ping } from "./types";
+type MockAsset = {
+  id: number;
+  title: string;
+  need: string;
+  user: string;
+  distance: string;
+  tier: string;
+  time: string;
+  image: string;
+  desc: string;
+  category: string;
+  isVerified: boolean;
+};
 
-export const MOCK_ASSETS: Asset[] = [
+type MockMessage = {
+  text: string;
+  sender: string;
+  time: string;
+};
+
+type MockPing = {
+  id: number;
+  assetId: number;
+  user: string;
+  asset: string;
+  status: string;
+  unread: boolean;
+  time: string;
+  messages: MockMessage[];
+};
+
+export const MOCK_ASSETS: MockAsset[] = [
   {
     id: 1,
     title: "Sony A7III + Lens",
@@ -42,7 +71,7 @@ export const MOCK_ASSETS: Asset[] = [
   },
 ];
 
-export const MOCK_PINGS: Ping[] = [
+export const MOCK_PINGS: MockPing[] = [
   {
     id: 101,
     assetId: 2,

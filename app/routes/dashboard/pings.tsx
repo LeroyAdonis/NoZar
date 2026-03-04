@@ -1,7 +1,13 @@
 import { useNavigate } from "react-router";
 import { MessageSquare } from "lucide-react";
+import { eq, or, desc, sql } from "drizzle-orm";
+
 import type { Route } from "./+types/pings";
-import { MOCK_PINGS } from "~/lib/mock-data";
+import { requireAuth } from "~/lib/auth.server";
+import { db } from "~/lib/db.server";
+import { trades, users, listings, messages } from "~/lib/schema";
+import { timeAgo } from "~/lib/utils";
+import type { TradeThread } from "~/lib/types";
 import { PingThread } from "~/components/ui/ping-thread";
 
 export function meta({}: Route.MetaArgs) {
@@ -11,12 +17,94 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export default function Pings() {
-  const navigate = useNavigate();
+export async function loader({ request }: Route.LoaderArgs) {
+  const { user } = await requireAuth(request);
 
-  const activePings = MOCK_PINGS.filter(
-    (p) => p.status === "awaiting_reply" || p.status === "handshake_ready",
-  );
+  // Subquery: latest message per trade
+  const latestMessage = db
+    .select({
+      tradeId: messages.tradeId,
+      text: sql<string>`(
+        SELECT ${messages.text} FROM ${messages} m2
+        WHERE m2.trade_id = ${messages.tradeId}
+        ORDER BY m2.created_at DESC LIMIT 1
+      )`.as("latest_text"),
+      createdAt: sql<Date>`(
+        SELECT m3.created_at FROM ${messages} m3
+        WHERE m3.trade_id = ${messages.tradeId}
+        ORDER BY m3.created_at DESC LIMIT 1
+      )`.as("latest_created_at"),
+    })
+    .from(messages)
+    .groupBy(messages.tradeId)
+    .as("latest_msg");
+
+  // Alias the users table for initiator and responder
+  const initiator = db
+    .select({ id: users.id, name: users.name })
+    .from(users)
+    .as("initiator");
+
+  const responder = db
+    .select({ id: users.id, name: users.name })
+    .from(users)
+    .as("responder");
+
+  const rows = await db
+    .select({
+      id: trades.id,
+      status: trades.status,
+      initiatorId: trades.initiatorId,
+      responderId: trades.responderId,
+      initiatorName: initiator.name,
+      responderName: responder.name,
+      listingTitle: listings.title,
+      lastMessage: latestMessage.text,
+      lastMessageTime: latestMessage.createdAt,
+      tradeUpdatedAt: trades.updatedAt,
+    })
+    .from(trades)
+    .innerJoin(initiator, eq(trades.initiatorId, initiator.id))
+    .innerJoin(responder, eq(trades.responderId, responder.id))
+    .innerJoin(listings, eq(trades.listingId, listings.id))
+    .leftJoin(latestMessage, eq(trades.id, latestMessage.tradeId))
+    .where(
+      or(eq(trades.initiatorId, user.id), eq(trades.responderId, user.id)),
+    )
+    .orderBy(desc(trades.updatedAt));
+
+  const threads: TradeThread[] = rows.map((row) => {
+    // The counterparty is the OTHER user in the trade
+    const counterpartyName =
+      row.initiatorId === user.id ? row.responderName : row.initiatorName;
+
+    const activityDate = row.lastMessageTime
+      ? new Date(row.lastMessageTime)
+      : new Date(row.tradeUpdatedAt);
+
+    return {
+      id: row.id,
+      counterpartyName,
+      listingTitle: row.listingTitle,
+      status: row.status,
+      unread: false, // TODO: implement read tracking
+      lastMessage: row.lastMessage ?? null,
+      lastMessageTime: row.lastMessageTime
+        ? new Date(row.lastMessageTime).toLocaleTimeString("en-ZA", {
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : null,
+      timeAgo: timeAgo(activityDate),
+    };
+  });
+
+  return { threads };
+}
+
+export default function Pings({ loaderData }: Route.ComponentProps) {
+  const navigate = useNavigate();
+  const { threads } = loaderData;
 
   return (
     <div className="max-w-md mx-auto px-4 pt-8 pb-28 space-y-6">
@@ -31,18 +119,18 @@ export default function Pings() {
           </h2>
         </div>
         <span className="text-xs font-mono text-slate-400 border border-white/10 px-2 py-1 rounded bg-[#0F172A]">
-          {activePings.length} Thread{activePings.length !== 1 ? "s" : ""}
+          {threads.length} Thread{threads.length !== 1 ? "s" : ""}
         </span>
       </div>
 
       {/* Ping list */}
-      {activePings.length > 0 ? (
+      {threads.length > 0 ? (
         <div className="space-y-3">
-          {activePings.map((ping) => (
+          {threads.map((thread) => (
             <PingThread
-              key={ping.id}
-              ping={ping}
-              onClick={() => navigate(`/dashboard/pings/${ping.id}`)}
+              key={thread.id}
+              thread={thread}
+              onClick={() => navigate(`/dashboard/pings/${thread.id}`)}
             />
           ))}
         </div>

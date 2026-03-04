@@ -1,8 +1,13 @@
-"use client";
-
 import { Link, Outlet, useLocation } from "react-router";
 import { Bell, Repeat, Settings, ShieldCheck } from "lucide-react";
+import type { Route } from "./+types/dashboard";
+import { requireAuth } from "~/lib/auth.server";
 import { BottomNav } from "~/components/ui/bottom-nav";
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const { user } = await requireAuth(request);
+  return { user };
+}
 
 function getActiveTab(pathname: string): string {
   if (pathname.startsWith("/dashboard/map")) return "map";
@@ -13,9 +18,13 @@ function getActiveTab(pathname: string): string {
   return "home";
 }
 
-export default function DashboardLayout() {
+export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const location = useLocation();
   const activeTab = getActiveTab(location.pathname);
+  const { user } = loaderData;
+
+  // Get display name from user data
+  const displayName = user.name ?? "User";
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-50 font-sans pb-28 selection:bg-emerald-500/30">
@@ -42,11 +51,11 @@ export default function DashboardLayout() {
           <div className="hidden sm:flex items-center gap-3 text-right">
             <div>
               <h1 className="font-bold text-sm leading-tight text-white">
-                Zanele A.
+                {displayName}
               </h1>
               <div className="flex items-center justify-end gap-1.5 text-emerald-400 font-mono text-[10px] uppercase tracking-widest mt-0.5">
                 <ShieldCheck className="w-3 h-3" />
-                <span>Node Verified</span>
+                <span>{user.emailVerified ? "Verified" : "Unverified"}</span>
               </div>
             </div>
           </div>
@@ -56,9 +65,12 @@ export default function DashboardLayout() {
             <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 border border-[#030712]" />
           </button>
 
-          <button className="w-10 h-10 rounded-xl bg-[#0F172A] border border-white/10 flex items-center justify-center hover:border-white/20 transition-colors">
+          <Link
+            to="/dashboard/profile"
+            className="w-10 h-10 rounded-xl bg-[#0F172A] border border-white/10 flex items-center justify-center hover:border-white/20 transition-colors"
+          >
             <Settings className="w-5 h-5 text-slate-400" />
-          </button>
+          </Link>
         </div>
       </header>
 

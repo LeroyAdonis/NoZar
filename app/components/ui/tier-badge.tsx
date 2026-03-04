@@ -1,7 +1,5 @@
-import type { Asset } from "~/lib/types";
-
 type TierBadgeProps = {
-  tier: Asset["tier"];
+  tier: string;
 };
 
 export function TierBadge({ tier }: TierBadgeProps) {
