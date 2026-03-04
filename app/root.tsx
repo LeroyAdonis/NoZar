@@ -8,6 +8,7 @@ import {
 } from "react-router";
 
 import type { Route } from "./+types/root";
+import { CookieBanner } from "~/components/cookie-banner";
 import "./app.css";
 
 export const links: Route.LinksFunction = () => [
@@ -35,6 +36,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </head>
       <body className="bg-[#030712] text-slate-50 antialiased">
         {children}
+        <CookieBanner />
         <ScrollRestoration />
         <Scripts />
       </body>

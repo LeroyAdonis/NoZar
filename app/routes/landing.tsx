@@ -14,6 +14,12 @@ import {
   Cpu,
 } from "lucide-react";
 
+import { StatsBar } from "~/components/landing/stats-bar";
+import { TrustBadgesSection } from "~/components/landing/trust-badges-section";
+import { PricingSection } from "~/components/landing/pricing-section";
+import { TestimonialsSection } from "~/components/landing/testimonials-section";
+import { FaqSection } from "~/components/landing/faq-section";
+import FooterSection from "~/components/landing/footer-section";
 import type { Route } from "./+types/landing";
 
 export function meta(_args: Route.MetaArgs) {
@@ -90,6 +96,8 @@ export default function LandingPage() {
               { label: "Consumers", id: "consumers" },
               { label: "Business", id: "business" },
               { label: "Protocol", id: "safety" },
+              { label: "Pricing", id: "pricing" },
+              { label: "FAQ", id: "faq" },
             ].map((link) => (
               <a
                 key={link.id}
@@ -160,6 +168,20 @@ export default function LandingPage() {
             >
               04. Trust Protocol
             </a>
+            <a
+              href="#pricing"
+              onClick={(e) => handleNavClick(e, "pricing")}
+              className="text-slate-300 hover:text-emerald-400"
+            >
+              05. Pricing
+            </a>
+            <a
+              href="#faq"
+              onClick={(e) => handleNavClick(e, "faq")}
+              className="text-slate-300 hover:text-emerald-400"
+            >
+              06. FAQ
+            </a>
             <hr className="border-white/10 my-2" />
             <Link to="/dashboard" className="w-full text-left text-slate-300">
               [ Authenticate ]
@@ -210,6 +232,9 @@ export default function LandingPage() {
           </Link>
         </div>
       </main>
+
+      {/* Stats Bar */}
+      <StatsBar />
 
       {/* The Bento Grid: How It Works */}
       <section
@@ -416,6 +441,18 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Trust Signal Badges */}
+      <TrustBadgesSection />
+
+      {/* Pricing Tiers */}
+      <PricingSection />
+
+      {/* Testimonials */}
+      <TestimonialsSection />
+
+      {/* FAQ */}
+      <FaqSection />
+
       {/* Brutalist Footer CTA */}
       <section className="relative z-10 border-t border-white/5 bg-[#030712] py-32 overflow-hidden">
         <div className="absolute inset-0 bg-emerald-500/5 backdrop-blur-3xl pointer-events-none" />
@@ -436,15 +473,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-white/10 bg-[#030712] pt-16 pb-8">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 font-mono text-xs text-slate-600 uppercase tracking-widest">
-            <p>
-              Sys.Build // {new Date().getFullYear()} // NoZar PTY LTD // RSA
-            </p>
-          </div>
-        </div>
-      </footer>
+      <FooterSection />
     </div>
   );
 }
