@@ -21,6 +21,8 @@ import { TestimonialsSection } from "~/components/landing/testimonials-section";
 import { FaqSection } from "~/components/landing/faq-section";
 import FooterSection from "~/components/landing/footer-section";
 import type { Route } from "./+types/landing";
+import { ScrollReveal } from "~/components/motion/scroll-reveal";
+import { MagneticButton } from "~/components/motion/magnetic-button";
 
 export function meta(_args: Route.MetaArgs) {
   return [
@@ -218,12 +220,14 @@ export default function LandingPage() {
           <span className="text-white font-medium">Zero ZAR required.</span>
         </p>
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-          <Link
-            to="/dashboard"
-            className="w-full sm:w-auto px-10 py-5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-lg hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-3"
-          >
-            Initialize Trade <ArrowRight className="w-5 h-5" />
-          </Link>
+          <MagneticButton>
+            <Link
+              to="/dashboard"
+              className="w-full sm:w-auto px-10 py-5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-lg hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-3"
+            >
+              Initialize Trade <ArrowRight className="w-5 h-5" />
+            </Link>
+          </MagneticButton>
           <Link
             to="/dashboard"
             className="w-full sm:w-auto px-10 py-5 rounded-xl bg-white/5 text-white font-medium text-lg hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center gap-3 backdrop-blur-md"
@@ -241,18 +245,21 @@ export default function LandingPage() {
         id="how-it-works"
         className="relative z-10 py-24 px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24"
       >
-        <div className="mb-16">
-          <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
-            // System Architecture
-          </span>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">
-            How The Matrix Works.
-          </h2>
-        </div>
+        <ScrollReveal>
+          <div className="mb-16">
+            <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
+              // System Architecture
+            </span>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">
+              How The Matrix Works.
+            </h2>
+          </div>
+        </ScrollReveal>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Value Parity Engine — spans 8 cols */}
-          <div className="md:col-span-8 group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-white/20 transition-all duration-500 p-8 md:p-12 flex flex-col justify-between min-h-[400px]">
+          <ScrollReveal delay={0.1} className="md:col-span-8">
+          <div className="group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-white/20 transition-all duration-500 p-8 md:p-12 flex flex-col justify-between min-h-[400px]">
             <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 group-hover:bg-emerald-500/20 transition-all duration-700" />
             <div className="relative z-10">
               <Cpu className="w-10 h-10 text-emerald-400 mb-6" />
@@ -271,9 +278,11 @@ export default function LandingPage() {
               <div className="h-2 rounded-full bg-emerald-500/50 w-full" />
             </div>
           </div>
+          </ScrollReveal>
 
           {/* Hyper-Local Indexing — spans 4 cols */}
-          <div className="md:col-span-4 group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-cyan-500/30 transition-all duration-500 p-8 md:p-12 flex flex-col justify-between min-h-[400px]">
+          <ScrollReveal delay={0.2} className="md:col-span-4">
+          <div className="group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-cyan-500/30 transition-all duration-500 p-8 md:p-12 flex flex-col justify-between min-h-[400px]">
             <div className="relative z-10">
               <Globe className="w-10 h-10 text-cyan-400 mb-6" />
               <h3 className="text-2xl font-bold tracking-tight mb-4">
@@ -290,12 +299,14 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* Dual Economies: Consumer + Business */}
       <div className="max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-6 pb-24">
         {/* For Consumers */}
+        <ScrollReveal delay={0.1}>
         <section
           id="consumers"
           className="scroll-mt-32 relative rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-white/10 p-10 hover:border-blue-500/30 transition-all duration-500"
@@ -332,8 +343,10 @@ export default function LandingPage() {
             Initialize Consumer Node
           </Link>
         </section>
+        </ScrollReveal>
 
         {/* For Business */}
+        <ScrollReveal delay={0.2}>
         <section
           id="business"
           className="scroll-mt-32 relative rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-white/10 p-10 hover:border-emerald-500/30 transition-all duration-500"
@@ -371,6 +384,7 @@ export default function LandingPage() {
             View Enterprise Protocol
           </Link>
         </section>
+        </ScrollReveal>
       </div>
 
       {/* Security Protocol */}
@@ -380,22 +394,25 @@ export default function LandingPage() {
       >
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
         <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
-          <div className="text-center mb-20">
-            <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
-              // Protocol.Security
-            </span>
-            <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase mb-6">
-              The Staged Trust <br /> Architecture.
-            </h2>
-            <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-              Engineered specifically for the South African risk landscape. Your
-              identity and location remain sealed until mutual consensus is
-              achieved.
-            </p>
-          </div>
+          <ScrollReveal>
+            <div className="text-center mb-20">
+              <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
+                // Protocol.Security
+              </span>
+              <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase mb-6">
+                The Staged Trust <br /> Architecture.
+              </h2>
+              <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+                Engineered specifically for the South African risk landscape. Your
+                identity and location remain sealed until mutual consensus is
+                achieved.
+              </p>
+            </div>
+          </ScrollReveal>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Stage 01 */}
+            <ScrollReveal delay={0.1}>
             <div className="bg-[#0F172A] border border-white/10 p-8 rounded-3xl relative">
               <div className="absolute top-0 left-8 -translate-y-1/2 bg-slate-900 border border-white/10 px-4 py-1 rounded-full font-mono text-xs text-slate-400">
                 STAGE_01
@@ -409,7 +426,9 @@ export default function LandingPage() {
                 emails are scrubbed and restricted.
               </p>
             </div>
+            </ScrollReveal>
             {/* Stage 02 — elevated */}
+            <ScrollReveal delay={0.2}>
             <div className="bg-gradient-to-b from-[#0F172A] to-emerald-950/20 border border-emerald-500/20 p-8 rounded-3xl relative transform md:-translate-y-4 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
               <div className="absolute top-0 left-8 -translate-y-1/2 bg-emerald-900 border border-emerald-500/30 px-4 py-1 rounded-full font-mono text-xs text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
                 STAGE_02
@@ -423,7 +442,9 @@ export default function LandingPage() {
                 does the platform query our verification ledger.
               </p>
             </div>
+            </ScrollReveal>
             {/* Stage 03 */}
+            <ScrollReveal delay={0.3}>
             <div className="bg-[#0F172A] border border-white/10 p-8 rounded-3xl relative">
               <div className="absolute top-0 left-8 -translate-y-1/2 bg-slate-900 border border-white/10 px-4 py-1 rounded-full font-mono text-xs text-slate-400">
                 STAGE_03
@@ -437,6 +458,7 @@ export default function LandingPage() {
                 well-lit public perimeter (e.g., partnered petrol stations).
               </p>
             </div>
+            </ScrollReveal>
           </div>
         </div>
       </section>
@@ -457,18 +479,22 @@ export default function LandingPage() {
       <section className="relative z-10 border-t border-white/5 bg-[#030712] py-32 overflow-hidden">
         <div className="absolute inset-0 bg-emerald-500/5 backdrop-blur-3xl pointer-events-none" />
         <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
-          <h2 className="text-5xl md:text-8xl font-black tracking-tighter uppercase mb-8">
-            Bypass The{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-600">
-              Fiat.
-            </span>
-          </h2>
-          <Link
-            to="/dashboard"
-            className="inline-block px-12 py-6 rounded-2xl bg-white text-slate-950 font-black text-xl hover:scale-105 transition-transform shadow-[0_0_40px_rgba(255,255,255,0.1)] uppercase tracking-widest"
-          >
-            Execute Join Protocol
-          </Link>
+          <ScrollReveal>
+            <h2 className="text-5xl md:text-8xl font-black tracking-tighter uppercase mb-8">
+              Bypass The{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-600">
+                Fiat.
+              </span>
+            </h2>
+          </ScrollReveal>
+          <MagneticButton>
+            <Link
+              to="/dashboard"
+              className="inline-block px-12 py-6 rounded-2xl bg-white text-slate-950 font-black text-xl hover:scale-105 transition-transform shadow-[0_0_40px_rgba(255,255,255,0.1)] uppercase tracking-widest"
+            >
+              Execute Join Protocol
+            </Link>
+          </MagneticButton>
         </div>
       </section>
 

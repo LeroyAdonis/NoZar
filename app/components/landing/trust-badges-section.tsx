@@ -1,5 +1,6 @@
 import { Shield, FileCheck, Phone, Lock, Users, Heart } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { ScrollReveal } from "~/components/motion/scroll-reveal";
 
 interface TrustBadge {
   icon: LucideIcon;
@@ -51,22 +52,24 @@ export function TrustBadgesSection() {
           {"// Compliance.Verified"}
         </p>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {TRUST_BADGES.map((badge) => (
-            <div
-              key={badge.title}
-              className="bg-[#0F172A]/60 border border-white/5 rounded-2xl p-4 text-center"
-            >
-              <badge.icon className="text-emerald-400 w-6 h-6 mx-auto mb-2" />
-              <h3 className="text-xs font-bold text-slate-200 mb-1">
-                {badge.title}
-              </h3>
-              <p className="text-[10px] text-slate-500 leading-tight">
-                {badge.description}
-              </p>
-            </div>
-          ))}
-        </div>
+        <ScrollReveal>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            {TRUST_BADGES.map((badge) => (
+              <div
+                key={badge.title}
+                className="bg-[#0F172A]/60 border border-white/5 rounded-2xl p-4 text-center"
+              >
+                <badge.icon className="text-emerald-400 w-6 h-6 mx-auto mb-2" />
+                <h3 className="text-xs font-bold text-slate-200 mb-1">
+                  {badge.title}
+                </h3>
+                <p className="text-[10px] text-slate-500 leading-tight">
+                  {badge.description}
+                </p>
+              </div>
+            ))}
+          </div>
+        </ScrollReveal>
       </div>
     </section>
   );

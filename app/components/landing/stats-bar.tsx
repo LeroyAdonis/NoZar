@@ -1,10 +1,20 @@
 import { Fragment } from "react";
+import { AnimatedCounter } from "~/components/motion/animated-counter";
 
-const stats = [
-  { value: "1 000+", label: "Active Listings" },
-  { value: "5", label: "Cities Live" },
-  { value: "100%", label: "Free to Start" },
-] as const;
+type StatItem = {
+  target: number;
+  suffix?: string;
+  label: string;
+};
+
+const stats: StatItem[] = [
+  { target: 1000, suffix: "+", label: "Active Listings" },
+  { target: 5, label: "Cities Live" },
+  { target: 100, suffix: "%", label: "Free to Start" },
+];
+
+const counterClassName =
+  "text-3xl md:text-4xl font-black text-white drop-shadow-[0_0_12px_rgba(16,185,129,0.15)]";
 
 export function StatsBar() {
   return (
@@ -14,9 +24,11 @@ export function StatsBar() {
           <Fragment key={stat.label}>
             {i > 0 && <div className="w-px h-12 bg-white/10" />}
             <div className="text-center">
-              <div className="text-3xl md:text-4xl font-black text-white drop-shadow-[0_0_12px_rgba(16,185,129,0.15)]">
-                {stat.value}
-              </div>
+              <AnimatedCounter
+                target={stat.target}
+                suffix={stat.suffix}
+                className={counterClassName}
+              />
               <div className="text-xs font-mono uppercase tracking-widest text-slate-500 mt-1">
                 {stat.label}
               </div>

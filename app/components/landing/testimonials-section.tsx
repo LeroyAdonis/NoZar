@@ -1,5 +1,10 @@
 import { Star, Quote } from "lucide-react";
 import { Card, CardContent } from "~/components/ui/card";
+import { ScrollReveal } from "~/components/motion/scroll-reveal";
+import {
+  StaggerChildren,
+  StaggerItem,
+} from "~/components/motion/stagger-children";
 
 type Testimonial = {
   initials: string;
@@ -63,18 +68,20 @@ export function TestimonialsSection() {
       id="testimonials"
       className="relative z-10 py-24 px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24"
     >
-      <div className="mb-16">
-        <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
-          // Network.Testimonials
-        </span>
-        <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">
-          Verified Trades.
-        </h2>
-      </div>
+      <ScrollReveal>
+        <div className="mb-16">
+          <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
+            // Network.Testimonials
+          </span>
+          <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">
+            Verified Trades.
+          </h2>
+        </div>
+      </ScrollReveal>
 
-      <div className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-4 md:grid md:grid-cols-3 md:overflow-visible scrollbar-hide">
+      <StaggerChildren className="flex gap-6 overflow-x-auto snap-x snap-mandatory pb-4 md:grid md:grid-cols-3 md:overflow-visible scrollbar-hide">
         {testimonials.map((t) => (
-          <div
+          <StaggerItem
             key={t.name}
             className="min-w-[85vw] md:min-w-0 snap-center"
           >
@@ -113,9 +120,9 @@ export function TestimonialsSection() {
                 </p>
               </CardContent>
             </Card>
-          </div>
+          </StaggerItem>
         ))}
-      </div>
+      </StaggerChildren>
     </section>
   );
 }

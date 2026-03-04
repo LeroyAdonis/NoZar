@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { Repeat } from "lucide-react";
+import { ScrollReveal } from "~/components/motion/scroll-reveal";
 
 const anchorLinks = [
   { label: "How It Works", id: "how-it-works" },
@@ -23,6 +24,7 @@ export default function FooterSection() {
     <footer className="relative z-10 border-t border-white/10 bg-[#030712] pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         {/* Column Grid */}
+        <ScrollReveal>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 pb-12">
           {/* Brand Column */}
           <div className="sm:col-span-2 lg:col-span-1">
@@ -111,6 +113,7 @@ export default function FooterSection() {
             </ul>
           </div>
         </div>
+        </ScrollReveal>
 
         {/* Bottom Bar */}
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 font-mono text-xs text-slate-600 uppercase tracking-widest">

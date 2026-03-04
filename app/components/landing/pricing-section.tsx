@@ -6,6 +6,11 @@ import {
   CardContent,
   CardFooter,
 } from "~/components/ui/card";
+import { ScrollReveal } from "~/components/motion/scroll-reveal";
+import {
+  StaggerChildren,
+  StaggerItem,
+} from "~/components/motion/stagger-children";
 
 type PricingFeature = {
   label: string;
@@ -92,17 +97,23 @@ export function PricingSection() {
       id="pricing"
       className="relative z-10 py-24 px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24"
     >
-      <div className="mb-16 text-center">
-        <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
-          // Protocol.Pricing
-        </span>
-        <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">
-          Choose Your Tier.
-        </h2>
-      </div>
+      <ScrollReveal>
+        <div className="mb-16 text-center">
+          <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
+            // Protocol.Pricing
+          </span>
+          <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">
+            Choose Your Tier.
+          </h2>
+        </div>
+      </ScrollReveal>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <StaggerChildren
+        staggerDelay={0.12}
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+      >
         {tiers.map((tier) => (
+          <StaggerItem key={tier.name}>
           <Card
             key={tier.name}
             variant="glass"
@@ -159,8 +170,9 @@ export function PricingSection() {
               </Link>
             </CardFooter>
           </Card>
+          </StaggerItem>
         ))}
-      </div>
+      </StaggerChildren>
     </section>
   );
 }

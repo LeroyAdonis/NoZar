@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { ScrollReveal } from "~/components/motion/scroll-reveal";
 
 type FaqItem = {
   id: string;
@@ -69,15 +70,18 @@ export function FaqSection() {
       id="faq"
       className="relative z-10 py-24 px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24"
     >
-      <div className="mb-16">
-        <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
-          // Frequently.Asked
-        </span>
-        <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">
-          Common Queries.
-        </h2>
-      </div>
+      <ScrollReveal>
+        <div className="mb-16">
+          <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
+            // Frequently.Asked
+          </span>
+          <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">
+            Common Queries.
+          </h2>
+        </div>
+      </ScrollReveal>
 
+      <ScrollReveal delay={0.2}>
       <div className="grid grid-cols-1 gap-4 max-w-4xl">
         {faqItems.map((item) => {
           const isOpen = openId === item.id;
@@ -161,6 +165,7 @@ export function FaqSection() {
           );
         })}
       </div>
+      </ScrollReveal>
     </section>
   );
 }
