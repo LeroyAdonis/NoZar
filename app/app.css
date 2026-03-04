@@ -113,3 +113,70 @@ body {
 .link-underline:hover::after {
   width: 100%;
 }
+
+/* ─── NoZar Spatial Design System: Scrollbar ─── */
+
+/*
+ * Brutalist scrollbar — sharp edges, emerald accent, glow-on-hover.
+ * Thin (6px) track sits flush against the viewport edge.
+ * Webkit (Chrome/Safari/Edge) + Firefox covered.
+ */
+
+/* --- Firefox --- */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(16, 185, 129, 0.45) rgba(3, 7, 18, 0.6);
+}
+
+/* --- Webkit (Chrome, Safari, Edge) --- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--nz-dark);
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.4);
+  border: none;
+  /* Sharp corners — no border-radius. Brutalist. */
+  border-radius: 0;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--nz-emerald);
+  box-shadow: 0 0 8px 2px var(--nz-emerald-glow);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--nz-cyan);
+  box-shadow: 0 0 10px 3px var(--nz-cyan-glow);
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--nz-dark);
+}
+
+/* Horizontal scrollbar — inset line on top instead of left */
+::-webkit-scrollbar-track:horizontal {
+  border-left: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ─── NoZar Spatial Design System: Scrollbar Hide Utility ─── */
+
+/*
+ * .scrollbar-hide — visually hides scrollbar while keeping scroll functional.
+ * Use on horizontal scroll containers, chat panels, etc.
+ */
+.scrollbar-hide {
+  -ms-overflow-style: none;   /* IE / Edge legacy */
+  scrollbar-width: none;      /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;              /* Webkit */
+}

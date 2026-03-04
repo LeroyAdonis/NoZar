@@ -35,14 +35,57 @@ export function meta(_args: Route.MetaArgs) {
   ];
 }
 
+const SECTION_IDS = [
+  "how-it-works",
+  "consumers",
+  "business",
+  "safety",
+  "pricing",
+  "faq",
+] as const;
+
+type SectionId = (typeof SECTION_IDS)[number];
+
 export default function LandingPage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<SectionId | null>(null);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Track which section is visible using IntersectionObserver
+  useEffect(() => {
+    const elements = SECTION_IDS.map((id) => document.getElementById(id)).filter(
+      (el): el is HTMLElement => el !== null,
+    );
+
+    if (elements.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Find the first entry that is intersecting (topmost visible section)
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setActiveSection(entry.target.id as SectionId);
+          }
+        }
+      },
+      {
+        // Trigger zone: top 20-30% of viewport — feels natural for scroll tracking
+        rootMargin: "-20% 0px -70% 0px",
+        threshold: 0,
+      },
+    );
+
+    for (const el of elements) {
+      observer.observe(el);
+    }
+
+    return () => observer.disconnect();
   }, []);
 
   const handleNavClick = useCallback(
@@ -100,16 +143,35 @@ export default function LandingPage() {
               { label: "Protocol", id: "safety" },
               { label: "Pricing", id: "pricing" },
               { label: "FAQ", id: "faq" },
-            ].map((link) => (
-              <a
-                key={link.id}
-                href={`#${link.id}`}
-                onClick={(e) => handleNavClick(e, link.id)}
-                className="text-xs font-mono uppercase tracking-widest text-slate-400 hover:text-emerald-400 transition-colors"
-              >
-                {link.label}
-              </a>
-            ))}
+            ].map((link) => {
+              const isActive = activeSection === link.id;
+              return (
+                <a
+                  key={link.id}
+                  href={`#${link.id}`}
+                  onClick={(e) => handleNavClick(e, link.id)}
+                  className={`relative text-xs font-mono uppercase tracking-widest transition-all duration-300 ${
+                    isActive
+                      ? "text-emerald-400 [text-shadow:0_0_12px_rgba(16,185,129,0.4)]"
+                      : "text-slate-400 hover:text-emerald-400"
+                  }`}
+                >
+                  {isActive && (
+                    <span className="mr-1.5 text-emerald-500">▸</span>
+                  )}
+                  {link.label}
+                  {/* Active underline scanline */}
+                  <span
+                    className={`absolute -bottom-1.5 left-0 h-px bg-emerald-500 transition-all duration-300 ${
+                      isActive
+                        ? "w-full shadow-[0_0_8px_rgba(16,185,129,0.6)]"
+                        : "w-0"
+                    }`}
+                    style={{ transitionTimingFunction: "var(--ease-smooth)" }}
+                  />
+                </a>
+              );
+            })}
           </div>
 
           {/* Desktop Auth + CTA */}
@@ -142,48 +204,37 @@ export default function LandingPage() {
       {mobileMenuOpen && (
         <div className="fixed inset-0 z-40 bg-[#030712]/95 backdrop-blur-2xl pt-28 px-6 md:hidden border-b border-white/10">
           <div className="flex flex-col gap-8 text-lg font-mono uppercase tracking-widest">
-            <a
-              href="#how-it-works"
-              onClick={(e) => handleNavClick(e, "how-it-works")}
-              className="text-slate-300 hover:text-emerald-400"
-            >
-              01. Platform
-            </a>
-            <a
-              href="#consumers"
-              onClick={(e) => handleNavClick(e, "consumers")}
-              className="text-slate-300 hover:text-emerald-400"
-            >
-              02. Consumers
-            </a>
-            <a
-              href="#business"
-              onClick={(e) => handleNavClick(e, "business")}
-              className="text-slate-300 hover:text-emerald-400"
-            >
-              03. Business
-            </a>
-            <a
-              href="#safety"
-              onClick={(e) => handleNavClick(e, "safety")}
-              className="text-slate-300 hover:text-emerald-400"
-            >
-              04. Trust Protocol
-            </a>
-            <a
-              href="#pricing"
-              onClick={(e) => handleNavClick(e, "pricing")}
-              className="text-slate-300 hover:text-emerald-400"
-            >
-              05. Pricing
-            </a>
-            <a
-              href="#faq"
-              onClick={(e) => handleNavClick(e, "faq")}
-              className="text-slate-300 hover:text-emerald-400"
-            >
-              06. FAQ
-            </a>
+            {[
+              { num: "01", label: "Platform", id: "how-it-works" as const },
+              { num: "02", label: "Consumers", id: "consumers" as const },
+              { num: "03", label: "Business", id: "business" as const },
+              { num: "04", label: "Trust Protocol", id: "safety" as const },
+              { num: "05", label: "Pricing", id: "pricing" as const },
+              { num: "06", label: "FAQ", id: "faq" as const },
+            ].map((link) => {
+              const isActive = activeSection === link.id;
+              return (
+                <a
+                  key={link.id}
+                  href={`#${link.id}`}
+                  onClick={(e) => handleNavClick(e, link.id)}
+                  className={`transition-all duration-300 ${
+                    isActive
+                      ? "text-emerald-400 [text-shadow:0_0_12px_rgba(16,185,129,0.4)]"
+                      : "text-slate-300 hover:text-emerald-400"
+                  }`}
+                >
+                  <span
+                    className={`transition-colors duration-300 ${
+                      isActive ? "text-emerald-500" : "text-slate-600"
+                    }`}
+                  >
+                    {link.num}.
+                  </span>{" "}
+                  {link.label}
+                </a>
+              );
+            })}
             <hr className="border-white/10 my-2" />
             <Link to="/dashboard" className="w-full text-left text-slate-300">
               [ Authenticate ]
