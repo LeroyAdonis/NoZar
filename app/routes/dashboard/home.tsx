@@ -1,13 +1,13 @@
 import { useNavigate, useSearchParams, useFetcher } from "react-router";
-import { eq, ne, and, desc } from "drizzle-orm";
+import { eq, ne, and, desc, inArray } from "drizzle-orm";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { Sparkles } from "lucide-react";
 import type { Route } from "./+types/home";
 import type { ListingCard } from "~/lib/types";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
-import { listings, users } from "~/lib/schema";
-import { timeAgo } from "~/lib/utils";
+import { listings, listingImages, profiles, users } from "~/lib/schema";
+import { timeAgo, haversineKm, formatDistance } from "~/lib/utils";
 import { AssetCard } from "~/components/ui/asset-card";
 
 export function meta({}: Route.MetaArgs) {
@@ -45,6 +45,7 @@ function setCachedMatches(userId: string, matchedIds: number[]): void {
 // ─── Loader ────────────────────────────────────────────────────
 
 export async function loader({ request }: Route.LoaderArgs) {
+  const { user } = await requireAuth(request);
   const url = new URL(request.url);
   const category = url.searchParams.get("category");
 
@@ -59,6 +60,8 @@ export async function loader({ request }: Route.LoaderArgs) {
       estimatedValueZar: listings.estimatedValueZar,
       condition: listings.condition,
       createdAt: listings.createdAt,
+      lat: listings.lat,
+      lng: listings.lng,
       userName: users.name,
       isVerified: users.emailVerified,
     })
@@ -67,6 +70,33 @@ export async function loader({ request }: Route.LoaderArgs) {
     .where(eq(listings.status, "active"))
     .orderBy(desc(listings.createdAt))
     .limit(20);
+
+  // Fetch user profile (for distance) and first images in parallel
+  const listingIds = rows.map((r) => r.id);
+  const [userProfileRows, images] = await Promise.all([
+    db
+      .select({ lat: profiles.lat, lng: profiles.lng })
+      .from(profiles)
+      .where(eq(profiles.userId, user.id))
+      .limit(1),
+    listingIds.length > 0
+      ? db
+          .select({ listingId: listingImages.listingId, url: listingImages.url })
+          .from(listingImages)
+          .where(inArray(listingImages.listingId, listingIds))
+          .orderBy(listingImages.order)
+      : Promise.resolve([]),
+  ]);
+
+  const userProfile = userProfileRows[0];
+
+  // Keep only the first image per listing (query is ordered by `order`)
+  const imageMap = new Map<number, string>();
+  for (const img of images) {
+    if (!imageMap.has(img.listingId)) {
+      imageMap.set(img.listingId, img.url);
+    }
+  }
 
   const items: ListingCard[] = rows
     .filter((r) => !category || category === "All" || r.category === category)
@@ -79,11 +109,14 @@ export async function loader({ request }: Route.LoaderArgs) {
       type: r.type,
       estimatedValueZar: r.estimatedValueZar,
       condition: r.condition,
-      distance: "~5km", // placeholder until user profile has lat/lng
+      distance:
+        userProfile?.lat != null && userProfile?.lng != null && r.lat != null && r.lng != null
+          ? formatDistance(haversineKm(userProfile.lat, userProfile.lng, r.lat, r.lng))
+          : "Nearby",
       timeAgo: timeAgo(new Date(r.createdAt)),
       userName: r.userName,
       isVerified: r.isVerified,
-      imageUrl: null, // images loaded separately in a future task
+      imageUrl: imageMap.get(r.id) ?? null,
     }));
 
   return { listings: items };
@@ -220,6 +253,7 @@ export default function DashboardHome({
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCategory = searchParams.get("category") ?? "All";
+  const radiusKm = Number(searchParams.get("radius") ?? "10");
   const fetcher = useFetcher<typeof action>();
 
   const isMatching = fetcher.state !== "idle";
@@ -338,8 +372,20 @@ export default function DashboardHome({
 
       {/* Footer action */}
       <div className="py-8 text-center">
-        <button className="text-emerald-500 text-xs font-mono uppercase tracking-widest mt-2 hover:text-emerald-400">
-          Expand Radius
+        <button
+          onClick={() =>
+            setSearchParams(
+              (prev) => {
+                const newParams = new URLSearchParams(prev);
+                newParams.set("radius", String(radiusKm + 5));
+                return newParams;
+              },
+              { preventScrollReset: true },
+            )
+          }
+          className="text-emerald-500 text-xs font-mono uppercase tracking-widest mt-2 hover:text-emerald-400 transition-colors flex items-center gap-1 mx-auto"
+        >
+          {radiusKm}km radius — Expand
         </button>
       </div>
     </div>
