@@ -25,4 +25,6 @@ export default [
     route("community-guidelines", "routes/legal/community-guidelines.tsx"),
     route("complaints", "routes/legal/complaints.tsx"),
   ]),
+  // Catch-all: renders 404 for any unmatched URL
+  route("*", "routes/$.tsx"),
 ] satisfies RouteConfig;
