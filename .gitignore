@@ -14,3 +14,6 @@
 
 # Dev server log
 dev-server.log
+
+# Git worktrees
+/.worktrees/
