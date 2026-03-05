@@ -23,6 +23,23 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
+const SAFE_LOGIN_ERROR = "Unable to sign in right now. Please try again.";
+
+function getLoginErrorMessage(error: {
+  message?: string;
+  status?: number;
+}): string {
+  if (typeof error.status === "number" && error.status >= 500) {
+    return SAFE_LOGIN_ERROR;
+  }
+
+  if (error.message && !/internal server error/i.test(error.message)) {
+    return error.message;
+  }
+
+  return SAFE_LOGIN_ERROR;
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -35,18 +52,23 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    await authClient.signIn.email(
-      { email, password },
-      {
-        onSuccess: () => {
-          navigate("/dashboard");
+    try {
+      await authClient.signIn.email(
+        { email, password },
+        {
+          onSuccess: () => {
+            navigate("/dashboard");
+          },
+          onError: (ctx) => {
+            setError(getLoginErrorMessage(ctx.error));
+            setLoading(false);
+          },
         },
-        onError: (ctx) => {
-          setError(ctx.error.message ?? "Invalid credentials");
-          setLoading(false);
-        },
-      },
-    );
+      );
+    } catch {
+      setError(SAFE_LOGIN_ERROR);
+      setLoading(false);
+    }
   };
 
   const handleGoogleSignIn = async () => {
