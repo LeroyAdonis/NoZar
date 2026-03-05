@@ -30,14 +30,35 @@ export const auth = betterAuth({
 });
 
 /**
+ * Returns true if the error is a transient DB connectivity failure
+ * (e.g. Neon free-tier cold start after auto-suspend).
+ */
+function isTransientDbError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const msg = error.message + String((error as { cause?: unknown }).cause ?? "");
+  return (
+    msg.includes("fetch failed") ||
+    msg.includes("Error connecting to database") ||
+    msg.includes("FAILED_TO_GET_SESSION")
+  );
+}
+
+/**
  * Require authentication in a loader/action.
  * Returns { user, session } if authenticated.
  * Throws redirect("/login") if not.
+ * Retries once on transient DB errors (e.g. Neon cold start).
  */
 export async function requireAuth(request: Request) {
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
+  let session;
+  try {
+    session = await auth.api.getSession({ headers: request.headers });
+  } catch (error) {
+    if (!isTransientDbError(error)) throw error;
+    // Wait for Neon compute to finish waking up, then retry once.
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    session = await auth.api.getSession({ headers: request.headers });
+  }
 
   if (!session) {
     throw redirect("/login");
@@ -49,11 +70,19 @@ export async function requireAuth(request: Request) {
 /**
  * Optional auth check — returns session or null.
  * Use for pages that show different content based on auth state (e.g., landing page).
+ * Retries once on transient DB errors (e.g. Neon cold start).
  */
 export async function getOptionalSession(request: Request) {
-  const session = await auth.api.getSession({
-    headers: request.headers,
-  });
-
-  return session;
+  try {
+    return await auth.api.getSession({ headers: request.headers });
+  } catch (error) {
+    if (!isTransientDbError(error)) throw error;
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+    try {
+      return await auth.api.getSession({ headers: request.headers });
+    } catch {
+      // After retry, return null so the page still renders (unauthenticated).
+      return null;
+    }
+  }
 }
