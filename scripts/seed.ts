@@ -245,12 +245,12 @@ async function seed() {
   // 5. Create listing images (placeholder URLs)
   console.log("🖼️  Creating listing images...");
   await db.insert(schema.listingImages).values([
-    { listingId: camera.id, url: "/images/seed/sony-a7iii.webp", blurHash: null, order: 0 },
-    { listingId: gardenTools.id, url: "/images/seed/garden-tools.webp", blurHash: null, order: 0 },
-    { listingId: designServices.id, url: "/images/seed/design-services.webp", blurHash: null, order: 0 },
-    { listingId: nikes.id, url: "/images/seed/nike-air-max.webp", blurHash: null, order: 0 },
-    { listingId: guitarLessons.id, url: "/images/seed/guitar-lessons.webp", blurHash: null, order: 0 },
-    { listingId: bike.id, url: "/images/seed/trek-bike.webp", blurHash: null, order: 0 },
+    { listingId: camera.id, url: "https://picsum.photos/seed/sony-a7iii/640/480", blurHash: null, order: 0 },
+    { listingId: gardenTools.id, url: "https://picsum.photos/seed/garden-tools/640/480", blurHash: null, order: 0 },
+    { listingId: designServices.id, url: "https://picsum.photos/seed/design-services/640/480", blurHash: null, order: 0 },
+    { listingId: nikes.id, url: "https://picsum.photos/seed/nike-air-max/640/480", blurHash: null, order: 0 },
+    { listingId: guitarLessons.id, url: "https://picsum.photos/seed/guitar-lessons/640/480", blurHash: null, order: 0 },
+    { listingId: bike.id, url: "https://picsum.photos/seed/trek-bike/640/480", blurHash: null, order: 0 },
   ]);
   console.log("   ✓ 6 listing images created\n");
 

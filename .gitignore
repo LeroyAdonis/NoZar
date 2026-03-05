@@ -5,3 +5,12 @@
 # React Router
 /.react-router/
 /build/
+
+# Playwright CLI artifacts
+/.playwright-cli/
+
+# Test screenshots
+/screenshots/
+
+# Dev server log
+dev-server.log

@@ -1,4 +1,4 @@
-# Barter SA — Privacy Policy
+# NoZar — Privacy Policy
 
 **Effective Date:** [Launch Date]
 **Information Officer:** [Name] — privacy@bartersa.co.za

@@ -1,11 +1,11 @@
-# Barter SA — Complaints & Dispute Resolution Process
+# NoZar — Complaints & Dispute Resolution Process
 
 **Effective Date:** [Launch Date]
 **Last Updated:** [Date]
 
 ## 1. Introduction
 
-At Barter SA, we take every complaint seriously. We understand that things don't always go smoothly — whether it's a trade that didn't work out, a concern about another user, or an issue with the Platform itself. We're committed to handling your complaints fairly, transparently, and as quickly as possible.
+At NoZar, we take every complaint seriously. We understand that things don't always go smoothly — whether it's a trade that didn't work out, a concern about another user, or an issue with the Platform itself. We're committed to handling your complaints fairly, transparently, and as quickly as possible.
 
 This document sets out how to lodge a complaint, what happens after you do, and where to turn if you feel your complaint hasn't been resolved to your satisfaction. This process complies with the Consumer Protection Act 68 of 2008 ("CPA") and the Protection of Personal Information Act 4 of 2013 ("POPIA").
 
@@ -146,7 +146,7 @@ Our Information Officer is responsible for handling POPIA-related complaints and
 
 - **Name:** [Name]
 - **Email:** privacy@bartersa.co.za
-- **Responsibilities:** Receiving and responding to data access requests, POPIA complaints, and queries about how Barter SA processes personal information.
+- **Responsibilities:** Receiving and responding to data access requests, POPIA complaints, and queries about how NoZar processes personal information.
 
 If your complaint relates to your personal data — including access requests, correction, deletion, or objection to processing — please direct it to our Information Officer.
 

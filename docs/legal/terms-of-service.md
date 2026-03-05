@@ -1,13 +1,13 @@
-# Barter SA — Terms of Service
+# NoZar — Terms of Service
 
 **Effective Date:** [Launch Date]
 **Last Updated:** [Date]
 
 ## 1. Introduction
 
-Welcome to Barter SA ("the Platform"), operated by [Your Legal Entity Name] (Registration No. [CIPC Number]), a company registered in the Republic of South Africa ("we", "us", "our").
+Welcome to NoZar ("the Platform"), operated by [Your Legal Entity Name] (Registration No. [CIPC Number]), a company registered in the Republic of South Africa ("we", "us", "our").
 
-These Terms of Service ("Terms") govern your use of the Barter SA progressive web application and all related services. By creating an account or using the Platform, you agree to these Terms in full.
+These Terms of Service ("Terms") govern your use of the NoZar progressive web application and all related services. By creating an account or using the Platform, you agree to these Terms in full.
 
 ## 2. Definitions
 
@@ -28,7 +28,7 @@ These Terms of Service ("Terms") govern your use of the Barter SA progressive we
 
 ## 4. The Platform's Role
 
-4.1. Barter SA is a technology platform that facilitates introductions between parties wishing to barter. We are NOT a party to any Barter Transaction.
+4.1. NoZar is a technology platform that facilitates introductions between parties wishing to barter. We are NOT a party to any Barter Transaction.
 
 4.2. We do not guarantee the quality, safety, legality, or value of any Listing.
 
@@ -116,7 +116,7 @@ The following may NOT be listed on the Platform:
 
 12.3. VAT-registered businesses must account for VAT on the fair market value of barter transactions.
 
-12.4. Barter SA does not provide tax advice. Users are solely responsible for their tax compliance. We recommend consulting a tax professional.
+12.4. NoZar does not provide tax advice. Users are solely responsible for their tax compliance. We recommend consulting a tax professional.
 
 ## 13. Limitation of Liability
 

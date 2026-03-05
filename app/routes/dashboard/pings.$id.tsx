@@ -326,15 +326,24 @@ export default function PingDetail({
     ? (navigation.formData?.get("intent") as string | null)
     : null;
 
-  // Poll for new messages every 5 seconds
+  // Poll for new messages every 2 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       if (revalidator.state === "idle") {
         revalidator.revalidate();
       }
-    }, 5000);
+    }, 2000);
     return () => clearInterval(interval);
   }, [revalidator]);
+
+  // Immediate revalidation after action completes
+  const prevNavState = useRef(navigation.state);
+  useEffect(() => {
+    if (prevNavState.current === "loading" && navigation.state === "idle") {
+      if (revalidator.state === "idle") revalidator.revalidate();
+    }
+    prevNavState.current = navigation.state;
+  }, [navigation.state, revalidator]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {

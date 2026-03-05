@@ -1,8 +1,8 @@
-# Barter SA — Community Guidelines
+# NoZar — Community Guidelines
 
 **Effective Date:** [Launch Date]
 
-These guidelines help keep Barter SA safe and fair for everyone. Violating them may result in warnings, suspension, or permanent removal from the platform.
+These guidelines help keep NoZar safe and fair for everyone. Violating them may result in warnings, suspension, or permanent removal from the platform.
 
 ---
 
