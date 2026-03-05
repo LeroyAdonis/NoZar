@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { data, Form, Link, useNavigation, useRevalidator } from "react-router";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and } from "drizzle-orm";
 import {
   ChevronLeft,
   Lock,
@@ -13,6 +13,7 @@ import {
   Phone,
   Mail,
   Handshake,
+  X,
 } from "lucide-react";
 import type { Route } from "./+types/pings.$id";
 import { requireAuth } from "~/lib/auth.server";
@@ -23,6 +24,7 @@ import {
   users,
   listings,
   contactDisclosures,
+  ratings,
 } from "~/lib/schema";
 import { timeAgo } from "~/lib/utils";
 
@@ -95,12 +97,21 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw data(null, { status: 404 });
   }
 
+  // Check if current user already rated this trade
+  const [existingRating] = await db
+    .select({ id: ratings.id, score: ratings.score })
+    .from(ratings)
+    .where(and(eq(ratings.tradeId, tradeId), eq(ratings.raterId, user.id)))
+    .limit(1);
+
   return {
     trade,
     messages: tradeMessages,
     counterparty: counterpartyRows[0],
     listing,
     currentUserId: user.id,
+    hasRated: !!existingRating,
+    existingRatingScore: existingRating?.score ?? null,
   };
 }
 
@@ -237,6 +248,64 @@ export async function action({ request, params }: Route.ActionArgs) {
       return { ok: true };
     }
 
+    case "cancelTrade": {
+      if (trade.status === "completed") {
+        return { error: "Cannot cancel a completed trade" };
+      }
+
+      await db
+        .update(trades)
+        .set({ status: "cancelled", updatedAt: new Date() })
+        .where(eq(trades.id, tradeId));
+
+      await db.insert(messages).values({
+        tradeId,
+        senderId: user.id,
+        text: `${user.name} cancelled this trade`,
+        type: "system",
+      });
+
+      return { ok: true };
+    }
+
+    case "submitRating": {
+      if (trade.status !== "completed") {
+        return { error: "Can only rate completed trades" };
+      }
+
+      // Prevent double-rating
+      const [existing] = await db
+        .select({ id: ratings.id })
+        .from(ratings)
+        .where(and(eq(ratings.tradeId, tradeId), eq(ratings.raterId, user.id)))
+        .limit(1);
+
+      if (existing) {
+        return { error: "You have already rated this trade" };
+      }
+
+      const score = Number(formData.get("score"));
+      if (!score || score < 1 || score > 5) {
+        return { error: "Please select a rating (1-5 stars)" };
+      }
+
+      const comment = (formData.get("comment") as string)?.trim() || null;
+
+      // The ratee is the counterparty
+      const counterpartyId =
+        trade.initiatorId === user.id ? trade.responderId : trade.initiatorId;
+
+      await db.insert(ratings).values({
+        tradeId,
+        raterId: user.id,
+        rateeId: counterpartyId,
+        score,
+        comment,
+      });
+
+      return { ok: true };
+    }
+
     default:
       return { error: "Unknown intent" };
   }
@@ -290,12 +359,31 @@ export default function PingDetail({
       <div className="mx-auto w-full max-w-md px-4 flex flex-col h-full min-h-0">
         {/* Chat header */}
         <div className="flex items-center justify-between pt-4 pb-4 border-b border-white/5 shrink-0">
-          <Link
-            to="/dashboard/pings"
-            className="p-2 -ml-2 text-slate-400 hover:text-white transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link
+              to="/dashboard/pings"
+              className="p-2 -ml-2 text-slate-400 hover:text-white transition-colors"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </Link>
+            {status !== "completed" && status !== "cancelled" && (
+              <Form
+                method="post"
+                onSubmit={(e) => {
+                  if (!confirm("Cancel this trade?")) e.preventDefault();
+                }}
+              >
+                <input type="hidden" name="intent" value="cancelTrade" />
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="text-[9px] font-mono uppercase tracking-widest text-red-400/60 hover:text-red-400 transition-colors px-1 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </Form>
+            )}
+          </div>
           <div className="text-center">
             <h3 className="font-bold text-sm text-white">
               {counterparty.name}
@@ -523,10 +611,43 @@ export default function PingDetail({
               </p>
             </div>
           )}
+
+          {/* Rating — show form if not yet rated, confirmation if already rated */}
+          {status === "completed" && !loaderData.hasRated && (
+            <RatingForm
+              isSubmitting={isSubmitting}
+              submittingIntent={submittingIntent}
+              counterpartyName={counterparty.name}
+            />
+          )}
+          {status === "completed" && loaderData.hasRated && (
+            <div className="mt-4 p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/20 text-center">
+              <span className="text-emerald-400 text-sm font-mono">
+                ★ You rated this trade {loaderData.existingRatingScore}/5
+              </span>
+            </div>
+          )}
+
+          {/* Cancelled */}
+          {status === "cancelled" && (
+            <div className="mt-6 p-5 rounded-2xl bg-red-500/5 border border-red-500/20">
+              <div className="flex justify-center mb-3">
+                <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center border border-red-500/50">
+                  <X className="w-5 h-5 text-red-400" />
+                </div>
+              </div>
+              <h4 className="text-center font-bold text-red-400 mb-2 uppercase tracking-wide">
+                Trade Cancelled
+              </h4>
+              <p className="text-center text-xs text-slate-400">
+                This trade has been cancelled.
+              </p>
+            </div>
+          )}
         </div>
 
-        {/* Chat Input Footer — hidden when trade is completed */}
-        {status !== "completed" && (
+        {/* Chat Input Footer — hidden when trade is completed or cancelled */}
+        {status !== "completed" && status !== "cancelled" && (
           <div className="pt-3 pb-2 shrink-0">
             <MessageInput
               status={status}
@@ -649,5 +770,66 @@ function ShareContactForm({
         </button>
       </Form>
     </div>
+  );
+}
+
+// ─── Rating form sub-component ───────────────────────────────────
+
+function RatingForm({
+  isSubmitting,
+  submittingIntent,
+  counterpartyName,
+}: {
+  isSubmitting: boolean;
+  submittingIntent: string | null;
+  counterpartyName: string;
+}) {
+  const [score, setScore] = useState(0);
+  const [hovered, setHovered] = useState(0);
+
+  return (
+    <Form method="post" className="mt-4 p-5 rounded-2xl bg-[#0F172A] border border-emerald-500/20">
+      <h4 className="font-bold text-white mb-1 uppercase tracking-wide text-sm">
+        Rate Your Trade
+      </h4>
+      <p className="text-xs text-slate-400 mb-4">
+        How was your experience with {counterpartyName}?
+      </p>
+      <input type="hidden" name="intent" value="submitRating" />
+      <input type="hidden" name="score" value={score} />
+
+      {/* Star rating */}
+      <div className="flex gap-2 justify-center mb-4">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            onClick={() => setScore(star)}
+            onMouseEnter={() => setHovered(star)}
+            onMouseLeave={() => setHovered(0)}
+            className={`text-2xl transition-transform hover:scale-110 ${
+              star <= (hovered || score) ? "text-emerald-400" : "text-slate-600"
+            }`}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+
+      <textarea
+        name="comment"
+        placeholder="Leave a comment (optional)..."
+        rows={2}
+        className="w-full bg-[#030712] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500/50 resize-none mb-3"
+      />
+
+      <button
+        type="submit"
+        disabled={isSubmitting || score === 0}
+        className="w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:bg-emerald-400 transition-all disabled:opacity-50"
+      >
+        {submittingIntent === "submitRating" ? "Submitting..." : "Submit Rating"}
+      </button>
+    </Form>
   );
 }
