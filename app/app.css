@@ -180,3 +180,12 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;              /* Webkit */
 }
+
+@keyframes loading-bar {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(420%);
+  }
+}

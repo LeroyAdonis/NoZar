@@ -61,11 +61,16 @@ const NAV_TABS: NavTab[] = [
 
 type BottomNavProps = {
   activeTab: string;
+  /** When true, nav items are visually dimmed and clicks are blocked */
+  isPending?: boolean;
 };
 
-export function BottomNav({ activeTab }: BottomNavProps) {
+export function BottomNav({ activeTab, isPending = false }: BottomNavProps) {
   return (
-    <nav className="fixed bottom-0 w-full z-50 bg-[#030712]/90 backdrop-blur-xl border-t border-white/10 pb-safe pt-2 px-6">
+    <nav
+      className="fixed bottom-0 w-full z-50 bg-[#030712]/90 backdrop-blur-xl border-t border-white/10 pb-safe pt-2 px-6"
+      aria-label="Main navigation"
+    >
       <div className="max-w-md mx-auto flex justify-between items-center relative pb-4">
         {NAV_TABS.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -77,7 +82,14 @@ export function BottomNav({ activeTab }: BottomNavProps) {
               <div key={tab.id} className="relative -top-6">
                 <Link
                   to={tab.href}
+                  aria-disabled={isPending}
+                  tabIndex={isPending ? -1 : undefined}
+                  onClick={isPending ? (e) => e.preventDefault() : undefined}
                   className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+                    isPending
+                      ? "opacity-70 cursor-not-allowed"
+                      : ""
+                  } ${
                     isActive
                       ? "bg-emerald-400 text-[#030712] scale-95"
                       : "bg-emerald-500 text-[#030712] shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:scale-105"
@@ -97,7 +109,14 @@ export function BottomNav({ activeTab }: BottomNavProps) {
             <Link
               key={tab.id}
               to={tab.href}
+              aria-disabled={isPending}
+              tabIndex={isPending ? -1 : undefined}
+              onClick={isPending ? (e) => e.preventDefault() : undefined}
               className={`relative flex flex-col items-center gap-1 p-2 transition-colors ${
+                isPending
+                  ? "opacity-70 cursor-not-allowed"
+                  : ""
+              } ${
                 isActive
                   ? tab.activeColor
                   : "text-slate-500 hover:text-slate-300"

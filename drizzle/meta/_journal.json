@@ -8,6 +8,13 @@
       "when": 1772630765177,
       "tag": "0000_wide_retro_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1772630765178,
+      "tag": "0001_add_thread_read_cursors",
+      "breakpoints": true
     }
   ]
 }

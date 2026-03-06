@@ -1,11 +1,11 @@
 import { useNavigate } from "react-router";
 import { MessageSquare } from "lucide-react";
-import { eq, or, desc, sql } from "drizzle-orm";
+import { and, eq, or, desc, sql } from "drizzle-orm";
 
 import type { Route } from "./+types/pings";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
-import { trades, users, listings, messages } from "~/lib/schema";
+import { trades, users, listings, messages, threadReadCursors } from "~/lib/schema";
 import { timeAgo } from "~/lib/utils";
 import type { TradeThread } from "~/lib/types";
 import { PingThread } from "~/components/ui/ping-thread";
@@ -62,12 +62,20 @@ export async function loader({ request }: Route.LoaderArgs) {
       lastMessage: latestMessage.text,
       lastMessageTime: latestMessage.createdAt,
       tradeUpdatedAt: trades.updatedAt,
+      lastReadAt: threadReadCursors.lastReadAt,
     })
     .from(trades)
     .innerJoin(initiator, eq(trades.initiatorId, initiator.id))
     .innerJoin(responder, eq(trades.responderId, responder.id))
     .innerJoin(listings, eq(trades.listingId, listings.id))
     .leftJoin(latestMessage, eq(trades.id, latestMessage.tradeId))
+    .leftJoin(
+      threadReadCursors,
+      and(
+        eq(threadReadCursors.tradeId, trades.id),
+        eq(threadReadCursors.userId, user.id),
+      ),
+    )
     .where(
       or(eq(trades.initiatorId, user.id), eq(trades.responderId, user.id)),
     )
@@ -82,12 +90,21 @@ export async function loader({ request }: Route.LoaderArgs) {
       ? new Date(row.lastMessageTime)
       : new Date(row.tradeUpdatedAt);
 
+    // Unread = has messages AND (no cursor OR latest message is newer than cursor)
+    const lastMsgDate = row.lastMessageTime
+      ? new Date(row.lastMessageTime)
+      : null;
+    const unread =
+      lastMsgDate !== null &&
+      (row.lastReadAt === null ||
+        lastMsgDate > new Date(row.lastReadAt));
+
     return {
       id: row.id,
       counterpartyName,
       listingTitle: row.listingTitle,
       status: row.status,
-      unread: false, // TODO: implement read tracking
+      unread,
       lastMessage: row.lastMessage ?? null,
       lastMessageTime: row.lastMessageTime
         ? new Date(row.lastMessageTime).toLocaleTimeString("en-ZA", {

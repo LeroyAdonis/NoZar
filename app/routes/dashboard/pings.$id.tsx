@@ -22,11 +22,14 @@ import {
   trades,
   messages,
   users,
+  profiles,
   listings,
   contactDisclosures,
   ratings,
 } from "~/lib/schema";
 import { timeAgo } from "~/lib/utils";
+import { markThreadRead } from "~/lib/notifications.server";
+import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
 // ─── Meta ──────────────────────────────────────────────────────
 
@@ -73,10 +76,11 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     db
       .select({
         name: users.name,
-        image: users.image,
+        image: profiles.avatarUrl,
         emailVerified: users.emailVerified,
       })
       .from(users)
+      .leftJoin(profiles, eq(profiles.userId, users.id))
       .where(eq(users.id, counterpartyId))
       .limit(1),
 
@@ -96,6 +100,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   if (!counterpartyRows[0] || !listing) {
     throw data(null, { status: 404 });
   }
+
+  // Mark thread as read now that the user is viewing it
+  await markThreadRead(db, user.id, tradeId);
 
   // Check if current user already rated this trade
   const [existingRating] = await db
@@ -366,6 +373,7 @@ export default function PingDetail({
   return (
     <div className="fixed inset-x-0 top-[73px] bottom-20 z-20 bg-[#030712] flex flex-col">
       <div className="mx-auto w-full max-w-md px-4 flex flex-col h-full min-h-0">
+        {isSubmitting && <LoadingBar className="mt-2" />}
         {/* Chat header */}
         <div className="flex items-center justify-between pt-4 pb-4 border-b border-white/5 shrink-0">
           <div className="flex items-center gap-1">
@@ -388,7 +396,7 @@ export default function PingDetail({
                   disabled={isSubmitting}
                   className="text-[9px] font-mono uppercase tracking-widest text-red-400/60 hover:text-red-400 transition-colors px-1 disabled:opacity-50"
                 >
-                  Cancel
+                  {submittingIntent === "cancelTrade" ? "Cancelling..." : "Cancel"}
                 </button>
               </Form>
             )}
@@ -493,9 +501,14 @@ export default function PingDetail({
                   disabled={isSubmitting}
                   className="w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50"
                 >
-                  {submittingIntent === "acceptHandshake"
-                    ? "Committing..."
-                    : "Commit & Reveal"}
+                  {submittingIntent === "acceptHandshake" ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Spinner className="w-3.5 h-3.5" />
+                      Committing...
+                    </span>
+                  ) : (
+                    "Commit & Reveal"
+                  )}
                 </button>
               </Form>
             </div>
@@ -595,9 +608,14 @@ export default function PingDetail({
                   disabled={isSubmitting}
                   className="w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50"
                 >
-                  {submittingIntent === "completeTrade"
-                    ? "Completing..."
-                    : "Mark Trade Complete"}
+                  {submittingIntent === "completeTrade" ? (
+                    <span className="inline-flex items-center gap-2">
+                      <Spinner className="w-3.5 h-3.5" />
+                      Completing...
+                    </span>
+                  ) : (
+                    "Mark Trade Complete"
+                  )}
                 </button>
               </Form>
             </div>
@@ -723,7 +741,11 @@ function MessageInput({
           disabled={isSubmitting && submittingIntent === "sendMessage"}
           className="p-3 rounded-xl bg-emerald-500 text-[#030712] hover:bg-emerald-400 transition-colors disabled:opacity-50"
         >
-          <Send className="w-5 h-5" />
+          {isSubmitting && submittingIntent === "sendMessage" ? (
+            <Spinner className="w-5 h-5" />
+          ) : (
+            <Send className="w-5 h-5" />
+          )}
         </button>
       </Form>
     </div>
@@ -773,9 +795,14 @@ function ShareContactForm({
           disabled={isSubmitting}
           className="w-full py-3 rounded-xl bg-cyan-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:bg-cyan-400 transition-all disabled:opacity-50"
         >
-          {submittingIntent === "shareContact"
-            ? "Sharing..."
-            : "Share & Continue"}
+          {submittingIntent === "shareContact" ? (
+            <span className="inline-flex items-center gap-2">
+              <Spinner className="w-3.5 h-3.5" />
+              Sharing...
+            </span>
+          ) : (
+            "Share & Continue"
+          )}
         </button>
       </Form>
     </div>
@@ -837,7 +864,14 @@ function RatingForm({
         disabled={isSubmitting || score === 0}
         className="w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:bg-emerald-400 transition-all disabled:opacity-50"
       >
-        {submittingIntent === "submitRating" ? "Submitting..." : "Submit Rating"}
+        {submittingIntent === "submitRating" ? (
+          <span className="inline-flex items-center gap-2">
+            <Spinner className="w-3.5 h-3.5" />
+            Submitting...
+          </span>
+        ) : (
+          "Submit Rating"
+        )}
       </button>
     </Form>
   );

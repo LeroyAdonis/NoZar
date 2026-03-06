@@ -7,6 +7,7 @@ import {
   real,
   jsonb,
   serial,
+  unique,
 } from "drizzle-orm/pg-core";
 
 // ─── Better Auth Managed Tables ────────────────────────────────
@@ -169,3 +170,23 @@ export const contactDisclosures = pgTable("contact_disclosures", {
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const threadReadCursors = pgTable(
+  "thread_read_cursors",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tradeId: integer("trade_id")
+      .notNull()
+      .references(() => trades.id, { onDelete: "cascade" }),
+    lastReadAt: timestamp("last_read_at").notNull().defaultNow(),
+  },
+  (t) => [
+    unique("thread_read_cursors_user_id_trade_id_unique").on(
+      t.userId,
+      t.tradeId,
+    ),
+  ],
+);

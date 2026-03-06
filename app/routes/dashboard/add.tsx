@@ -1,20 +1,28 @@
 import { useEffect, useRef, useState } from "react";
-import { Form, redirect, useFetcher } from "react-router";
+import { Form, redirect, useFetcher, useNavigation } from "react-router";
 import {
   Check,
+  ImagePlus,
   Loader2,
   MapPin,
   PackagePlus,
+  Plus,
   Sparkles,
+  Trash2,
   X,
 } from "lucide-react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { Route } from "./+types/add";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
-import { listings } from "~/lib/schema";
+import { listings, listingImages } from "~/lib/schema";
+import {
+  validateImageUrl,
+  sanitizeImageUrl,
+} from "~/lib/media-validation.server";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
+import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
 // ─── Constants ─────────────────────────────────────────────────
 
@@ -34,7 +42,7 @@ const CONDITIONS = ["New", "Like New", "Good", "Fair", "Poor"] as const;
 const DELIVERY_METHODS = ["Pickup", "Delivery", "Either"] as const;
 
 const selectStyles =
-  "w-full rounded-xl bg-[#0F172A] border border-white/10 text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 appearance-none";
+  "w-full rounded-xl bg-[#0F172A] border border-white/10 text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 appearance-none cursor-pointer";
 
 const textareaStyles =
   "w-full rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 resize-none";
@@ -163,22 +171,50 @@ export async function action({ request }: Route.ActionArgs) {
   if (!type || !["item", "service"].includes(type))
     errors.type = "Type is required";
 
+  // ── Collect & validate image URLs ─────────────────────────
+  const imageUrls: string[] = [];
+  for (let i = 0; i < 5; i++) {
+    const raw = formData.get(`imageUrl_${i}`) as string | null;
+    if (!raw || raw.trim() === "") continue;
+    const sanitized = sanitizeImageUrl(raw);
+    const result = validateImageUrl(sanitized);
+    if (!result.valid) {
+      errors[`imageUrl_${i}`] = result.error ?? "Invalid image URL";
+    } else {
+      imageUrls.push(sanitized);
+    }
+  }
+
   if (Object.keys(errors).length > 0) {
     return { errors };
   }
 
-  await db.insert(listings).values({
-    userId: user.id,
-    title: title!.trim(),
-    description: description!.trim(),
-    type: type!,
-    category: category!,
-    estimatedValueZar: estimatedValue ? parseInt(estimatedValue, 10) : null,
-    condition: type === "service" ? null : (condition || null),
-    deliveryMethod: deliveryMethod || null,
-    seekingDescription: seekingDescription?.trim() || null,
-    status: "active",
-  });
+  const [inserted] = await db
+    .insert(listings)
+    .values({
+      userId: user.id,
+      title: title!.trim(),
+      description: description!.trim(),
+      type: type!,
+      category: category!,
+      estimatedValueZar: estimatedValue ? parseInt(estimatedValue, 10) : null,
+      condition: type === "service" ? null : (condition || null),
+      deliveryMethod: deliveryMethod || null,
+      seekingDescription: seekingDescription?.trim() || null,
+      status: "active",
+    })
+    .returning({ id: listings.id });
+
+  // ── Insert image records ──────────────────────────────────
+  if (imageUrls.length > 0) {
+    await db.insert(listingImages).values(
+      imageUrls.map((url, order) => ({
+        listingId: inserted.id,
+        url,
+        order,
+      })),
+    );
+  }
 
   throw redirect("/dashboard");
 }
@@ -188,6 +224,7 @@ export async function action({ request }: Route.ActionArgs) {
 export default function AddAsset({ actionData }: Route.ComponentProps) {
   const [type, setType] = useState<"item" | "service">("item");
   const [aiDismissed, setAiDismissed] = useState(false);
+  const [imageUrls, setImageUrls] = useState<string[]>([""]);
   const errors = actionData?.errors as Record<string, string> | undefined;
 
   const formRef = useRef<HTMLFormElement>(null);
@@ -196,6 +233,7 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
   // Separate fetchers for AI actions — don't reset the main form
   const aiFetcher = useFetcher();
   const meetupFetcher = useFetcher();
+  const navigation = useNavigation();
 
   const aiData = aiFetcher.data as
     | { aiSuggestion: string }
@@ -209,6 +247,9 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
 
   const isAiLoading = aiFetcher.state !== "idle";
   const isMeetupLoading = meetupFetcher.state !== "idle";
+  const isListingSubmitting =
+    navigation.state === "submitting" &&
+    navigation.formData?.get("intent") == null;
 
   // Reset dismissed state when a new AI request starts
   useEffect(() => {
@@ -296,6 +337,7 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
 
       {/* Form */}
       <Form ref={formRef} method="post" className="space-y-6">
+        {isListingSubmitting && <LoadingBar />}
         {/* Hidden type field for form submission */}
         <input type="hidden" name="type" value={type} />
 
@@ -464,6 +506,83 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
           placeholder="e.g. 5000"
         />
 
+        {/* Images */}
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+              <ImagePlus className="w-3.5 h-3.5" />
+              Image URLs
+              <span className="text-slate-600">
+                ({imageUrls.length}/5)
+              </span>
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {imageUrls.map((url, index) => (
+              <div key={index}>
+                <div className="flex gap-2">
+                  <input
+                    name={`imageUrl_${index}`}
+                    type="url"
+                    value={url}
+                    onChange={(e) => {
+                      const next = [...imageUrls];
+                      next[index] = e.target.value;
+                      setImageUrls(next);
+                    }}
+                    placeholder={
+                      index === 0
+                        ? "https://i.imgur.com/example.jpg"
+                        : `Image URL ${index + 1}`
+                    }
+                    className="flex-1 rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 text-sm"
+                  />
+                  {imageUrls.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setImageUrls(imageUrls.filter((_, i) => i !== index))
+                      }
+                      className="shrink-0 w-10 h-10 rounded-xl border border-white/10 bg-[#0F172A] flex items-center justify-center text-slate-500 hover:text-red-400 hover:border-red-500/30 transition-colors"
+                      aria-label={`Remove image ${index + 1}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                {errors?.[`imageUrl_${index}`] && (
+                  <p className="mt-1 text-xs text-red-400">
+                    {errors[`imageUrl_${index}`]}
+                  </p>
+                )}
+                {/* Inline preview hint for non-empty valid-looking URLs */}
+                {url.trim().startsWith("https://") && url.trim().length > 12 && (
+                  <p className="mt-1 text-[11px] text-slate-600 truncate">
+                    {url.trim()}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {imageUrls.length < 5 && (
+            <button
+              type="button"
+              onClick={() => setImageUrls([...imageUrls, ""])}
+              className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Add another image
+            </button>
+          )}
+
+          <p className="mt-2 text-[11px] text-slate-600">
+            Paste HTTPS image URLs from Imgur, Unsplash, Cloudinary, or any
+            direct image link.
+          </p>
+        </div>
+
         {/* Condition — hidden for services */}
         {type === "item" && (
           <div>
@@ -593,8 +712,15 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
         </div>
 
         {/* Submit */}
-        <Button type="submit" size="lg" className="w-full">
-          List Asset
+        <Button type="submit" size="lg" className="w-full" disabled={isListingSubmitting}>
+          {isListingSubmitting ? (
+            <>
+              <Spinner />
+              Listing Asset...
+            </>
+          ) : (
+            "List Asset"
+          )}
         </Button>
       </Form>
     </div>

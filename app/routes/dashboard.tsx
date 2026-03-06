@@ -1,12 +1,28 @@
-import { Link, Outlet, useLocation } from "react-router";
-import { Bell, Repeat, Settings, ShieldCheck } from "lucide-react";
+import { Link, Outlet, useLocation, useNavigation } from "react-router";
+import { Bell, Repeat, ShieldCheck } from "lucide-react";
 import type { Route } from "./+types/dashboard";
 import { requireAuth } from "~/lib/auth.server";
+import { db } from "~/lib/db.server";
+import { profiles } from "~/lib/schema";
+import { eq } from "drizzle-orm";
+import { getUnreadCount } from "~/lib/notifications.server";
 import { BottomNav } from "~/components/ui/bottom-nav";
+import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
-  return { user };
+  const unreadCount = await getUnreadCount(db, user.id);
+
+  const [profile] = await db
+    .select({
+      avatarUrl: profiles.avatarUrl,
+      displayName: profiles.displayName,
+    })
+    .from(profiles)
+    .where(eq(profiles.userId, user.id))
+    .limit(1);
+
+  return { user, unreadCount, profile: profile ?? null };
 }
 
 function getActiveTab(pathname: string): string {
@@ -20,14 +36,27 @@ function getActiveTab(pathname: string): string {
 
 export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const location = useLocation();
+  const navigation = useNavigation();
   const activeTab = getActiveTab(location.pathname);
-  const { user } = loaderData;
+  const { user, unreadCount, profile } = loaderData;
+
+  const isNavigating = navigation.state !== "idle";
 
   // Get display name from user data
   const displayName = user.name ?? "User";
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-50 font-sans pb-28 selection:bg-emerald-500/30">
+      {/* Global navigation loading bar — fixed at very top of viewport */}
+      {isNavigating && (
+        <div className="fixed top-0 left-0 right-0 z-[100]">
+          <LoadingBar />
+          <span className="sr-only" aria-live="assertive">
+            Loading page
+          </span>
+        </div>
+      )}
+
       {/* Ambient background glow */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-20%] w-[60%] h-[30%] rounded-full bg-emerald-900/10 blur-[120px]" />
@@ -37,7 +66,12 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
       <header className="sticky top-0 z-40 bg-[#030712]/90 backdrop-blur-xl border-b border-white/5 px-6 py-4 flex justify-between items-center">
         <Link
           to="/dashboard"
-          className="flex items-center gap-2 group cursor-pointer text-slate-400 hover:text-emerald-400 transition-colors"
+          aria-disabled={isNavigating}
+          tabIndex={isNavigating ? -1 : undefined}
+          onClick={isNavigating ? (e) => e.preventDefault() : undefined}
+          className={`flex items-center gap-2 group cursor-pointer text-slate-400 hover:text-emerald-400 transition-colors ${
+            isNavigating ? "opacity-70 pointer-events-none" : ""
+          }`}
         >
           <div className="w-10 h-10 rounded-xl bg-[#0F172A] border border-white/10 flex items-center justify-center group-hover:border-emerald-500/50 group-hover:bg-emerald-500/10 transition-all duration-300">
             <Repeat className="w-5 h-5 text-emerald-400 stroke-[2.5]" />
@@ -60,27 +94,68 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
             </div>
           </div>
 
-          <button className="relative w-10 h-10 rounded-xl bg-[#0F172A] border border-white/10 flex items-center justify-center hover:border-white/20 transition-colors">
+          <Link
+            to="/dashboard/notifications"
+            aria-label={
+              unreadCount > 0
+                ? `Notifications — ${unreadCount} unread`
+                : "Notifications"
+            }
+            aria-disabled={isNavigating}
+            tabIndex={isNavigating ? -1 : undefined}
+            onClick={isNavigating ? (e) => e.preventDefault() : undefined}
+            className={`relative w-10 h-10 rounded-xl bg-[#0F172A] border border-white/10 flex items-center justify-center hover:border-white/20 transition-colors ${
+              isNavigating ? "opacity-70 cursor-not-allowed" : ""
+            }`}
+          >
             <Bell className="w-5 h-5 text-slate-400" />
-            <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-emerald-500 border border-[#030712]" />
-          </button>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-emerald-500 border-2 border-[#030712] flex items-center justify-center px-1">
+                <span className="text-[10px] font-bold text-white leading-none">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              </span>
+            )}
+          </Link>
 
           <Link
             to="/dashboard/profile"
-            className="w-10 h-10 rounded-xl bg-[#0F172A] border border-white/10 flex items-center justify-center hover:border-white/20 transition-colors"
+            aria-disabled={isNavigating}
+            tabIndex={isNavigating ? -1 : undefined}
+            onClick={isNavigating ? (e) => e.preventDefault() : undefined}
+            className={`relative w-10 h-10 rounded-full overflow-hidden border border-white/10 flex items-center justify-center hover:border-emerald-500/30 transition-colors ${
+              isNavigating ? "opacity-70 cursor-not-allowed" : ""
+            }`}
           >
-            <Settings className="w-5 h-5 text-slate-400" />
+            {isNavigating ? (
+              <Spinner className="w-5 h-5 text-emerald-400" />
+            ) : profile?.avatarUrl ? (
+              <img
+                src={profile.avatarUrl}
+                alt={displayName}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className="bg-slate-700 w-full h-full flex items-center justify-center text-emerald-400 font-bold text-sm">
+                {displayName.charAt(0).toUpperCase()}
+              </span>
+            )}
           </Link>
         </div>
       </header>
 
       {/* Main content */}
-      <main className="relative z-10 p-6 max-w-2xl mx-auto">
+      <main
+        className={`relative z-10 p-6 max-w-2xl mx-auto transition-opacity duration-200 ${
+          isNavigating ? "opacity-70" : ""
+        }`}
+        aria-busy={isNavigating}
+      >
         <Outlet />
       </main>
 
       {/* Bottom navigation */}
-      <BottomNav activeTab={activeTab} />
+      <BottomNav activeTab={activeTab} isPending={isNavigating} />
     </div>
   );
 }

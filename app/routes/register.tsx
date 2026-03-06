@@ -7,6 +7,7 @@ import { redirect } from "react-router";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { Repeat } from "lucide-react";
+import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const session = await getOptionalSession(request);
@@ -84,6 +85,7 @@ export default function RegisterPage() {
 
         {/* Sign-Up Form */}
         <form onSubmit={handleSignUp} className="space-y-4">
+          {loading && <LoadingBar />}
           <Input
             label="Display Name"
             type="text"
@@ -116,7 +118,14 @@ export default function RegisterPage() {
             disabled={loading}
             className="w-full"
           >
-            {loading ? "Creating account..." : "Create Account"}
+            {loading ? (
+              <>
+                <Spinner />
+                Creating account...
+              </>
+            ) : (
+              "Create Account"
+            )}
           </Button>
         </form>
 

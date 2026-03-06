@@ -9,6 +9,7 @@ import { db } from "~/lib/db.server";
 import { listings, listingImages, profiles, users } from "~/lib/schema";
 import { timeAgo, haversineKm, formatDistance } from "~/lib/utils";
 import { AssetCard } from "~/components/ui/asset-card";
+import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -270,6 +271,7 @@ export default function DashboardHome({
 
   return (
     <div className="space-y-6">
+      {isMatching && <LoadingBar />}
       {/* Section header */}
       <div className="flex justify-between items-end pt-2">
         <div>
@@ -289,7 +291,7 @@ export default function DashboardHome({
             disabled={isMatching}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-widest border transition-all disabled:opacity-50 disabled:cursor-wait bg-purple-500/10 text-purple-400 border-purple-500/30 hover:bg-purple-500/20 hover:border-purple-500/50"
           >
-            <Sparkles className="w-3 h-3" />
+            {isMatching ? <Spinner className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
             {isMatching ? "Matching…" : "AI Match"}
           </button>
         </fetcher.Form>

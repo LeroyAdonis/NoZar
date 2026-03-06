@@ -27,20 +27,26 @@ export function PingThread({ thread, onClick }: PingThreadProps) {
       {/* Content */}
       <div className="flex-1 min-w-0 py-0.5">
         <div className="flex justify-between items-start mb-1">
-          <h4 className="font-bold text-sm text-white">
+          <h4
+            className={`text-sm ${thread.unread ? "font-extrabold text-white" : "font-bold text-slate-300"}`}
+          >
             {thread.counterpartyName}
           </h4>
           <span className="text-[10px] font-mono text-slate-500">
             {thread.timeAgo}
           </span>
         </div>
-        <p className="text-xs text-slate-400 truncate">
+        <p
+          className={`text-xs truncate ${thread.unread ? "text-slate-300" : "text-slate-400"}`}
+        >
           Re: {thread.listingTitle}
         </p>
 
         {/* Last message preview */}
         {thread.lastMessage && (
-          <p className="text-xs text-slate-500 truncate mt-1">
+          <p
+            className={`text-xs truncate mt-1 ${thread.unread ? "text-slate-300 font-medium" : "text-slate-500"}`}
+          >
             {thread.lastMessage}
           </p>
         )}

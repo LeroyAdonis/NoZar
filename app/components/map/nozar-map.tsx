@@ -91,7 +91,10 @@ export function NozarMap({
       })
       .catch((err: unknown) => {
         setError("Failed to load map");
-        console.error("Google Maps load error:", err);
+        if (process.env.NODE_ENV !== "production") {
+          const details = err instanceof Error ? err.message : String(err);
+          setError(`Failed to load map: ${details}`);
+        }
       });
   }, [apiKey]);
 
@@ -129,11 +132,26 @@ export function NozarMap({
 
   if (error) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-[#030712] text-slate-500 text-sm">
-        {error}
+      <div className="flex h-full w-full items-center justify-center bg-[#030712] px-6">
+        <div className="rounded-2xl border border-rose-500/30 bg-rose-950/20 px-5 py-4 text-center ring-1 ring-rose-500/20">
+          <p className="text-sm font-semibold text-rose-200">Map failed to load</p>
+          <p className="mt-1 text-xs text-rose-200/80">{error}</p>
+        </div>
       </div>
     );
   }
 
-  return <div ref={mapRef} className="w-full h-full" />;
+  return (
+    <div className="relative h-full w-full">
+      <div ref={mapRef} className="h-full w-full" />
+      {!mapInstance && (
+        <div className="absolute inset-0 flex items-center justify-center bg-[#030712]/70 backdrop-blur-sm">
+          <div className="flex items-center gap-3 rounded-full border border-white/10 bg-[#0F172A]/90 px-4 py-2 text-sm text-slate-300">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+            Loading map…
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

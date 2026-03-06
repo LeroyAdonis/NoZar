@@ -12,6 +12,7 @@ import { db } from "~/lib/db.server";
 import {
   listings,
   users,
+  profiles,
   listingImages,
   trades,
   messages,
@@ -38,11 +39,12 @@ export async function loader({ params }: Route.LoaderArgs) {
         id: users.id,
         name: users.name,
         emailVerified: users.emailVerified,
-        image: users.image,
+        image: profiles.avatarUrl,
       },
     })
     .from(listings)
     .innerJoin(users, eq(listings.userId, users.id))
+    .leftJoin(profiles, eq(profiles.userId, users.id))
     .where(and(eq(listings.id, listingId), eq(listings.status, "active")))
     .limit(1);
 
@@ -142,6 +144,31 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
           </div>
         )}
       </div>
+
+      {/* Thumbnail strip for multiple images */}
+      {images.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mt-2">
+          {images.map((img, idx) => (
+            <a
+              key={img.id}
+              href={img.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`w-16 h-16 rounded-xl border overflow-hidden flex-shrink-0 transition-all hover:scale-105 ${
+                idx === 0
+                  ? "border-emerald-500/40 ring-1 ring-emerald-500/20"
+                  : "border-white/10 hover:border-white/30"
+              }`}
+            >
+              <img
+                src={img.url}
+                alt={`${listing.title} — image ${idx + 1}`}
+                className="w-full h-full object-cover"
+              />
+            </a>
+          ))}
+        </div>
+      )}
 
       {/* Title & exchange request */}
       <div>

@@ -74,7 +74,7 @@ export default function Map({ loaderData }: Route.ComponentProps) {
 
   if (!apiKey) {
     return (
-      <div className="flex h-full items-center justify-center">
+      <div className="flex min-h-[24rem] items-center justify-center">
         <div className="rounded-lg border border-slate-700 bg-slate-800/60 p-8 text-center">
           <div className="mb-3 text-4xl">🗺️</div>
           <h2 className="text-lg font-semibold text-slate-100">
@@ -89,7 +89,7 @@ export default function Map({ loaderData }: Route.ComponentProps) {
   }
 
   return (
-    <div className="relative -m-4 h-[calc(100%+2rem)] md:-m-6 md:h-[calc(100%+3rem)]">
+    <div className="relative -m-4 h-[65dvh] min-h-[24rem] md:-m-6 md:h-[70dvh]">
       <NozarMap
         apiKey={apiKey}
         pins={pins}
@@ -124,6 +124,15 @@ export default function Map({ loaderData }: Route.ComponentProps) {
       {pins.length > 0 && (
         <div className="absolute left-6 top-6 z-10 rounded-full bg-slate-800/90 px-3 py-1.5 text-xs font-medium text-slate-300 shadow-lg ring-1 ring-slate-700 backdrop-blur">
           {pins.length} {pins.length === 1 ? "listing" : "listings"} nearby
+        </div>
+      )}
+
+      {pins.length === 0 && (
+        <div className="absolute left-6 top-6 z-10 rounded-2xl border border-white/10 bg-[#0F172A]/90 px-4 py-3 shadow-lg backdrop-blur">
+          <p className="text-sm font-semibold text-slate-100">No nearby listings yet</p>
+          <p className="mt-1 text-xs text-slate-400">
+            Try again later or add your own listing to get started.
+          </p>
         </div>
       )}
     </div>

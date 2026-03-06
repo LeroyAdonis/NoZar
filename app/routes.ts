@@ -15,6 +15,7 @@ export default [
     route("asset/:id", "routes/dashboard/asset.$id.tsx"),
     route("pings", "routes/dashboard/pings.tsx"),
     route("pings/:id", "routes/dashboard/pings.$id.tsx"),
+    route("notifications", "routes/dashboard/notifications.tsx"),
     route("map", "routes/dashboard/map.tsx"),
     route("add", "routes/dashboard/add.tsx"),
     route("profile", "routes/dashboard/profile.tsx"),
