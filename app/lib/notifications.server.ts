@@ -38,30 +38,38 @@ export async function getUnreadCount(
   db: AppDb,
   userId: string,
 ): Promise<number> {
-  const result = await db
-    .select({
-      count: sql<number>`count(distinct ${trades.id})`,
-    })
-    .from(trades)
-    .innerJoin(messages, eq(messages.tradeId, trades.id))
-    .leftJoin(
-      threadReadCursors,
-      and(
-        eq(threadReadCursors.tradeId, trades.id),
-        eq(threadReadCursors.userId, userId),
-      ),
-    )
-    .where(
-      and(
-        or(eq(trades.initiatorId, userId), eq(trades.responderId, userId)),
-        or(
-          isNull(threadReadCursors.lastReadAt),
-          gt(messages.createdAt, threadReadCursors.lastReadAt),
+  try {
+    const result = await db
+      .select({
+        count: sql<number>`count(distinct ${trades.id})`,
+      })
+      .from(trades)
+      .innerJoin(messages, eq(messages.tradeId, trades.id))
+      .leftJoin(
+        threadReadCursors,
+        and(
+          eq(threadReadCursors.tradeId, trades.id),
+          eq(threadReadCursors.userId, userId),
         ),
-      ),
-    );
+      )
+      .where(
+        and(
+          or(eq(trades.initiatorId, userId), eq(trades.responderId, userId)),
+          or(
+            isNull(threadReadCursors.lastReadAt),
+            gt(messages.createdAt, threadReadCursors.lastReadAt),
+          ),
+        ),
+      );
 
-  return Number(result[0]?.count ?? 0);
+    return Number(result[0]?.count ?? 0);
+  } catch (error) {
+    console.warn(
+      "[notifications] Failed to fetch unread count:",
+      error instanceof Error ? error.message : error,
+    );
+    return 0;
+  }
 }
 
 /**
@@ -75,13 +83,20 @@ export async function markThreadRead(
   userId: string,
   tradeId: number,
 ): Promise<void> {
-  await db
-    .insert(threadReadCursors)
-    .values({ userId, tradeId, lastReadAt: sql`now()` })
-    .onConflictDoUpdate({
-      target: [threadReadCursors.userId, threadReadCursors.tradeId],
-      set: { lastReadAt: sql`now()` },
-    });
+  try {
+    await db
+      .insert(threadReadCursors)
+      .values({ userId, tradeId, lastReadAt: sql`now()` })
+      .onConflictDoUpdate({
+        target: [threadReadCursors.userId, threadReadCursors.tradeId],
+        set: { lastReadAt: sql`now()` },
+      });
+  } catch (error) {
+    console.warn(
+      "[notifications] Failed to mark thread read:",
+      error instanceof Error ? error.message : error,
+    );
+  }
 }
 
 /**
@@ -94,91 +109,99 @@ export async function getNotifications(
   db: AppDb,
   userId: string,
 ): Promise<TradeNotification[]> {
-  // Subquery: latest message per trade (mirrors pings.tsx pattern)
-  const latestMessage = db
-    .select({
-      tradeId: messages.tradeId,
-      text: sql<string>`(
+  try {
+    // Subquery: latest message per trade (mirrors pings.tsx pattern)
+    const latestMessage = db
+      .select({
+        tradeId: messages.tradeId,
+        text: sql<string>`(
         SELECT m2.text FROM ${messages} m2
         WHERE m2.trade_id = ${messages.tradeId}
         ORDER BY m2.created_at DESC LIMIT 1
       )`.as("latest_text"),
-      createdAt: sql<Date>`(
+        createdAt: sql<Date>`(
         SELECT m3.created_at FROM ${messages} m3
         WHERE m3.trade_id = ${messages.tradeId}
         ORDER BY m3.created_at DESC LIMIT 1
       )`.as("latest_created_at"),
-    })
-    .from(messages)
-    .groupBy(messages.tradeId)
-    .as("latest_msg");
+      })
+      .from(messages)
+      .groupBy(messages.tradeId)
+      .as("latest_msg");
 
-  // Alias the users table for initiator and responder
-  const initiator = db
-    .select({ id: users.id, name: users.name })
-    .from(users)
-    .as("initiator");
+    // Alias the users table for initiator and responder
+    const initiator = db
+      .select({ id: users.id, name: users.name })
+      .from(users)
+      .as("initiator");
 
-  const responder = db
-    .select({ id: users.id, name: users.name })
-    .from(users)
-    .as("responder");
+    const responder = db
+      .select({ id: users.id, name: users.name })
+      .from(users)
+      .as("responder");
 
-  const rows = await db
-    .select({
-      tradeId: trades.id,
-      tradeStatus: trades.status,
-      initiatorId: trades.initiatorId,
-      responderId: trades.responderId,
-      initiatorName: initiator.name,
-      responderName: responder.name,
-      listingTitle: listings.title,
-      lastMessageText: latestMessage.text,
-      lastMessageAt: latestMessage.createdAt,
-      lastReadAt: threadReadCursors.lastReadAt,
-    })
-    .from(trades)
-    .innerJoin(initiator, eq(trades.initiatorId, initiator.id))
-    .innerJoin(responder, eq(trades.responderId, responder.id))
-    .innerJoin(listings, eq(trades.listingId, listings.id))
-    .leftJoin(latestMessage, eq(trades.id, latestMessage.tradeId))
-    .leftJoin(
-      threadReadCursors,
-      and(
-        eq(threadReadCursors.tradeId, trades.id),
-        eq(threadReadCursors.userId, userId),
-      ),
-    )
-    .where(
-      or(eq(trades.initiatorId, userId), eq(trades.responderId, userId)),
-    )
-    .orderBy(desc(trades.updatedAt));
+    const rows = await db
+      .select({
+        tradeId: trades.id,
+        tradeStatus: trades.status,
+        initiatorId: trades.initiatorId,
+        responderId: trades.responderId,
+        initiatorName: initiator.name,
+        responderName: responder.name,
+        listingTitle: listings.title,
+        lastMessageText: latestMessage.text,
+        lastMessageAt: latestMessage.createdAt,
+        lastReadAt: threadReadCursors.lastReadAt,
+      })
+      .from(trades)
+      .innerJoin(initiator, eq(trades.initiatorId, initiator.id))
+      .innerJoin(responder, eq(trades.responderId, responder.id))
+      .innerJoin(listings, eq(trades.listingId, listings.id))
+      .leftJoin(latestMessage, eq(trades.id, latestMessage.tradeId))
+      .leftJoin(
+        threadReadCursors,
+        and(
+          eq(threadReadCursors.tradeId, trades.id),
+          eq(threadReadCursors.userId, userId),
+        ),
+      )
+      .where(
+        or(eq(trades.initiatorId, userId), eq(trades.responderId, userId)),
+      )
+      .orderBy(desc(trades.updatedAt));
 
-  return rows.map((row) => {
-    const counterpartyId =
-      row.initiatorId === userId ? row.responderId : row.initiatorId;
-    const counterpartyName =
-      row.initiatorId === userId ? row.responderName : row.initiatorName;
+    return rows.map((row) => {
+      const counterpartyId =
+        row.initiatorId === userId ? row.responderId : row.initiatorId;
+      const counterpartyName =
+        row.initiatorId === userId ? row.responderName : row.initiatorName;
 
-    const lastMessageAt = row.lastMessageAt
-      ? new Date(row.lastMessageAt)
-      : null;
+      const lastMessageAt = row.lastMessageAt
+        ? new Date(row.lastMessageAt)
+        : null;
 
-    // Unread = has messages AND (no cursor OR latest message is newer than cursor)
-    const unread =
-      lastMessageAt !== null &&
-      (row.lastReadAt === null ||
-        lastMessageAt > new Date(row.lastReadAt));
+      // Unread = has messages AND (no cursor OR latest message is newer than cursor)
+      const unread =
+        lastMessageAt !== null &&
+        (row.lastReadAt === null ||
+          lastMessageAt > new Date(row.lastReadAt));
 
-    return {
-      tradeId: row.tradeId,
-      counterpartyId,
-      counterpartyName,
-      listingTitle: row.listingTitle,
-      tradeStatus: row.tradeStatus,
-      lastMessageText: row.lastMessageText ?? null,
-      lastMessageAt,
-      unread,
-    };
-  });
+      return {
+        tradeId: row.tradeId,
+        counterpartyId,
+        counterpartyName,
+        listingTitle: row.listingTitle,
+        tradeStatus: row.tradeStatus,
+        lastMessageText: row.lastMessageText ?? null,
+        lastMessageAt,
+        unread,
+      };
+    });
+  } catch (error) {
+    console.warn(
+      "[notifications] Failed to fetch notifications:",
+      error instanceof Error ? error.message : error,
+    );
+    return [];
+  }
 }
