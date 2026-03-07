@@ -1,16 +1,16 @@
 import { eq, and, isNotNull } from "drizzle-orm";
 import { useCallback, useState } from "react";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 
 import { NozarMap } from "~/components/map/nozar-map";
+import { RegionToggle } from "~/components/ui/region-toggle";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
-import { listings } from "~/lib/schema";
+import { resolveRegion, MVP_REGIONS } from "~/lib/regions";
+import type { RegionSlug } from "~/lib/regions";
+import { listings, profiles } from "~/lib/schema";
 
 import type { Route } from "./+types/map";
-
-// Default center: Johannesburg CBD
-const JHB_CENTER = { lat: -26.2041, lng: 28.0473 };
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -20,7 +20,18 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
-  await requireAuth(request);
+  const { user } = await requireAuth(request);
+  const url = new URL(request.url);
+  const regionParam = url.searchParams.get("region");
+
+  const [userProfile] = await db
+    .select({ province: profiles.province })
+    .from(profiles)
+    .where(eq(profiles.userId, user.id))
+    .limit(1);
+
+  const currentRegion = resolveRegion(regionParam, userProfile?.province);
+  const regionConfig = MVP_REGIONS[currentRegion];
 
   const activeListings = await db
     .select({
@@ -31,15 +42,16 @@ export async function loader({ request }: Route.LoaderArgs) {
       type: listings.type,
     })
     .from(listings)
+    .innerJoin(profiles, eq(listings.userId, profiles.userId))
     .where(
       and(
         eq(listings.status, "active"),
         isNotNull(listings.lat),
         isNotNull(listings.lng),
+        eq(profiles.province, regionConfig.province),
       ),
     );
 
-  // Filter out any rows where lat/lng resolved to null at runtime
   const pins = activeListings
     .filter(
       (l): l is typeof l & { lat: number; lng: number } =>
@@ -53,13 +65,16 @@ export async function loader({ request }: Route.LoaderArgs) {
   return {
     listings: pins,
     apiKey: process.env.GOOGLE_MAPS_API_KEY ?? "",
+    regionCenter: regionConfig.center,
+    currentRegion,
   };
 }
 
 export default function Map({ loaderData }: Route.ComponentProps) {
-  const { listings: pins, apiKey } = loaderData;
+  const { listings: pins, apiKey, regionCenter, currentRegion } = loaderData;
   const navigate = useNavigate();
-  const [center, setCenter] = useState(JHB_CENTER);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [center, setCenter] = useState(regionCenter);
 
   const handlePinClick = useCallback(
     (id: number) => {
@@ -69,8 +84,12 @@ export default function Map({ loaderData }: Route.ComponentProps) {
   );
 
   const handleRecenter = useCallback(() => {
-    setCenter({ ...JHB_CENTER });
-  }, []);
+    setCenter({ ...regionCenter });
+  }, [regionCenter]);
+
+  function handleRegionChange(slug: RegionSlug) {
+    setSearchParams({ region: slug }, { preventScrollReset: true });
+  }
 
   if (!apiKey) {
     return (
@@ -90,6 +109,11 @@ export default function Map({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="relative -m-4 h-[65dvh] min-h-[24rem] md:-m-6 md:h-[70dvh]">
+      {/* Region toggle */}
+      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10">
+        <RegionToggle activeRegion={currentRegion} onChange={handleRegionChange} />
+      </div>
+
       <NozarMap
         apiKey={apiKey}
         pins={pins}
