@@ -8,6 +8,8 @@ import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import { listings, listingImages, profiles, users } from "~/lib/schema";
 import { timeAgo, haversineKm, formatDistance } from "~/lib/utils";
+import { resolveRegion, MVP_REGIONS, provinceToSlug, type RegionSlug } from "~/lib/regions";
+import { RegionToggle } from "~/components/ui/region-toggle";
 import { AssetCard } from "~/components/ui/asset-card";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
@@ -49,6 +51,17 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
   const url = new URL(request.url);
   const category = url.searchParams.get("category");
+  const regionParam = url.searchParams.get("region");
+
+  // Fetch user's province for region resolution
+  const [userProfile] = await db
+    .select({ lat: profiles.lat, lng: profiles.lng, province: profiles.province })
+    .from(profiles)
+    .where(eq(profiles.userId, user.id))
+    .limit(1);
+
+  const currentRegion = resolveRegion(regionParam, userProfile?.province);
+  const regionConfig = MVP_REGIONS[currentRegion];
 
   const rows = await db
     .select({
@@ -68,28 +81,25 @@ export async function loader({ request }: Route.LoaderArgs) {
     })
     .from(listings)
     .innerJoin(users, eq(listings.userId, users.id))
-    .where(eq(listings.status, "active"))
+    .innerJoin(profiles, eq(listings.userId, profiles.userId))
+    .where(
+      and(
+        eq(listings.status, "active"),
+        eq(profiles.province, regionConfig.province),
+      ),
+    )
     .orderBy(desc(listings.createdAt))
     .limit(20);
 
-  // Fetch user profile (for distance) and first images in parallel
+  // Fetch first images for listings
   const listingIds = rows.map((r) => r.id);
-  const [userProfileRows, images] = await Promise.all([
-    db
-      .select({ lat: profiles.lat, lng: profiles.lng })
-      .from(profiles)
-      .where(eq(profiles.userId, user.id))
-      .limit(1),
-    listingIds.length > 0
-      ? db
-          .select({ listingId: listingImages.listingId, url: listingImages.url })
-          .from(listingImages)
-          .where(inArray(listingImages.listingId, listingIds))
-          .orderBy(listingImages.order)
-      : Promise.resolve([]),
-  ]);
-
-  const userProfile = userProfileRows[0];
+  const images = listingIds.length > 0
+    ? await db
+        .select({ listingId: listingImages.listingId, url: listingImages.url })
+        .from(listingImages)
+        .where(inArray(listingImages.listingId, listingIds))
+        .orderBy(listingImages.order)
+    : [];
 
   // Keep only the first image per listing (query is ordered by `order`)
   const imageMap = new Map<number, string>();
@@ -120,7 +130,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       imageUrl: imageMap.get(r.id) ?? null,
     }));
 
-  return { listings: items };
+  return { listings: items, currentRegion, needsRegion: !userProfile?.province || !provinceToSlug(userProfile.province) };
 }
 
 // ─── Action (AI Match) ─────────────────────────────────────────
@@ -256,6 +266,14 @@ export default function DashboardHome({
   const activeCategory = searchParams.get("category") ?? "All";
   const radiusKm = Number(searchParams.get("radius") ?? "10");
   const fetcher = useFetcher<typeof action>();
+  const { currentRegion } = loaderData;
+
+  function handleRegionChange(slug: RegionSlug) {
+    const params = new URLSearchParams(searchParams);
+    params.set("region", slug);
+    params.delete("category");
+    setSearchParams(params, { preventScrollReset: true });
+  }
 
   const isMatching = fetcher.state !== "idle";
   const matchData = fetcher.data;
@@ -272,8 +290,13 @@ export default function DashboardHome({
   return (
     <div className="space-y-6">
       {isMatching && <LoadingBar />}
+      {/* Region toggle */}
+      <div className="flex justify-center pt-2">
+        <RegionToggle activeRegion={currentRegion} onChange={handleRegionChange} />
+      </div>
+
       {/* Section header */}
-      <div className="flex justify-between items-end pt-2">
+      <div className="flex justify-between items-end">
         <div>
           <span className="text-emerald-500 font-mono text-[10px] uppercase tracking-widest block mb-1">
             // Local Index
@@ -364,10 +387,10 @@ export default function DashboardHome({
             No results
           </p>
           <p className="text-slate-600 text-xs">
-            No assets found in{" "}
-            <span className="font-mono text-slate-500">
-              {activeCategory}
-            </span>
+            No assets found in this region
+            {activeCategory !== "All" && (
+              <> under <span className="font-mono text-slate-500">{activeCategory}</span></>
+            )}
           </p>
         </div>
       )}
