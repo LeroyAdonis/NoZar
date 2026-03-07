@@ -29,11 +29,14 @@ export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
 });
 
+export const SAFE_AUTH_SIGNIN_MESSAGE =
+  "Unable to sign in right now. Please try again in a moment.";
+
 /**
  * Returns true if the error is a transient DB connectivity failure
  * (e.g. Neon free-tier cold start after auto-suspend).
  */
-function isTransientDbError(error: unknown): boolean {
+export function isTransientDbError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const msg = error.message + String((error as { cause?: unknown }).cause ?? "");
   return (
