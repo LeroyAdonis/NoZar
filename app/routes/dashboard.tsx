@@ -8,6 +8,8 @@ import { eq } from "drizzle-orm";
 import { getUnreadCount } from "~/lib/notifications.server";
 import { BottomNav } from "~/components/ui/bottom-nav";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
+import { RegionPrompt } from "~/components/ui/region-prompt";
+import { provinceToSlug } from "~/lib/regions";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
@@ -17,12 +19,32 @@ export async function loader({ request }: Route.LoaderArgs) {
     .select({
       avatarUrl: profiles.avatarUrl,
       displayName: profiles.displayName,
+      province: profiles.province,
     })
     .from(profiles)
     .where(eq(profiles.userId, user.id))
     .limit(1);
 
   return { user, unreadCount, profile: profile ?? null };
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const { user } = await requireAuth(request);
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  if (intent === "setRegion") {
+    const province = (formData.get("province") as string)?.trim() || null;
+    if (province && provinceToSlug(province)) {
+      await db
+        .update(profiles)
+        .set({ province, updatedAt: new Date() })
+        .where(eq(profiles.userId, user.id));
+    }
+    return { success: true };
+  }
+
+  return { error: "Unknown intent" };
 }
 
 function getActiveTab(pathname: string): string {
@@ -39,6 +61,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const navigation = useNavigation();
   const activeTab = getActiveTab(location.pathname);
   const { user, unreadCount, profile } = loaderData;
+  const needsRegion = !profile?.province || !provinceToSlug(profile.province);
 
   const isNavigating = navigation.state !== "idle";
 
@@ -153,6 +176,8 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
       >
         <Outlet />
       </main>
+
+      {needsRegion && <RegionPrompt />}
 
       {/* Bottom navigation */}
       <BottomNav activeTab={activeTab} isPending={isNavigating} />
