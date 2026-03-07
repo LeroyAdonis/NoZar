@@ -35,19 +35,10 @@ import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Badge } from "~/components/ui/badge";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
+import { MVP_REGIONS, REGION_SLUGS } from "~/lib/regions";
 
-// ─── South African provinces ───────────────────────────────────
-const SA_PROVINCES = [
-  "Eastern Cape",
-  "Free State",
-  "Gauteng",
-  "KwaZulu-Natal",
-  "Limpopo",
-  "Mpumalanga",
-  "North West",
-  "Northern Cape",
-  "Western Cape",
-] as const;
+// ─── MVP provinces (WC & GP only) ──────────────────────────────
+const MVP_PROVINCES = REGION_SLUGS.map((slug) => MVP_REGIONS[slug].province);
 
 // ─── Listing option constants ──────────────────────────────────
 const CATEGORIES = [
@@ -715,12 +706,15 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
                 className="w-full rounded-xl bg-[#0F172A] border border-white/10 text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 appearance-none cursor-pointer"
               >
                 <option value="">Select province</option>
-                {SA_PROVINCES.map((p) => (
+                {MVP_PROVINCES.map((p) => (
                   <option key={p} value={p}>
                     {p}
                   </option>
                 ))}
               </select>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-slate-600 mt-1">
+                More provinces coming soon
+              </p>
             </div>
 
             <Button
