@@ -145,6 +145,18 @@ export async function action({ request }: Route.ActionArgs) {
 
   const { user } = await requireAuth(request);
 
+  const url = new URL(request.url);
+  const regionParam = url.searchParams.get("region");
+
+  const [regionProfile] = await db
+    .select({ province: profiles.province })
+    .from(profiles)
+    .where(eq(profiles.userId, user.id))
+    .limit(1);
+
+  const currentRegion = resolveRegion(regionParam, regionProfile?.province);
+  const regionConfig = MVP_REGIONS[currentRegion];
+
   // Check cache first
   const cached = getCachedMatches(user.id);
   if (cached) {
@@ -168,7 +180,7 @@ export async function action({ request }: Route.ActionArgs) {
     return { error: "no_listings" };
   }
 
-  // Get available listings from other users
+  // Get available listings from other users (scoped to current region)
   const otherListings = await db
     .select({
       id: listings.id,
@@ -179,10 +191,12 @@ export async function action({ request }: Route.ActionArgs) {
       type: listings.type,
     })
     .from(listings)
+    .innerJoin(profiles, eq(listings.userId, profiles.userId))
     .where(
       and(
         ne(listings.userId, user.id),
         eq(listings.status, "active"),
+        eq(profiles.province, regionConfig.province),
       ),
     )
     .limit(50);
