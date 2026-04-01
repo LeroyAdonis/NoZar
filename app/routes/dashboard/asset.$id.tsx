@@ -10,7 +10,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { eq, and, ne } from "drizzle-orm";
-import { requireAuth, getOptionalAuth } from "~/lib/auth.server";
+import { requireAuth, getOptionalSession } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import {
   listings,
@@ -37,7 +37,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw data(null, { status: 404 });
   }
 
-  const auth = await getOptionalAuth(request);
+  const auth = await getOptionalSession(request);
   const currentUserId = auth?.user?.id ?? null;
 
   const result = await db
