@@ -281,17 +281,113 @@ export const readinessFlags = pgTable("readiness_flags", {
 
 ---
 
+## 6. Value Balancing — "Add to the Pile"
+
+### Philosophy
+
+Real barter never worked as 1-for-1. A bicycle traded for a phone + a service. The lighter pile got topped up until both sides felt good. No calculator, just the feel of a fair deal.
+
+### UX Flow (Stage 1 — Chat)
+
+During encrypted chat, either party taps **"⚖️ Balance the Trade"** — opens a bottom sheet:
+
+```
+┌─────────────────────────────────────┐
+│  ⚖️ Balance the Trade                │
+│                                     │
+│  Their listing: Samsung S24 Ultra   │
+│  ~R8,000                            │
+│                                     │
+│  Your listing: Guitar Lessons (2hrs)│
+│  ~R600                              │
+│                                     │
+│  Gap: ~R7,400                       │
+│                                     │
+│  How do you want to balance?         │
+│  ◉ Add another listing              │
+│  ○ Extend my service offer          │
+│  ○ I accept as-is                   │
+│                                     │
+│  [Continue]                          │
+└─────────────────────────────────────┘
+```
+
+**"Add another listing"**: Shows their active listings. Tap to add 1–5 items to the trade pile.
+
+**"Extend my service"**: Free-text counter-offer — "I'll add website design, worth ~R1,500"
+
+**"I accept as-is"**: Skip balancing, proceed to handshake.
+
+### Rules
+
+- **Max 5 items per side** — keeps it manageable, not a swap shop
+- New items go into a **pending pile** — the counterparty must accept each addition
+- Deal is balanced when **both parties accept** the combined pile
+- Once balanced, the "Deal Struck" card appears with full pile summary
+
+### Deal Struck Card
+
+```
+┌─────────────────────────────────────────┐
+│  🤝 Deal Struck! Your pile:              │
+│  • Samsung S24 Ultra (~R8,000)          │
+│                                          │
+│  Their pile:                             │
+│  • Guitar Lessons (~R600)               │
+│  • Piano Lessons (~R300)                │
+│  • Website Design (~R1,500)             │
+│  • Old Tablet (~R2,000)                 │
+│  • 3kg Braai Pack (~R400 + bonus)       │
+│                                          │
+│  [🤝 Commit to Handshake]               │
+└─────────────────────────────────────────┘
+```
+
+### Schema
+
+```typescript
+export const tradeItems = pgTable("trade_items", {
+  id: serial("id").primaryKey(),
+  tradeId: integer("trade_id")
+    .notNull()
+    .references(() => trades.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  listingId: integer("listing_id")
+    .references(() => listings.id, { onDelete: "set null" }),
+  description: text("description"),           // free-text for service extensions
+  estimatedValue: integer("estimated_value_zar"),
+  type: text("type").notNull(),               // listing | service_extension
+  accepted: boolean("accepted").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+```
+
+### Enforcement
+
+- Subagents count items per `userId` per `tradeId` — reject if count >= 5
+- When either party adds an item, a system message shows in the chat stream:
+  > ⚖️ {name} added to the pile: "{item}" — ~R{value}
+- Counterparty sees accept/reject buttons on the addition
+- Rejected item removed, trade continues with existing pile
+- Accepted → pile grows, either party can trigger Stage 2 handshake at any time
+
+---
+
 ## Implementation Order (Subagent-Ready)
 
 | Task | File(s) | Complexity |
 |---|---|---|
 | T1: `trust_profiles` table + migration | `lib/schema.ts`, `drizzle/` | Easy |
 | T2: `tradeReports` + `readinessFlags` tables | `lib/schema.ts`, `drizzle/` | Easy |
-| T3: Trust badge component | `components/ui/trust-badge.tsx` | Easy |
-| T4: Newcomer message limit | `routes/dashboard/pings.$id.tsx` action | Medium |
-| T5: Trust level computation on trade complete | `routes/dashboard/pings.$id.tsx` action | Medium |
-| T6: Report/freeze UI + modal | `routes/dashboard/pings.$id.tsx` | Medium |
-| T7: Double-blind contact reveal | `routes/dashboard/pings.$id.tsx` | Medium |
-| T8: Gemini SafeZone API + UI | `routes/dashboard/pings.$id.tsx` + `lib/` | Hard |
-| T9: Profile trust display + active indicator | `routes/dashboard/profile.tsx` | Easy |
-| T10: Newcomer listing limit enforcement | `routes/dashboard/add.tsx` action | Easy |
+| T3: `tradeItems` table for value balancing | `lib/schema.ts`, `drizzle/` | Easy |
+| T4: Trust badge component | `components/ui/trust-badge.tsx` | Easy |
+| T5: Newcomer message limit | `routes/dashboard/pings.$id.tsx` action | Medium |
+| T6: Trust level computation on trade complete | `routes/dashboard/pings.$id.tsx` action | Medium |
+| T7: Report/freeze UI + modal | `routes/dashboard/pings.$id.tsx` | Medium |
+| T8: Double-blind contact reveal | `routes/dashboard/pings.$id.tsx` | Medium |
+| T9: Value balancing UI + add-to-pile flow | `routes/dashboard/pings.$id.tsx` | Medium |
+| T10: Gemini SafeZone API + UI | `routes/dashboard/pings.$id.tsx` + `lib/` | Hard |
+| T11: Profile trust display + active indicator | `routes/dashboard/profile.tsx` | Easy |
+| T12: Newcomer listing limit enforcement | `routes/dashboard/add.tsx` action | Easy |
