@@ -1,4 +1,4 @@
-import { data, redirect, useFetcher, Form, Link, useActionData } from "react-router";
+import { data, redirect, useFetcher, Form, Link } from "react-router";
 import type { Route } from "./+types/asset.$id";
 import {
   ChevronLeft,
@@ -133,8 +133,7 @@ export async function action({ request, params }: Route.ActionArgs) {
   return { error: "Unknown intent" };
 }
 
-export default function AssetDetail({ loaderData }: Route.ComponentProps) {
-  const actionData = useActionData<typeof action>();
+export default function AssetDetail({ loaderData, actionData }: Route.ComponentProps) {
   const archiveFetcher = useFetcher();
   const { listing, owner, images, isOwner } = loaderData;
   const heroImage = images[0]?.url;
