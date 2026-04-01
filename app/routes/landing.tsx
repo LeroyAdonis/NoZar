@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import {
   ArrowRight,
-  Repeat,
+
   ShieldCheck,
   MapPin,
   Briefcase,
@@ -136,7 +136,7 @@ export default function LandingPage({
             tabIndex={0}
           >
             <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center group-hover:border-emerald-500/50 group-hover:bg-emerald-500/10 transition-all duration-300">
-              <Repeat className="w-5 h-5 text-emerald-400 stroke-[2.5]" />
+              <img src="/logo.svg" alt="NoZar" className="w-6 h-6" />
             </div>
             <span className="text-2xl font-black tracking-tighter uppercase text-white">
               NoZar<span className="text-emerald-500">.</span>

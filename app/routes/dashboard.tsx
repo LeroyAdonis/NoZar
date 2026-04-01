@@ -1,5 +1,5 @@
 import { Link, Outlet, useLocation, useNavigation } from "react-router";
-import { Bell, Repeat, ShieldCheck } from "lucide-react";
+import { Bell, ShieldCheck } from "lucide-react";
 import type { Route } from "./+types/dashboard";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
@@ -97,7 +97,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
           }`}
         >
           <div className="w-10 h-10 rounded-xl bg-[#0F172A] border border-white/10 flex items-center justify-center group-hover:border-emerald-500/50 group-hover:bg-emerald-500/10 transition-all duration-300">
-            <Repeat className="w-5 h-5 text-emerald-400 stroke-[2.5]" />
+            <img src="/logo.svg" alt="NoZar" className="w-6 h-6" />
           </div>
           <span className="hidden sm:block font-black text-xl tracking-tighter uppercase text-white group-hover:text-emerald-400 transition-colors">
             NoZar.
