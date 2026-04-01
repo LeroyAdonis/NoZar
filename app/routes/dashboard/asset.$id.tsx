@@ -1,13 +1,16 @@
-import { data, redirect, Form, Link } from "react-router";
+import { data, redirect, useFetcher, Form, Link, useActionData } from "react-router";
 import type { Route } from "./+types/asset.$id";
 import {
   ChevronLeft,
   MessageSquare,
   Repeat,
   ShieldCheck,
+  Pencil,
+  Trash2,
+  RotateCcw,
 } from "lucide-react";
-import { eq, and } from "drizzle-orm";
-import { requireAuth } from "~/lib/auth.server";
+import { eq, and, ne } from "drizzle-orm";
+import { requireAuth, getOptionalAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import {
   listings,
@@ -17,6 +20,8 @@ import {
   trades,
   messages,
 } from "~/lib/schema";
+import { Button } from "~/components/ui/button";
+import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
 export function meta({ data: loaderData }: Route.MetaArgs) {
   const title = loaderData?.listing?.title ?? "Asset";
@@ -26,11 +31,14 @@ export function meta({ data: loaderData }: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ params }: Route.LoaderArgs) {
+export async function loader({ request, params }: Route.LoaderArgs) {
   const listingId = Number(params.id);
   if (Number.isNaN(listingId)) {
     throw data(null, { status: 404 });
   }
+
+  const auth = await getOptionalAuth(request);
+  const currentUserId = auth?.user?.id ?? null;
 
   const result = await db
     .select({
@@ -58,69 +66,100 @@ export async function loader({ params }: Route.LoaderArgs) {
     .where(eq(listingImages.listingId, listingId))
     .orderBy(listingImages.order);
 
+  const listing = result[0].listing;
+
   return {
-    listing: result[0].listing,
+    listing,
     owner: result[0].owner,
     images,
+    isOwner: listing.userId === currentUserId,
   };
 }
 
 export async function action({ request, params }: Route.ActionArgs) {
   const { user } = await requireAuth(request);
   const listingId = Number(params.id);
+  const formData = await request.formData();
+  const intent = formData.get("intent") as string | null;
 
-  // Fetch the listing to find the owner
   const [listing] = await db
     .select()
     .from(listings)
-    .where(and(eq(listings.id, listingId), eq(listings.status, "active")))
+    .where(and(eq(listings.id, listingId), eq(listings.userId, user.id)))
     .limit(1);
 
   if (!listing) {
     throw data(null, { status: 404 });
   }
 
-  // Self-ping prevention
-  if (listing.userId === user.id) {
-    throw data({ error: "You cannot ping your own listing" }, { status: 400 });
+  if (intent === "archive") {
+    await db
+      .update(listings)
+      .set({ status: "archived", updatedAt: new Date() })
+      .where(and(eq(listings.id, listingId), eq(listings.userId, user.id)));
+    throw redirect("/dashboard/profile");
   }
 
-  // Create trade record
-  const [trade] = await db
-    .insert(trades)
-    .values({
-      initiatorId: user.id,
-      responderId: listing.userId,
-      listingId,
-      status: "proposed",
-    })
-    .returning();
+  if (intent === "activate") {
+    await db
+      .update(listings)
+      .set({ status: "active", updatedAt: new Date() })
+      .where(and(eq(listings.id, listingId), eq(listings.userId, user.id)));
+    throw redirect(`/dashboard/asset/${listingId}`);
+  }
 
-  // Create initial system message
-  await db.insert(messages).values({
-    tradeId: trade.id,
-    senderId: user.id,
-    text: `Trade initiated by ${user.name}`,
-    type: "system",
-  });
+  if (intent === "ping") {
+    // Self-ping prevention checked above via listing.userId === user.id
+    const [trade] = await db
+      .insert(trades)
+      .values({
+        initiatorId: user.id,
+        responderId: listing.userId,
+        listingId,
+        status: "proposed",
+      })
+      .returning();
 
-  throw redirect(`/dashboard/pings/${trade.id}`);
+    await db.insert(messages).values({
+      tradeId: trade.id,
+      senderId: user.id,
+      text: `Trade initiated by ${user.name}`,
+      type: "system",
+    });
+
+    throw redirect(`/dashboard/pings/${trade.id}`);
+  }
+
+  return { error: "Unknown intent" };
 }
 
 export default function AssetDetail({ loaderData }: Route.ComponentProps) {
-  const { listing, owner, images } = loaderData;
-
+  const actionData = useActionData<typeof action>();
+  const archiveFetcher = useFetcher();
+  const { listing, owner, images, isOwner } = loaderData;
   const heroImage = images[0]?.url;
+  const isManaging = archiveFetcher.state !== "idle";
 
   return (
     <div className="space-y-6 pb-24 animate-in slide-in-from-right-4 duration-300">
+      {isManaging && <LoadingBar />}
       {/* Back button */}
-      <Link
-        to="/dashboard"
-        className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
-      >
-        <ChevronLeft className="w-4 h-4" /> Return to Index
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link
+          to="/dashboard"
+          className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" /> Return to Index
+        </Link>
+        {isOwner && (
+          <Link
+            to="/dashboard/profile"
+            className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-widest text-emerald-400 hover:text-emerald-300 border border-emerald-500/20 rounded-lg px-3 py-1.5 transition-colors"
+          >
+            <Pencil className="w-3.5 h-3.5" /> Edit
+          </Link>
+        )}
+      </div>
 
       {/* Hero image block */}
       <div
@@ -141,6 +180,12 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
         {listing.condition && (
           <div className="absolute top-4 right-4 bg-emerald-500/10 backdrop-blur-md rounded px-2 py-1 text-[10px] font-mono text-emerald-400 uppercase border border-emerald-500/20">
             {listing.condition}
+          </div>
+        )}
+        {/* Owner badge */}
+        {isOwner && (
+          <div className="absolute bottom-4 right-4 bg-emerald-500/20 backdrop-blur-md rounded px-3 py-1.5 text-[10px] font-mono text-emerald-400 uppercase border border-emerald-500/30 flex items-center gap-1.5">
+            <Pencil className="w-3 h-3" /> Your Listing
           </div>
         )}
       </div>
@@ -225,16 +270,49 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
           </div>
         </div>
 
-        {/* Initialize Ping CTA */}
-        <Form method="post">
-          <button
-            type="submit"
-            className="w-full py-4 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-sm hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2"
-          >
-            <MessageSquare className="w-4 h-4 fill-[#030712]" /> Initialize
-            Ping
-          </button>
-        </Form>
+        {isOwner ? (
+          /* Owner controls */
+          <div className="space-y-3">
+            <Link
+              to="/dashboard/profile"
+              className="w-full py-4 rounded-xl bg-white/5 border border-white/10 text-white font-bold text-sm flex items-center justify-center gap-2 hover:bg-white/10 transition-colors"
+            >
+              <Pencil className="w-4 h-4" /> Manage This Listing
+            </Link>
+            <archiveFetcher.Form method="post" className="space-y-2">
+              <input type="hidden" name="intent" value="archive" />
+              <Button
+                variant="nozarOutline"
+                size="md"
+                type="submit"
+                disabled={isManaging}
+                className="w-full text-red-400 border-red-500/20 hover:bg-red-500/5 hover:border-red-500/40"
+              >
+                {isManaging && archiveFetcher.formData?.get("intent") === "archive" ? (
+                  <>
+                    <Spinner className="w-4 h-4" />
+                    Archiving...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Archive Listing
+                  </>
+                )}
+              </Button>
+            </archiveFetcher.Form>
+          </div>
+        ) : (
+          <Form method="post">
+            <input type="hidden" name="intent" value="ping" />
+            <button
+              type="submit"
+              className="w-full py-4 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-sm hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2"
+            >
+              <MessageSquare className="w-4 h-4 fill-[#030712]" /> Initialize Ping
+            </button>
+          </Form>
+        )}
       </div>
     </div>
   );
