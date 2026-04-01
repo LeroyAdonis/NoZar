@@ -145,11 +145,11 @@ export default function LandingPage({
           {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-10">
             {[
-              { label: "Platform", id: "how-it-works" },
-              { label: "Exchange", id: "exchange" },
-              { label: "Protocol", id: "safety" },
-              { label: "Pricing", id: "pricing" },
-              { label: "FAQ", id: "faq" },
+              { label: "Platform", id: "how-it-works" as const },
+              { label: "Exchange", id: "exchange" as const },
+              { label: "Protocol", id: "safety" as const },
+              { label: "Pricing", id: "pricing" as const },
+              { label: "FAQ", id: "faq" as const },
             ].map((link) => {
               const isActive = activeSection === link.id;
               return (
