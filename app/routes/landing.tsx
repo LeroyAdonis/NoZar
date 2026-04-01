@@ -43,8 +43,7 @@ export function meta(_args: Route.MetaArgs) {
 
 const SECTION_IDS = [
   "how-it-works",
-  "consumers",
-  "business",
+  "exchange",
   "safety",
   "pricing",
   "faq",
@@ -147,8 +146,7 @@ export default function LandingPage({
           <div className="hidden md:flex items-center gap-10">
             {[
               { label: "Platform", id: "how-it-works" },
-              { label: "Consumers", id: "consumers" },
-              { label: "Business", id: "business" },
+              { label: "Exchange", id: "exchange" },
               { label: "Protocol", id: "safety" },
               { label: "Pricing", id: "pricing" },
               { label: "FAQ", id: "faq" },
@@ -226,11 +224,10 @@ export default function LandingPage({
           <div className="flex flex-col gap-8 text-lg font-mono uppercase tracking-widest">
             {[
               { num: "01", label: "Platform", id: "how-it-works" as const },
-              { num: "02", label: "Consumers", id: "consumers" as const },
-              { num: "03", label: "Business", id: "business" as const },
-              { num: "04", label: "Trust Protocol", id: "safety" as const },
-              { num: "05", label: "Pricing", id: "pricing" as const },
-              { num: "06", label: "FAQ", id: "faq" as const },
+              { num: "02", label: "Exchange", id: "exchange" as const },
+              { num: "03", label: "Trust Protocol", id: "safety" as const },
+              { num: "04", label: "Pricing", id: "pricing" as const },
+              { num: "05", label: "FAQ", id: "faq" as const },
             ].map((link) => {
               const isActive = activeSection === link.id;
               return (
@@ -386,13 +383,30 @@ export default function LandingPage({
         </div>
       </section>
 
-      {/* Dual Economies: Consumer + Business */}
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-6 pb-24">
+      {/* Dual Economies: Exchange (Consumer + Enterprise) */}
+      <section id="exchange" className="scroll-mt-32 pb-24">
+        <ScrollReveal>
+          <div className="max-w-7xl mx-auto px-6 lg:px-8 mb-8">
+            <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-3">
+              // Dual Economies
+            </span>
+            <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">
+              Pick Your{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
+                Channel.
+              </span>
+            </h2>
+            <p className="text-slate-400 text-lg mt-4 max-w-2xl">
+              Same network. Two interfaces. Trade idle assets as a consumer, or
+              liquidate dead stock as a verified enterprise.
+            </p>
+          </div>
+        </ScrollReveal>
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* For Consumers */}
         <ScrollReveal delay={0.1}>
-        <section
-          id="consumers"
-          className="scroll-mt-32 relative rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-white/10 p-10 hover:border-blue-500/30 transition-all duration-500"
+        <div
+          className="relative rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-white/10 p-10 hover:border-blue-500/30 transition-all duration-500"
         >
           <span className="text-blue-400 font-mono text-xs uppercase tracking-widest block mb-6">
             // User Node: Consumer
@@ -425,14 +439,13 @@ export default function LandingPage({
           >
             Initialize Consumer Node
           </Link>
-        </section>
+        </div>
         </ScrollReveal>
 
         {/* For Business */}
         <ScrollReveal delay={0.2}>
-        <section
-          id="business"
-          className="scroll-mt-32 relative rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-white/10 p-10 hover:border-emerald-500/30 transition-all duration-500"
+        <div
+          className="relative rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-white/10 p-10 hover:border-emerald-500/30 transition-all duration-500"
         >
           <span className="text-emerald-400 font-mono text-xs uppercase tracking-widest block mb-6">
             // User Node: Enterprise
@@ -466,9 +479,10 @@ export default function LandingPage({
           >
             View Enterprise Protocol
           </Link>
-        </section>
+        </div>
         </ScrollReveal>
       </div>
+      </section>
 
       {/* Security Protocol */}
       <section
