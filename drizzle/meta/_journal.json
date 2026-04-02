@@ -15,6 +15,13 @@
       "when": 1772630765178,
       "tag": "0001_add_thread_read_cursors",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775154784398,
+      "tag": "0002_unusual_tag",
+      "breakpoints": true
     }
   ]
 }
