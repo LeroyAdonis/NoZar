@@ -191,16 +191,6 @@ export const contactDisclosures = pgTable("contact_disclosures", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const threadReadCursors = pgTable("thread_read_cursors", {
-  id: serial("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => users.id),
-  tradeId: integer("trade_id")
-    .notNull()
-    .references(() => trades.id, { onDelete: "cascade" }),
-  lastReadAt: timestamp("last_read_at").notNull().defaultNow(),
-}, (t) => [unique("thread_read_cursors_user_trade_uq", t.userId, t.tradeId)]);
 
 // ─── Trust System Tables ───────────────────────────────────────
 
