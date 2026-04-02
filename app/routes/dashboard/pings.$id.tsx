@@ -601,8 +601,6 @@ export default function PingDetail({
     });
   }, [chatMessages.length]);
 
-  const status = trade.status;
-
   /* ------------------------------------------------------------------ *
    *  Layout: fixed overlay between dashboard header (73px) and bottom   *
    *  nav (~80px). This bypasses the parent <main> padding entirely,     *
@@ -612,7 +610,8 @@ export default function PingDetail({
    *  Bottom nav       ≈ pt-2 + icons/labels + pb-4 + border ≈ 80px     *
    * ------------------------------------------------------------------ */
   return (
-    <div className="fixed inset-x-0 top-[73px] bottom-20 z-20 bg-[#030712] flex flex-col">
+
+        <div className="fixed inset-x-0 top-[73px] bottom-20 z-20 bg-[#030712] flex flex-col">
       <div className="mx-auto w-full max-w-md px-4 flex flex-col h-full min-h-0">
         {isSubmitting && <LoadingBar className="mt-2" />}
         {/* Chat header */}
