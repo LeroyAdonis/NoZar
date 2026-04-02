@@ -158,6 +158,26 @@ export const ratings = pgTable("ratings", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const threadReadCursors = pgTable(
+  "thread_read_cursors",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    tradeId: integer("trade_id")
+      .notNull()
+      .references(() => trades.id, { onDelete: "cascade" }),
+    lastReadAt: timestamp("last_read_at").notNull().defaultNow(),
+  },
+  (t) => [
+    unique("thread_read_cursors_user_id_trade_id_unique").on(
+      t.userId,
+      t.tradeId,
+    ),
+  ],
+);
+
 export const contactDisclosures = pgTable("contact_disclosures", {
   id: serial("id").primaryKey(),
   tradeId: integer("trade_id")
@@ -170,6 +190,17 @@ export const contactDisclosures = pgTable("contact_disclosures", {
   expiresAt: timestamp("expires_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const threadReadCursors = pgTable("thread_read_cursors", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  tradeId: integer("trade_id")
+    .notNull()
+    .references(() => trades.id, { onDelete: "cascade" }),
+  lastReadAt: timestamp("last_read_at").notNull().defaultNow(),
+}, (t) => [unique("thread_read_cursors_user_trade_uq", t.userId, t.tradeId)]);
 
 // ─── Trust System Tables ───────────────────────────────────────
 
