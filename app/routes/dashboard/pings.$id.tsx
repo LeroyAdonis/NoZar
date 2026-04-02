@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { data, Form, Link, useNavigation, useRevalidator } from "react-router";
-import { eq, asc, and } from "drizzle-orm";
+import { eq, asc, and, count } from "drizzle-orm";
 import {
   ChevronLeft,
   Lock,
@@ -14,6 +14,9 @@ import {
   Mail,
   Handshake,
   X,
+  ShieldAlert,
+  Scale,
+  AlertTriangle,
 } from "lucide-react";
 import type { Route } from "./+types/pings.$id";
 import { requireAuth } from "~/lib/auth.server";
@@ -26,10 +29,20 @@ import {
   listings,
   contactDisclosures,
   ratings,
+  trustProfiles,
+  tradeReports,
+  readinessFlags,
+  meetupSpots,
+  meetupVotes,
+  tradeItems,
 } from "~/lib/schema";
 import { timeAgo } from "~/lib/utils";
 import { markThreadRead } from "~/lib/notifications.server";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
+import { TrustBadge } from "~/components/ui/trust-badge";
+import { ReportModal } from "~/components/ui/report-modal";
+import { SafeZonePicker } from "~/components/ui/safezone-picker";
+import { BalancePile } from "~/components/ui/balance-pile";
 
 // ─── Meta ──────────────────────────────────────────────────────
 
@@ -111,6 +124,56 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     .where(and(eq(ratings.tradeId, tradeId), eq(ratings.raterId, user.id)))
     .limit(1);
 
+  // ── Trust system extra queries ──────────────────────────────
+
+  // Trust profile for current user
+  const [myTrust] = await db
+    .select({ level: trustProfiles.level, completedTrades: trustProfiles.completedTrades })
+    .from(trustProfiles)
+    .where(eq(trustProfiles.userId, user.id))
+    .limit(1);
+
+  // Readiness flags for double-blind contact reveal
+  const [myReadyRow, theirReadyRow] = await Promise.all([
+    db.select().from(readinessFlags)
+      .where(and(eq(readinessFlags.tradeId, tradeId), eq(readinessFlags.userId, user.id)))
+      .limit(1),
+    db.select().from(readinessFlags)
+      .where(and(eq(readinessFlags.tradeId, tradeId), eq(readinessFlags.userId, counterpartyId)))
+      .limit(1),
+  ]);
+
+  // Meetup spots
+  const spots = await db.select().from(meetupSpots)
+    .where(eq(meetupSpots.tradeId, tradeId))
+    .orderBy(meetupSpots.order);
+  const votes = await db.select().from(meetupVotes)
+    .where(eq(meetupVotes.tradeId, tradeId));
+  const myVote = votes.find(v => v.userId === user.id);
+
+  // Trade items for value balancing
+  const tradeItemsForTrade = await db.select()
+    .from(tradeItems)
+    .where(eq(tradeItems.tradeId, tradeId))
+    .orderBy(tradeItems.createdAt);
+
+  // Count user's messages in this trade (for newcomer limit)
+  const [{ count: userMsgCount }] = await db
+    .select({ count: count() })
+    .from(messages)
+    .where(and(
+      eq(messages.tradeId, tradeId),
+      eq(messages.senderId, user.id),
+      eq(messages.type, "text"),
+    ));
+
+  // Active report if frozen
+  const activeReport = trade.status === "frozen"
+    ? await db.select().from(tradeReports)
+        .where(and(eq(tradeReports.tradeId, tradeId), eq(tradeReports.status, "active")))
+        .limit(1)
+    : null;
+
   return {
     trade,
     messages: tradeMessages,
@@ -119,6 +182,16 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     currentUserId: user.id,
     hasRated: !!existingRating,
     existingRatingScore: existingRating?.score ?? null,
+    myTrust: myTrust || { level: "newcomer" as const, completedTrades: 0 },
+    isReady: myReadyRow?.ready ?? false,
+    theyReady: theirReadyRow?.ready ?? false,
+    spots,
+    votes,
+    myVote: myVote ?? null,
+    tradeItemsForTrade,
+    userMsgCount,
+    activeReport,
+    maxItems: 5,
   };
 }
 
@@ -147,6 +220,27 @@ export async function action({ request, params }: Route.ActionArgs) {
 
   switch (intent) {
     case "sendMessage": {
+      // Newcomer message limit (max 3 per trade)
+      const [tp] = await db
+        .select({ level: trustProfiles.level })
+        .from(trustProfiles)
+        .where(eq(trustProfiles.userId, user.id))
+        .limit(1);
+
+      if (tp?.level === "newcomer") {
+        const [{ msgCount }] = await db
+          .select({ msgCount: count() })
+          .from(messages)
+          .where(and(
+            eq(messages.tradeId, tradeId),
+            eq(messages.senderId, user.id),
+            eq(messages.type, "text"),
+          ));
+        if (msgCount >= 3) {
+          return { error: "New users can send 3 messages per trade. Complete your first trade to unlock unlimited messaging." };
+        }
+      }
+
       const text = (formData.get("text") as string)?.trim();
       if (!text) {
         return { error: "Message cannot be empty" };
@@ -297,8 +391,6 @@ export async function action({ request, params }: Route.ActionArgs) {
       }
 
       const comment = (formData.get("comment") as string)?.trim() || null;
-
-      // The ratee is the counterparty
       const counterpartyId =
         trade.initiatorId === user.id ? trade.responderId : trade.initiatorId;
 
@@ -313,6 +405,148 @@ export async function action({ request, params }: Route.ActionArgs) {
       return { ok: true };
     }
 
+    // ── Trust system new actions ──────────────────────────────
+
+    case "reportTrade": {
+      const reason = (formData.get("reason") as string) || "other";
+      const description = (formData.get("description") as string) || "";
+
+      await db.insert(tradeReports).values({
+        tradeId,
+        reporterId: user.id,
+        reason,
+        description,
+        freezeExpiry: new Date(Date.now() + 72 * 60 * 60 * 1000), // 72h cooldown
+      });
+
+      await db
+        .update(trades)
+        .set({ status: "frozen", updatedAt: new Date() })
+        .where(eq(trades.id, tradeId));
+
+      await db.insert(messages).values({
+        tradeId,
+        senderId: user.id,
+        text: `Trade frozen — report filed (${reason})`,
+        type: "system",
+      });
+
+      return { success: true };
+    }
+
+    case "unfreezeTrade": {
+      const [activeReport] = await db
+        .select({ id: tradeReports.id, reason: tradeReports.reason })
+        .from(tradeReports)
+        .where(
+          and(
+            eq(tradeReports.tradeId, tradeId),
+            eq(tradeReports.reporterId, user.id),
+            eq(tradeReports.status, "active"),
+          ),
+        )
+        .limit(1);
+
+      if (activeReport) {
+        await db
+          .update(tradeReports)
+          .set({ status: "dismissed", resolvedAt: new Date() })
+          .where(eq(tradeReports.id, activeReport.id));
+
+        await db
+          .update(trades)
+          .set({ status: "negotiating", updatedAt: new Date() })
+          .where(eq(trades.id, tradeId));
+
+        await db.insert(messages).values({
+          tradeId,
+          senderId: user.id,
+          text: "Trade unfrozen by reporter",
+          type: "system",
+        });
+      }
+
+      return { success: true };
+    }
+
+    case "toggleReady": {
+      if (trade.status !== "agreed") {
+        return { error: "Trade must be in agreed state" };
+      }
+
+      const [existing] = await db
+        .select()
+        .from(readinessFlags)
+        .where(
+          and(
+            eq(readinessFlags.tradeId, tradeId),
+            eq(readinessFlags.userId, user.id),
+          ),
+        )
+        .limit(1);
+
+      if (existing) {
+        await db
+          .update(readinessFlags)
+          .set({ ready: !existing.ready, readyAt: existing.ready ? null : new Date() })
+          .where(eq(readinessFlags.id, existing.id));
+      } else {
+        await db.insert(readinessFlags).values({
+          tradeId,
+          userId: user.id,
+          ready: true,
+          readyAt: new Date(),
+        });
+      }
+
+      return { success: true };
+    }
+
+    case "addTradeItem": {
+      const listingId = formData.get("listingId")
+        ? Number(formData.get("listingId"))
+        : null;
+      const description = (formData.get("description") as string) || null;
+      const estimatedValue = formData.get("estimatedValue")
+        ? Number(formData.get("estimatedValue"))
+        : null;
+      const itemType = (formData.get("type") as string) || "listing";
+
+      // Count user's current items in this trade
+      const [{ itemCount }] = await db
+        .select({ itemCount: count() })
+        .from(tradeItems)
+        .where(
+          and(
+            eq(tradeItems.tradeId, tradeId),
+            eq(tradeItems.userId, user.id),
+          ),
+        );
+
+      if (itemCount >= 5) {
+        return { error: "Maximum 5 items per side" };
+      }
+
+      await db.insert(tradeItems).values({
+        tradeId,
+        userId: user.id,
+        listingId,
+        description,
+        estimatedValue,
+        type: itemType,
+      });
+
+      const itemName = listingId ? `Listing #${listingId}` : description || "Item";
+      await db.insert(messages).values({
+        tradeId,
+        senderId: user.id,
+        text: `⚖️ Added to pile: ${itemName}`,
+        type: "system",
+      });
+
+      return { success: true, itemCount: itemCount + 1 };
+    }
+
     default:
       return { error: "Unknown intent" };
   }
@@ -323,7 +557,9 @@ export async function action({ request, params }: Route.ActionArgs) {
 export default function PingDetail({
   loaderData,
 }: Route.ComponentProps) {
-  const { trade, messages: chatMessages, counterparty, listing, currentUserId } =
+  const { trade, messages: chatMessages, counterparty, listing, currentUserId,
+    myTrust, isReady, theyReady, spots, tradeItemsForTrade,
+    userMsgCount, activeReport, hasRated, existingRatingScore, maxItems } =
     loaderData;
   const navigation = useNavigation();
   const revalidator = useRevalidator();
@@ -332,8 +568,13 @@ export default function PingDetail({
   const submittingIntent = isSubmitting
     ? (navigation.formData?.get("intent") as string | null)
     : null;
+  const status = trade.status;
 
-  // Poll for new messages every 2 seconds
+  // ── Trust system state ────────────────────────────────────
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [showBalancePile, setShowBalancePile] = useState(false);
+
+  // ── Polling for new messages ──────────────────────────────
   useEffect(() => {
     const interval = setInterval(() => {
       if (revalidator.state === "idle") {
@@ -383,6 +624,16 @@ export default function PingDetail({
             >
               <ChevronLeft className="w-5 h-5" />
             </Link>
+            {status !== "completed" && status !== "cancelled" && status !== "frozen" && (
+              <button
+                type="button"
+                onClick={() => setShowReportModal(true)}
+                className="text-[9px] font-mono uppercase tracking-widest text-red-400/60 hover:text-red-400 transition-colors px-1"
+                title="Report this trade"
+              >
+                🚩
+              </button>
+            )}
             {status !== "completed" && status !== "cancelled" && (
               <Form
                 method="post"
@@ -402,9 +653,12 @@ export default function PingDetail({
             )}
           </div>
           <div className="text-center">
-            <h3 className="font-bold text-sm text-white">
-              {counterparty.name}
-            </h3>
+            <div className="flex items-center gap-2 justify-center">
+              <h3 className="font-bold text-sm text-white">
+                {counterparty.name}
+              </h3>
+              <TrustBadge level={(myTrust as any).level || "newcomer"} completedTrades={(myTrust as any).completedTrades || 0} averageRating={null} />
+            </div>
             <span className="text-[10px] font-mono text-slate-500 uppercase">
               {listing.title}
             </span>
@@ -479,6 +733,33 @@ export default function PingDetail({
             );
           })}
 
+          {/* Frozen banner */}
+          {trade.status === "frozen" && (
+            <div className="my-4 p-4 rounded-2xl bg-red-900/10 border border-red-500/20">
+              <div className="flex justify-center mb-2">
+                <ShieldAlert className="w-6 h-6 text-red-400" />
+              </div>
+              <h4 className="text-center font-bold text-red-400 mb-1 uppercase tracking-wide text-sm">
+                Trade Frozen
+              </h4>
+              <p className="text-center text-xs text-slate-400 mb-3">
+                Contact details are hidden. This trade is under review.
+              </p>
+              {activeReport && activeReport[0]?.reporterId === currentUserId && (
+                <Form method="post">
+                  <input type="hidden" name="intent" value="unfreezeTrade" />
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 text-xs font-mono uppercase tracking-widest"
+                  >
+                    {submittingIntent === "unfreezeTrade" ? <><Spinner /> Unfreezing...</> : "Unfreeze Trade"}
+                  </button>
+                </Form>
+              )}
+            </div>
+          )}
+
           {/* Handshake Stage: Negotiating — waiting for acceptance */}
           {status === "negotiating" && (
             <div className="mt-6 p-5 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
@@ -514,11 +795,81 @@ export default function PingDetail({
             </div>
           )}
 
-          {/* Handshake Stage: Agreed — SafeZone Ticket + Share Contact */}
+          {/* Handshake Stage: Agreed — Dual-Blind Contact + SafeZone */}
           {status === "agreed" && (
             <div className="mt-6 space-y-4">
+              {/* Dual-Blind Contact Reveal */}
+              <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <h4 className="font-bold text-white uppercase tracking-wide text-sm">
+                    Contact Exchange
+                  </h4>
+                </div>
+
+                {/* Readiness Grid */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className={`text-center p-3 rounded-xl border transition-all ${
+                    isReady
+                      ? "bg-emerald-500/10 border-emerald-500/30"
+                      : "bg-white/5 border-white/10"
+                  }`}>
+                    <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">
+                      You
+                    </span>
+                    <span className={`text-sm font-bold ${
+                      isReady ? "text-emerald-400" : "text-slate-400"
+                    }`}>
+                      {isReady ? "✓ Ready" : "Not Ready"}
+                    </span>
+                  </div>
+                  <div className={`text-center p-3 rounded-xl border transition-all ${
+                    theyReady
+                      ? "bg-emerald-500/10 border-emerald-500/30"
+                      : "bg-white/5 border-white/10"
+                  }`}>
+                    <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">
+                      {counterparty.name}
+                    </span>
+                    <span className={`text-sm font-bold ${
+                      theyReady ? "text-emerald-400" : "text-slate-400"
+                    }`}>
+                      {theyReady ? "✓ Ready" : "Not Ready"}
+                    </span>
+                  </div>
+                </div>
+
+                {isReady && theyReady ? (
+                  /* Both ready — reveal contacts */
+                  <ShareContactForm isSubmitting={isSubmitting} submittingIntent={submittingIntent} />
+                ) : isReady ? (
+                  <div className="text-center p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                    <p className="text-xs font-mono text-emerald-400">
+                      Waiting for {counterparty.name} to confirm...
+                    </p>
+                  </div>
+                ) : (
+                  <Form method="post">
+                    <input type="hidden" name="intent" value="toggleReady" />
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-mono uppercase tracking-widest text-xs transition-all disabled:opacity-50"
+                    >
+                      {submittingIntent === "toggleReady" ? (
+                        <span className="inline-flex items-center gap-2">
+                          <Spinner className="w-3.5 h-3.5" /> Committing...
+                        </span>
+                      ) : (
+                        "I'm Ready — Exchange Contacts"
+                      )}
+                    </button>
+                  </Form>
+                )}
+              </div>
+
+              {/* SafeZone Ticket */}
               <div className="rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-emerald-500/50 overflow-hidden shadow-[0_0_40px_rgba(16,185,129,0.2)]">
-                {/* Ticket Header */}
                 <div className="bg-emerald-500/10 p-4 border-b border-emerald-500/20 flex justify-between items-center">
                   <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 flex items-center gap-1">
                     <ShieldCheck className="w-3 h-3" /> Mutual Consensus Reached
@@ -528,21 +879,19 @@ export default function PingDetail({
                   </span>
                 </div>
 
-                {/* Map Placeholder */}
                 <div className="w-full h-32 bg-[#030712] relative flex items-center justify-center overflow-hidden">
                   <div className="absolute inset-0 opacity-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.03)_10px,rgba(255,255,255,0.03)_20px)]" />
                   <div className="w-32 h-32 rounded-full border border-cyan-500/20 absolute animate-ping" />
                   <MapPin className="w-8 h-8 text-cyan-400 relative z-10" />
                 </div>
 
-                {/* Meetup Details */}
                 <div className="p-5 space-y-4">
                   <div>
                     <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block mb-1">
                       System Selected Safe Zone
                     </span>
                     <h4 className="font-bold text-white text-lg flex items-center gap-2">
-                      Engen Garage, Main Rd{" "}
+                      AI-Powered Meetup Spot{" "}
                       <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                     </h4>
                     <p className="text-xs text-slate-400 mt-1">
@@ -550,29 +899,23 @@ export default function PingDetail({
                     </p>
                   </div>
 
-                  {/* Verification Grid */}
                   <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/5">
                     <div className="p-3 bg-white/5 rounded-xl border border-white/5">
                       <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">
                         Counterparty
                       </span>
                       <span className="text-xs font-bold text-emerald-400">
-                        {counterparty.emailVerified
-                          ? "ID Verified"
-                          : "Unverified"}
+                        {counterparty.emailVerified ? "ID Verified" : "Unverified"}
                       </span>
                     </div>
                     <div className="p-3 bg-white/5 rounded-xl border border-white/5">
                       <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">
                         Exchange Window
                       </span>
-                      <span className="text-xs font-bold text-white">
-                        48 Hours
-                      </span>
+                      <span className="text-xs font-bold text-white">48 Hours</span>
                     </div>
                   </div>
 
-                  {/* Navigation Button */}
                   <button
                     type="button"
                     className="w-full py-3 mt-2 rounded-xl bg-white/5 border border-white/10 text-white font-bold uppercase tracking-widest text-xs hover:bg-white/10 flex items-center justify-center gap-2 transition-colors"
@@ -581,9 +924,6 @@ export default function PingDetail({
                   </button>
                 </div>
               </div>
-
-              {/* Share Contact Form */}
-              <ShareContactForm isSubmitting={isSubmitting} submittingIntent={submittingIntent} />
             </div>
           )}
 
@@ -674,17 +1014,46 @@ export default function PingDetail({
         </div>
 
         {/* Chat Input Footer — hidden when trade is completed or cancelled */}
-        {status !== "completed" && status !== "cancelled" && (
+        {status !== "completed" && status !== "cancelled" && status !== "frozen" && (
           <div className="pt-3 pb-2 shrink-0">
             <MessageInput
               status={status}
               isSubmitting={isSubmitting}
               submittingIntent={submittingIntent}
+              myTrust={myTrust as any}
+              messagesRemaining={Math.max(0, 3 - ((userMsgCount ?? 0) as number))}
+              onBalanceClick={() => setShowBalancePile(true)}
             />
           </div>
         )}
       </div>
     </div>
+
+    {/* Report Modal */}
+    <ReportModal
+      isOpen={showReportModal}
+      onClose={() => setShowReportModal(false)}
+      onSubmit={(reason, description) => {
+        const fd = new FormData();
+        fd.set("intent", "reportTrade");
+        fd.set("reason", reason);
+        fd.set("description", description);
+        fetch(`/dashboard/pings/${trade.id}`, { method: "post", body: fd })
+          .then(() => { setShowReportModal(false); revalidator.revalidate(); });
+      }}
+      isSubmitting={isSubmitting && submittingIntent === "reportTrade"}
+    />
+
+    {/* Balance Pile */}
+    <BalancePile
+      isOpen={showBalancePile}
+      onClose={() => setShowBalancePile(false)}
+      onSubmit={() => { /* handled by form submission via BalancePile internals */ }}
+      maxItems={maxItems ?? 5}
+      userListing={[]}
+      theirValue={0}
+      yourValue={0}
+    />
   );
 }
 
@@ -694,10 +1063,16 @@ function MessageInput({
   status,
   isSubmitting,
   submittingIntent,
+  myTrust,
+  messagesRemaining,
+  onBalanceClick,
 }: {
   status: string;
   isSubmitting: boolean;
   submittingIntent: string | null;
+  myTrust?: { level: string; completedTrades: number };
+  messagesRemaining?: number;
+  onBalanceClick?: () => void;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -709,7 +1084,8 @@ function MessageInput({
   }, [isSubmitting, submittingIntent]);
 
   return (
-    <div className="flex gap-2">
+    <div>
+      <div className="flex gap-2">
       {/* Propose Handshake button — only in "proposed" (initial) state */}
       {status === "proposed" && (
         <Form method="post">
@@ -723,6 +1099,18 @@ function MessageInput({
             <ShieldCheck className="w-5 h-5" />
           </button>
         </Form>
+      )}
+
+      {/* Balance Trade button — only in "proposed" state */}
+      {status === "proposed" && onBalanceClick && (
+        <button
+          type="button"
+          onClick={onBalanceClick}
+          className="p-3 rounded-xl bg-[#0F172A] border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
+          title="Balance the Trade"
+        >
+          <Scale className="w-5 h-5" />
+        </button>
       )}
 
       {/* Message text input */}
@@ -748,6 +1136,18 @@ function MessageInput({
           )}
         </button>
       </Form>
+      </div>
+
+      {/* Newcomer message counter */}
+      {myTrust?.level === "newcomer" && (messagesRemaining ?? 0) >= 0 && (
+        <div className="text-center mt-1.5">
+          <span className="text-[8px] font-mono text-amber-400/80 tracking-wider">
+            {(messagesRemaining ?? 0) > 0
+              ? `${messagesRemaining} message${(messagesRemaining ?? 0) !== 1 ? "s" : ""} remaining this trade`
+              : "⚠️ Message limit reached — complete a trade to unlock"}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
