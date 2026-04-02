@@ -6,7 +6,6 @@ import { authClient } from "~/lib/auth.client";
 import { redirect } from "react-router";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
-import { Repeat } from "lucide-react";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -73,10 +72,17 @@ export default function LoginPage() {
   };
 
   const handleGoogleSignIn = async () => {
-    await authClient.signIn.social({
-      provider: "google",
-      callbackURL: "/dashboard",
-    });
+    setLoading(true);
+    setError("");
+    try {
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/dashboard",
+      });
+    } catch {
+      setError(SAFE_LOGIN_ERROR);
+      setLoading(false);
+    }
   };
 
   return (
@@ -85,9 +91,11 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="text-center">
           <Link to="/" className="inline-flex items-center gap-2 group">
-            <div className="w-12 h-12 rounded-xl bg-[#0F172A] border border-white/10 flex items-center justify-center group-hover:border-emerald-500/50 transition-all">
-              <Repeat className="w-6 h-6 text-emerald-400 stroke-[2.5]" />
-            </div>
+            <img
+              src="/logo.svg"
+              alt="NoZar"
+              className="w-12 h-12 rounded-xl"
+            />
           </Link>
           <h1 className="mt-4 text-2xl font-black uppercase tracking-tight text-white">
             Sign In
@@ -156,8 +164,16 @@ export default function LoginPage() {
           size="lg"
           className="w-full"
           onClick={handleGoogleSignIn}
+          disabled={loading}
         >
-          <svg className="w-4 h-4" viewBox="0 0 24 24">
+          {loading ? (
+            <>
+              <Spinner />
+              Redirecting...
+            </>
+          ) : (
+            <>
+              <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path
               fill="currentColor"
               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"

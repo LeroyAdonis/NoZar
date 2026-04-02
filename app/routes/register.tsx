@@ -64,9 +64,11 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="text-center">
           <Link to="/" className="inline-flex items-center gap-2 group">
-            <div className="w-12 h-12 rounded-xl bg-[#0F172A] border border-white/10 flex items-center justify-center group-hover:border-emerald-500/50 transition-all">
-              <Repeat className="w-6 h-6 text-emerald-400 stroke-[2.5]" />
-            </div>
+            <img
+              src="/logo.svg"
+              alt="NoZar"
+              className="w-12 h-12 rounded-xl"
+            />
           </Link>
           <h1 className="mt-4 text-2xl font-black uppercase tracking-tight text-white">
             Create Account
