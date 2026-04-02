@@ -20,6 +20,7 @@ import { PricingSection } from "~/components/landing/pricing-section";
 import { TestimonialsSection } from "~/components/landing/testimonials-section";
 import { FaqSection } from "~/components/landing/faq-section";
 import FooterSection from "~/components/landing/footer-section";
+import { CookieConsentBanner } from "~/components/landing/cookie-consent-banner";
 import type { Route } from "./+types/landing";
 import { ScrollReveal } from "~/components/motion/scroll-reveal";
 import { MagneticButton } from "~/components/motion/magnetic-button";
@@ -597,6 +598,8 @@ export default function LandingPage({
 
       {/* Footer */}
       <FooterSection />
+      {/* Cookie Consent Banner */}
+      <CookieConsentBanner />
     </div>
   );
 }
