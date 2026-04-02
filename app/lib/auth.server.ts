@@ -1,3 +1,4 @@
+// Google auth fixed: BETTER_AUTH_URL -> https://no-zar-r66j.vercel.app
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { redirect } from "react-router";
