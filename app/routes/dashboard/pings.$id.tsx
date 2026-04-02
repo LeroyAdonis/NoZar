@@ -610,7 +610,7 @@ export default function PingDetail({
    *  Bottom nav       ≈ pt-2 + icons/labels + pb-4 + border ≈ 80px     *
    * ------------------------------------------------------------------ */
   return (
-
+    <>
         <div className="fixed inset-x-0 top-[73px] bottom-20 z-20 bg-[#030712] flex flex-col">
       <div className="mx-auto w-full max-w-md px-4 flex flex-col h-full min-h-0">
         {isSubmitting && <LoadingBar className="mt-2" />}
@@ -1053,7 +1053,8 @@ export default function PingDetail({
       theirValue={0}
       yourValue={0}
     />
-  );
+  </>
+);
 }
 
 // ─── Message input sub-component ────────────────────────────────
