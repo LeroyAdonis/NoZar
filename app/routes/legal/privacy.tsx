@@ -29,8 +29,23 @@ export default function PrivacyPage({ loaderData }: Route.ComponentProps) {
         <span className="font-mono text-[10px] uppercase tracking-widest text-emerald-400">
           Legal
         </span>
+        <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white mt-2">
+          Privacy Policy
+        </h1>
+        <p className="text-slate-500 text-sm mt-1">
+          POPIA-compliant data handling · Last updated: January 2025
+        </p>
       </div>
       <MarkdownRenderer blocks={loaderData.blocks} />
+
+      <nav className="mt-12 pt-6 border-t border-white/5">
+        <p className="font-mono text-[10px] uppercase tracking-widest text-slate-600 mb-3">Other Documents</p>
+        <div className="flex flex-wrap gap-3">
+          <a href="/legal/terms" className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">Terms of Service →</a>
+          <a href="/legal/community-guidelines" className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">Community Guidelines →</a>
+          <a href="/legal/complaints" className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">Complaints Process →</a>
+        </div>
+      </nav>
     </div>
   );
 }
