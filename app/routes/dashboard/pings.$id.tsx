@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { data, Form, Link, useNavigation, useRevalidator } from "react-router";
+import { data, Form, Link, useFetcher, useNavigation, useRevalidator } from "react-router";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { eq, asc, and, count } from "drizzle-orm";
 import {
   ChevronLeft,
@@ -9,14 +10,12 @@ import {
   Unlock,
   MapPin,
   CheckCircle2,
-  Navigation2,
   Phone,
   Mail,
   Handshake,
   X,
   ShieldAlert,
   Scale,
-  AlertTriangle,
 } from "lucide-react";
 import type { Route } from "./+types/pings.$id";
 import { requireAuth } from "~/lib/auth.server";
@@ -174,6 +173,10 @@ export async function loader({ request, params }: Route.LoaderArgs) {
         .limit(1)
     : null;
 
+  // Contact disclosures — visible once status is contact_shared or completed
+  const disclosures = await db.select().from(contactDisclosures)
+    .where(eq(contactDisclosures.tradeId, tradeId));
+
   return {
     trade,
     messages: tradeMessages,
@@ -191,6 +194,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     tradeItemsForTrade,
     userMsgCount,
     activeReport,
+    disclosures,
     maxItems: 5,
   };
 }
@@ -547,6 +551,136 @@ export async function action({ request, params }: Route.ActionArgs) {
       return { success: true, itemCount: itemCount + 1 };
     }
 
+    case "generateSafeZone": {
+      if (trade.status !== "agreed") {
+        return { error: "Trade must be agreed before generating meetup spots" };
+      }
+
+      // ── Idempotency guard: return early if spots already exist ────────
+      const existingSpots = await db
+        .select({ id: meetupSpots.id })
+        .from(meetupSpots)
+        .where(eq(meetupSpots.tradeId, tradeId))
+        .limit(1);
+
+      if (existingSpots.length > 0) {
+        return { ok: true };
+      }
+
+      // ── Gemini key check ─────────────────────────────────────────────
+      const apiKey = process.env.GEMINI_API_KEY;
+      if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY") {
+        return { error: "no_gemini_key" };
+      }
+
+      // ── Resolve location from listing owner's profile ────────────────
+      const [listingRow] = await db
+        .select({ userId: listings.userId })
+        .from(listings)
+        .where(eq(listings.id, trade.listingId))
+        .limit(1);
+
+      const [ownerProfile] = listingRow
+        ? await db
+            .select({ suburb: profiles.suburb, city: profiles.city })
+            .from(profiles)
+            .where(eq(profiles.userId, listingRow.userId))
+            .limit(1)
+        : [];
+
+      const location =
+        ownerProfile?.suburb ??
+        ownerProfile?.city ??
+        "South Africa";
+
+      // ── Call Gemini ──────────────────────────────────────────────────
+      try {
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+
+        const result = await model.generateContent(
+          `Suggest exactly 3 safe public meetup spots near ${location}, South Africa for a barter exchange.
+           Prefer shopping malls, police stations, community centres, or busy well-lit public spaces.
+           Return ONLY a JSON array of exactly 3 objects with keys: name, address, reason.
+           No markdown, no explanation, no code fences. Example:
+           [{"name":"Sandton City Mall","address":"83 Rivonia Rd, Sandton, Johannesburg","reason":"High foot traffic with 24/7 security"}]`,
+        );
+
+        const raw = result.response.text().trim();
+        const match = raw.match(/\[.*\]/s);
+        if (!match) return { error: "invalid_ai_response" };
+
+        const parsed: unknown = JSON.parse(match[0]);
+        if (!Array.isArray(parsed)) return { error: "invalid_ai_response" };
+
+        type SpotShape = { name: string; address: string; reason: string };
+        const validSpots = parsed.filter(
+          (s): s is SpotShape =>
+            typeof s === "object" &&
+            s !== null &&
+            typeof (s as Record<string, unknown>).name === "string" &&
+            typeof (s as Record<string, unknown>).address === "string" &&
+            typeof (s as Record<string, unknown>).reason === "string",
+        );
+
+        if (validSpots.length === 0) return { error: "invalid_ai_response" };
+
+        await db.insert(meetupSpots).values(
+          validSpots.map((spot, idx) => ({
+            tradeId,
+            name: spot.name,
+            address: spot.address,
+            reason: spot.reason,
+            order: idx,
+          })),
+        );
+
+        return { ok: true };
+      } catch {
+        return { error: "gemini_failed" };
+      }
+    }
+
+    case "voteMeetupSpot": {
+      if (trade.status !== "agreed") {
+        return { error: "Trade must be agreed to vote on meetup spots" };
+      }
+
+      const spotId = Number(formData.get("spotId"));
+      if (!spotId || Number.isNaN(spotId)) {
+        return { error: "spotId is required" };
+      }
+
+      // Verify spot belongs to this trade
+      const [spot] = await db
+        .select({ id: meetupSpots.id })
+        .from(meetupSpots)
+        .where(
+          and(eq(meetupSpots.id, spotId), eq(meetupSpots.tradeId, tradeId)),
+        )
+        .limit(1);
+
+      if (!spot) return { error: "spot_not_found" };
+
+      // Upsert: delete any existing vote for this user+trade, then insert
+      await db
+        .delete(meetupVotes)
+        .where(
+          and(
+            eq(meetupVotes.tradeId, tradeId),
+            eq(meetupVotes.userId, user.id),
+          ),
+        );
+
+      await db.insert(meetupVotes).values({
+        tradeId,
+        userId: user.id,
+        spotId,
+      });
+
+      return { ok: true };
+    }
+
     default:
       return { error: "Unknown intent" };
   }
@@ -558,8 +692,9 @@ export default function PingDetail({
   loaderData,
 }: Route.ComponentProps) {
   const { trade, messages: chatMessages, counterparty, listing, currentUserId,
-    myTrust, isReady, theyReady, spots, tradeItemsForTrade,
-    userMsgCount, activeReport, hasRated, existingRatingScore, maxItems } =
+    myTrust, isReady, theyReady, spots, myVote, tradeItemsForTrade,
+    userMsgCount, activeReport, hasRated, existingRatingScore, maxItems,
+    disclosures } =
     loaderData;
   const navigation = useNavigation();
   const revalidator = useRevalidator();
@@ -569,6 +704,33 @@ export default function PingDetail({
     ? (navigation.formData?.get("intent") as string | null)
     : null;
   const status = trade.status;
+
+  // ── SafeZone fetchers ─────────────────────────────────────
+  const generateFetcher = useFetcher<{ ok?: boolean; error?: string }>();
+  const voteFetcher = useFetcher<{ ok?: boolean; error?: string }>();
+  const isGeneratingSpots = generateFetcher.state !== "idle";
+
+  // Map DB spots to SafeZonePicker's MeetupSpot shape
+  const mappedSpots = spots.map((s) => ({
+    name: s.name,
+    address: s.address,
+    reason: s.reason ?? "",
+  }));
+
+  // Derive the selected index (null when not voted, -1 if vote is stale)
+  const selectedSpotIdx =
+    myVote != null
+      ? spots.findIndex((s) => s.id === myVote.spotId)
+      : null;
+
+  // Optimistic selected index while a vote is in-flight
+  const pendingSpotId = voteFetcher.formData
+    ? Number(voteFetcher.formData.get("spotId"))
+    : null;
+  const optimisticSelectedIdx =
+    pendingSpotId != null
+      ? spots.findIndex((s) => s.id === pendingSpotId)
+      : selectedSpotIdx;
 
   // ── Trust system state ────────────────────────────────────
   const [showReportModal, setShowReportModal] = useState(false);
@@ -603,16 +765,355 @@ export default function PingDetail({
 
   /* ------------------------------------------------------------------ *
    *  Layout: fixed overlay between dashboard header (73px) and bottom   *
-   *  nav (~80px). This bypasses the parent <main> padding entirely,     *
-   *  giving the chat full control of its vertical space.                 *
+   *  nav (~80px) on mobile. On desktop (md+) the sidebar is 240px wide  *
+   *  (set on root via md:pl-60), so we use md:left-60 to avoid overlap. *
+   *  Two-column layout on desktop: chat left (3/5), status panel right. *
    *                                                                      *
    *  Dashboard header = py-4 (32px) + 40px content + 1px border = 73px  *
    *  Bottom nav       ≈ pt-2 + icons/labels + pb-4 + border ≈ 80px     *
    * ------------------------------------------------------------------ */
+
+  // Status panel JSX — rendered in scroll area on mobile (md:hidden),
+  // and in the dedicated right column on desktop (hidden md:flex).
+  // Using a local function so it closes over all component state without
+  // prop drilling. display:none on the hidden instance removes its form
+  // elements from tab order, so duplicate DOM is safe.
+  function renderTradeStatusPanel() {
+    return (
+      <>
+        {/* Frozen banner */}
+        {trade.status === "frozen" && (
+          <div className="p-4 rounded-2xl bg-red-900/10 border border-red-500/20">
+            <div className="flex justify-center mb-2">
+              <ShieldAlert className="w-6 h-6 text-red-400" />
+            </div>
+            <h4 className="text-center font-bold text-red-400 mb-1 uppercase tracking-wide text-sm">
+              Trade Frozen
+            </h4>
+            <p className="text-center text-xs text-slate-400 mb-3">
+              Contact details are hidden. This trade is under review.
+            </p>
+            {activeReport && activeReport[0]?.reporterId === currentUserId && (
+              <Form method="post">
+                <input type="hidden" name="intent" value="unfreezeTrade" />
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 text-xs font-mono uppercase tracking-widest"
+                >
+                  {submittingIntent === "unfreezeTrade" ? (
+                    <><Spinner /> Unfreezing...</>
+                  ) : (
+                    "Unfreeze Trade"
+                  )}
+                </button>
+              </Form>
+            )}
+          </div>
+        )}
+
+        {/* Handshake Stage: Negotiating */}
+        {status === "negotiating" && (
+          <div className="p-5 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
+            <div className="flex justify-center mb-3">
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50 animate-pulse">
+                <Unlock className="w-5 h-5 text-emerald-400" />
+              </div>
+            </div>
+            <h4 className="text-center font-bold text-white mb-2 uppercase tracking-wide">
+              Stage 02: Handshake Initiated
+            </h4>
+            <p className="text-center text-xs text-slate-400 mb-4">
+              Both parties must commit to reveal the Safe Zone meetup ticket
+              and identity verification.
+            </p>
+            <Form method="post">
+              <input type="hidden" name="intent" value="acceptHandshake" />
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50"
+              >
+                {submittingIntent === "acceptHandshake" ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Spinner className="w-3.5 h-3.5" />
+                    Committing...
+                  </span>
+                ) : (
+                  "Commit & Reveal"
+                )}
+              </button>
+            </Form>
+          </div>
+        )}
+
+        {/* Handshake Stage: Agreed — Dual-Blind Contact + SafeZone */}
+        {status === "agreed" && (
+          <div className="space-y-4">
+            {/* Dual-Blind Contact Reveal */}
+            <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <h4 className="font-bold text-white uppercase tracking-wide text-sm">
+                  Contact Exchange
+                </h4>
+              </div>
+
+              {/* Readiness Grid */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className={`text-center p-3 rounded-xl border transition-all ${
+                  isReady
+                    ? "bg-emerald-500/10 border-emerald-500/30"
+                    : "bg-white/5 border-white/10"
+                }`}>
+                  <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">You</span>
+                  <span className={`text-sm font-bold ${isReady ? "text-emerald-400" : "text-slate-400"}`}>
+                    {isReady ? "✓ Ready" : "Not Ready"}
+                  </span>
+                </div>
+                <div className={`text-center p-3 rounded-xl border transition-all ${
+                  theyReady
+                    ? "bg-emerald-500/10 border-emerald-500/30"
+                    : "bg-white/5 border-white/10"
+                }`}>
+                  <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">
+                    {counterparty.name}
+                  </span>
+                  <span className={`text-sm font-bold ${theyReady ? "text-emerald-400" : "text-slate-400"}`}>
+                    {theyReady ? "✓ Ready" : "Not Ready"}
+                  </span>
+                </div>
+              </div>
+
+              {isReady && theyReady ? (
+                <>
+                  <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mb-3">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <p className="text-xs font-mono text-emerald-400">
+                      Both parties ready! Proceed to contact sharing.
+                    </p>
+                  </div>
+                  <ShareContactForm isSubmitting={isSubmitting} submittingIntent={submittingIntent} />
+                </>
+              ) : isReady ? (
+                <div className="space-y-2">
+                  <div className="text-center p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                    <p className="text-xs font-mono text-emerald-400">
+                      Waiting for {counterparty.name} to confirm...
+                    </p>
+                  </div>
+                  <Form method="post">
+                    <input type="hidden" name="intent" value="toggleReady" />
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 font-mono uppercase tracking-widest text-[10px] transition-all disabled:opacity-50"
+                    >
+                      {submittingIntent === "toggleReady" ? (
+                        <span className="inline-flex items-center gap-2">
+                          <Spinner className="w-3 h-3" /> Updating...
+                        </span>
+                      ) : (
+                        "Un-mark Ready"
+                      )}
+                    </button>
+                  </Form>
+                </div>
+              ) : (
+                <Form method="post">
+                  <input type="hidden" name="intent" value="toggleReady" />
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-mono uppercase tracking-widest text-xs transition-all disabled:opacity-50"
+                  >
+                    {submittingIntent === "toggleReady" ? (
+                      <span className="inline-flex items-center gap-2">
+                        <Spinner className="w-3.5 h-3.5" /> Committing...
+                      </span>
+                    ) : (
+                      "I'm Ready — Exchange Contacts"
+                    )}
+                  </button>
+                </Form>
+              )}
+            </div>
+
+            {/* SafeZone — Gemini-powered meetup spot picker */}
+            <div className="space-y-3">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+                <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                Safe Meetup Zone
+                <span className="ml-auto text-slate-600">
+                  TKT-{trade.id.toString().padStart(4, "0")}
+                </span>
+              </span>
+
+              {spots.length === 0 ? (
+                <div className="rounded-2xl bg-[#0F172A] border border-white/10 overflow-hidden">
+                  <div className="w-full h-20 bg-[#030712] relative flex items-center justify-center overflow-hidden">
+                    <div className="absolute inset-0 opacity-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.03)_10px,rgba(255,255,255,0.03)_20px)]" />
+                    <div className="w-20 h-20 rounded-full border border-cyan-500/20 absolute animate-ping" />
+                    <MapPin className="w-6 h-6 text-cyan-400 relative z-10" />
+                  </div>
+                  <div className="p-4 space-y-3">
+                    {generateFetcher.data?.error && (
+                      <p className="text-[10px] font-mono text-red-400 uppercase tracking-widest">
+                        {generateFetcher.data.error === "no_gemini_key"
+                          ? "⚠ AI not configured — contact support"
+                          : "⚠ Could not generate spots — try again"}
+                      </p>
+                    )}
+                    <button
+                      type="button"
+                      disabled={isGeneratingSpots}
+                      onClick={() =>
+                        generateFetcher.submit(
+                          { intent: "generateSafeZone" },
+                          { method: "post" },
+                        )
+                      }
+                      className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-mono uppercase tracking-widest text-[10px] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      {isGeneratingSpots ? (
+                        <><Spinner className="w-3 h-3" /> Finding safe spots...</>
+                      ) : (
+                        "✦ Generate Safe Meetup Spots"
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <SafeZonePicker
+                  spots={mappedSpots}
+                  selected={optimisticSelectedIdx ?? null}
+                  onSelect={(idx) => {
+                    const spot = spots[idx];
+                    if (!spot) return;
+                    voteFetcher.submit(
+                      { intent: "voteMeetupSpot", spotId: String(spot.id) },
+                      { method: "post" },
+                    );
+                  }}
+                  isGenerating={isGeneratingSpots}
+                  isConfirmed={myVote != null && voteFetcher.state === "idle"}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Contact Shared — show complete button */}
+        {status === "contact_shared" && (
+          <div className="p-5 rounded-2xl bg-[#0F172A] border border-emerald-500/30">
+            <div className="flex justify-center mb-3">
+              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50">
+                <Handshake className="w-5 h-5 text-emerald-400" />
+              </div>
+            </div>
+            <h4 className="text-center font-bold text-white mb-2 uppercase tracking-wide">
+              Contact Details Shared
+            </h4>
+            <p className="text-center text-xs text-slate-400 mb-4">
+              Coordinate your meetup, then mark the trade as complete.
+            </p>
+            <DisclosedContactsCard
+              disclosures={disclosures}
+              currentUserId={currentUserId}
+              counterpartyName={counterparty.name}
+            />
+            <Form method="post" className="mt-4">
+              <input type="hidden" name="intent" value="completeTrade" />
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50"
+              >
+                {submittingIntent === "completeTrade" ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Spinner className="w-3.5 h-3.5" />
+                    Completing...
+                  </span>
+                ) : (
+                  "Mark Trade Complete"
+                )}
+              </button>
+            </Form>
+          </div>
+        )}
+
+        {/* Completed */}
+        {status === "completed" && (
+          <>
+            <div className="p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
+              <div className="flex justify-center mb-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                </div>
+              </div>
+              <h4 className="text-center font-bold text-emerald-400 mb-2 uppercase tracking-wide">
+                Trade Completed
+              </h4>
+              <p className="text-center text-xs text-slate-400">
+                This exchange has been successfully completed. Thank you for
+                using NoZar!
+              </p>
+            </div>
+            {disclosures.length > 0 && (
+              <div className="mt-4">
+                <DisclosedContactsCard
+                  disclosures={disclosures}
+                  currentUserId={currentUserId}
+                  counterpartyName={counterparty.name}
+                />
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Rating */}
+        {status === "completed" && !loaderData.hasRated && (
+          <RatingForm
+            isSubmitting={isSubmitting}
+            submittingIntent={submittingIntent}
+            counterpartyName={counterparty.name}
+          />
+        )}
+        {status === "completed" && loaderData.hasRated && (
+          <div className="mt-4 p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/20 text-center">
+            <span className="text-emerald-400 text-sm font-mono">
+              ★ You rated this trade {loaderData.existingRatingScore}/5
+            </span>
+          </div>
+        )}
+
+        {/* Cancelled */}
+        {status === "cancelled" && (
+          <div className="p-5 rounded-2xl bg-red-500/5 border border-red-500/20">
+            <div className="flex justify-center mb-3">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center border border-red-500/50">
+                <X className="w-5 h-5 text-red-400" />
+              </div>
+            </div>
+            <h4 className="text-center font-bold text-red-400 mb-2 uppercase tracking-wide">
+              Trade Cancelled
+            </h4>
+            <p className="text-center text-xs text-slate-400">
+              This trade has been cancelled.
+            </p>
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <>
-        <div className="fixed inset-x-0 top-[73px] bottom-20 z-20 bg-[#030712] flex flex-col">
-      <div className="mx-auto w-full max-w-md px-4 flex flex-col h-full min-h-0">
+        {/* Outer: fixed overlay — sidebar-offset on desktop, full-width on mobile */}
+        <div className="fixed inset-x-0 md:left-60 top-[73px] bottom-20 md:bottom-0 z-20 bg-[#030712] flex flex-col md:flex-row">
+          {/* ── Left column: chat ───────────────────────────────────── */}
+          <div className="flex flex-col flex-1 md:flex-none md:w-3/5 min-h-0 md:border-r md:border-white/5">
+      <div className="mx-auto w-full max-w-md px-4 flex flex-col h-full min-h-0 md:max-w-none md:mx-0 md:px-6">
         {isSubmitting && <LoadingBar className="mt-2" />}
         {/* Chat header */}
         <div className="flex items-center justify-between pt-4 pb-4 border-b border-white/5 shrink-0">
@@ -759,6 +1260,9 @@ export default function PingDetail({
             </div>
           )}
 
+          {/* Status panels — mobile only; desktop shows them in right column */}
+          <div className="md:hidden">
+
           {/* Handshake Stage: Negotiating — waiting for acceptance */}
           {status === "negotiating" && (
             <div className="mt-6 p-5 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
@@ -840,12 +1344,38 @@ export default function PingDetail({
 
                 {isReady && theyReady ? (
                   /* Both ready — reveal contacts */
-                  <ShareContactForm isSubmitting={isSubmitting} submittingIntent={submittingIntent} />
+                  <>
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mb-3">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <p className="text-xs font-mono text-emerald-400">
+                        Both parties ready! Proceed to contact sharing.
+                      </p>
+                    </div>
+                    <ShareContactForm isSubmitting={isSubmitting} submittingIntent={submittingIntent} />
+                  </>
                 ) : isReady ? (
-                  <div className="text-center p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-                    <p className="text-xs font-mono text-emerald-400">
-                      Waiting for {counterparty.name} to confirm...
-                    </p>
+                  <div className="space-y-2">
+                    <div className="text-center p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                      <p className="text-xs font-mono text-emerald-400">
+                        Waiting for {counterparty.name} to confirm...
+                      </p>
+                    </div>
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="toggleReady" />
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 font-mono uppercase tracking-widest text-[10px] transition-all disabled:opacity-50"
+                      >
+                        {submittingIntent === "toggleReady" ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Spinner className="w-3 h-3" /> Updating...
+                          </span>
+                        ) : (
+                          "Un-mark Ready"
+                        )}
+                      </button>
+                    </Form>
                   </div>
                 ) : (
                   <Form method="post">
@@ -867,61 +1397,73 @@ export default function PingDetail({
                 )}
               </div>
 
-              {/* SafeZone Ticket */}
-              <div className="rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-emerald-500/50 overflow-hidden shadow-[0_0_40px_rgba(16,185,129,0.2)]">
-                <div className="bg-emerald-500/10 p-4 border-b border-emerald-500/20 flex justify-between items-center">
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400 flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" /> Mutual Consensus Reached
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-500">
+              {/* SafeZone — Gemini-powered meetup spot picker */}
+              <div className="space-y-3">
+                <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+                  <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                  Safe Meetup Zone
+                  <span className="ml-auto text-slate-600">
                     TKT-{trade.id.toString().padStart(4, "0")}
                   </span>
-                </div>
+                </span>
 
-                <div className="w-full h-32 bg-[#030712] relative flex items-center justify-center overflow-hidden">
-                  <div className="absolute inset-0 opacity-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.03)_10px,rgba(255,255,255,0.03)_20px)]" />
-                  <div className="w-32 h-32 rounded-full border border-cyan-500/20 absolute animate-ping" />
-                  <MapPin className="w-8 h-8 text-cyan-400 relative z-10" />
-                </div>
-
-                <div className="p-5 space-y-4">
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block mb-1">
-                      System Selected Safe Zone
-                    </span>
-                    <h4 className="font-bold text-white text-lg flex items-center gap-2">
-                      AI-Powered Meetup Spot{" "}
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                    </h4>
-                    <p className="text-xs text-slate-400 mt-1">
-                      Well-lit area with 24/7 CCTV coverage.
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 pt-3 border-t border-white/5">
-                    <div className="p-3 bg-white/5 rounded-xl border border-white/5">
-                      <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">
-                        Counterparty
-                      </span>
-                      <span className="text-xs font-bold text-emerald-400">
-                        {counterparty.emailVerified ? "ID Verified" : "Unverified"}
-                      </span>
+                {spots.length === 0 ? (
+                  /* ── No spots yet: show generate button ── */
+                  <div className="rounded-2xl bg-[#0F172A] border border-white/10 overflow-hidden">
+                    {/* decorative pulse header */}
+                    <div className="w-full h-20 bg-[#030712] relative flex items-center justify-center overflow-hidden">
+                      <div className="absolute inset-0 opacity-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.03)_10px,rgba(255,255,255,0.03)_20px)]" />
+                      <div className="w-20 h-20 rounded-full border border-cyan-500/20 absolute animate-ping" />
+                      <MapPin className="w-6 h-6 text-cyan-400 relative z-10" />
                     </div>
-                    <div className="p-3 bg-white/5 rounded-xl border border-white/5">
-                      <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">
-                        Exchange Window
-                      </span>
-                      <span className="text-xs font-bold text-white">48 Hours</span>
+
+                    <div className="p-4 space-y-3">
+                      {generateFetcher.data?.error && (
+                        <p className="text-[10px] font-mono text-red-400 uppercase tracking-widest">
+                          {generateFetcher.data.error === "no_gemini_key"
+                            ? "⚠ AI not configured — contact support"
+                            : "⚠ Could not generate spots — try again"}
+                        </p>
+                      )}
+                      <button
+                        type="button"
+                        disabled={isGeneratingSpots}
+                        onClick={() =>
+                          generateFetcher.submit(
+                            { intent: "generateSafeZone" },
+                            { method: "post" },
+                          )
+                        }
+                        className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-mono uppercase tracking-widest text-[10px] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {isGeneratingSpots ? (
+                          <>
+                            <Spinner className="w-3 h-3" />
+                            Finding safe spots...
+                          </>
+                        ) : (
+                          "✦ Generate Safe Meetup Spots"
+                        )}
+                      </button>
                     </div>
                   </div>
-
-                  <button
-                    type="button"
-                    className="w-full py-3 mt-2 rounded-xl bg-white/5 border border-white/10 text-white font-bold uppercase tracking-widest text-xs hover:bg-white/10 flex items-center justify-center gap-2 transition-colors"
-                  >
-                    <Navigation2 className="w-4 h-4" /> Get Directions
-                  </button>
-                </div>
+                ) : (
+                  /* ── Spots loaded: show picker or confirmed view ── */
+                  <SafeZonePicker
+                    spots={mappedSpots}
+                    selected={optimisticSelectedIdx ?? null}
+                    onSelect={(idx) => {
+                      const spot = spots[idx];
+                      if (!spot) return;
+                      voteFetcher.submit(
+                        { intent: "voteMeetupSpot", spotId: String(spot.id) },
+                        { method: "post" },
+                      );
+                    }}
+                    isGenerating={isGeneratingSpots}
+                    isConfirmed={myVote != null && voteFetcher.state === "idle"}
+                  />
+                )}
               </div>
             </div>
           )}
@@ -940,7 +1482,12 @@ export default function PingDetail({
               <p className="text-center text-xs text-slate-400 mb-4">
                 Coordinate your meetup, then mark the trade as complete.
               </p>
-              <Form method="post">
+              <DisclosedContactsCard
+                disclosures={disclosures}
+                currentUserId={currentUserId}
+                counterpartyName={counterparty.name}
+              />
+              <Form method="post" className="mt-4">
                 <input type="hidden" name="intent" value="completeTrade" />
                 <button
                   type="submit"
@@ -962,20 +1509,31 @@ export default function PingDetail({
 
           {/* Completed */}
           {status === "completed" && (
-            <div className="mt-6 p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
-              <div className="flex justify-center mb-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+            <>
+              <div className="mt-6 p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
+                <div className="flex justify-center mb-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50">
+                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                  </div>
                 </div>
+                <h4 className="text-center font-bold text-emerald-400 mb-2 uppercase tracking-wide">
+                  Trade Completed
+                </h4>
+                <p className="text-center text-xs text-slate-400">
+                  This exchange has been successfully completed. Thank you for
+                  using NoZar!
+                </p>
               </div>
-              <h4 className="text-center font-bold text-emerald-400 mb-2 uppercase tracking-wide">
-                Trade Completed
-              </h4>
-              <p className="text-center text-xs text-slate-400">
-                This exchange has been successfully completed. Thank you for
-                using NoZar!
-              </p>
-            </div>
+              {disclosures.length > 0 && (
+                <div className="mt-4">
+                  <DisclosedContactsCard
+                    disclosures={disclosures}
+                    currentUserId={currentUserId}
+                    counterpartyName={counterparty.name}
+                  />
+                </div>
+              )}
+            </>
           )}
 
           {/* Rating — show form if not yet rated, confirmation if already rated */}
@@ -1010,6 +1568,7 @@ export default function PingDetail({
               </p>
             </div>
           )}
+          </div>{/* end md:hidden status panels */}
         </div>
 
         {/* Chat Input Footer — hidden when trade is completed or cancelled */}
@@ -1026,6 +1585,17 @@ export default function PingDetail({
           </div>
         )}
       </div>
+          </div>{/* end left chat column */}
+
+          {/* ── Right column: trade status panel — desktop only ─────── */}
+          <div className="hidden md:flex flex-col w-2/5 overflow-y-auto px-6 py-6 gap-4 bg-[#0F172A]/20 border-l border-white/5">
+            <div className="shrink-0 pb-3 border-b border-white/5">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">
+                // Trade Status
+              </span>
+            </div>
+            {renderTradeStatusPanel()}
+          </div>
     </div>
 
     {/* Report Modal */}
@@ -1274,5 +1844,119 @@ function RatingForm({
         )}
       </button>
     </Form>
+  );
+}
+
+// ─── Disclosed Contacts Card sub-component ───────────────────────
+
+type ContactDisclosureFields = { phone?: string; email?: string };
+
+type ContactDisclosure = {
+  userId: string;
+  disclosedFields: unknown;
+  expiresAt: Date | null;
+};
+
+function DisclosedContactsCard({
+  disclosures,
+  currentUserId,
+  counterpartyName,
+}: {
+  disclosures: ContactDisclosure[];
+  currentUserId: string;
+  counterpartyName: string;
+}) {
+  const myDisclosure = disclosures.find((d) => d.userId === currentUserId);
+  const theirDisclosure = disclosures.find((d) => d.userId !== currentUserId);
+
+  if (!myDisclosure && !theirDisclosure) return null;
+
+  return (
+    <div className="rounded-2xl bg-[#0F172A] border border-emerald-500/20 overflow-hidden mb-4">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-3 bg-emerald-500/5 border-b border-white/5">
+        <Unlock className="w-3.5 h-3.5 text-emerald-400" />
+        <span className="font-mono uppercase tracking-widest text-[10px] text-emerald-400">
+          Disclosed Contact Info
+        </span>
+      </div>
+
+      <div className="p-4 space-y-4">
+        {/* Counterparty's disclosed info — the primary display */}
+        {theirDisclosure && (() => {
+          const fields = theirDisclosure.disclosedFields as ContactDisclosureFields;
+          const hasAny = fields.phone ?? fields.email;
+          if (!hasAny) return null;
+          return (
+            <div>
+              <p className="font-mono uppercase tracking-widest text-[10px] text-slate-500 mb-2">
+                {counterpartyName}
+              </p>
+              <div className="space-y-2">
+                {fields.phone && (
+                  <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 border border-white/5">
+                    <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="font-mono text-xs text-white">{fields.phone}</span>
+                  </div>
+                )}
+                {fields.email && (
+                  <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 border border-white/5">
+                    <Mail className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span className="font-mono text-xs text-white">{fields.email}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Separator when both parties have shared */}
+        {myDisclosure && theirDisclosure && (
+          <div className="border-t border-white/5" />
+        )}
+
+        {/* Your own disclosure — shown dimmed for confirmation */}
+        {myDisclosure && (() => {
+          const fields = myDisclosure.disclosedFields as ContactDisclosureFields;
+          const hasAny = fields.phone ?? fields.email;
+          if (!hasAny) return null;
+          return (
+            <div>
+              <p className="font-mono uppercase tracking-widest text-[10px] text-slate-500 mb-2">
+                You shared
+              </p>
+              <div className="space-y-2 opacity-50">
+                {fields.phone && (
+                  <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 border border-white/5">
+                    <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="font-mono text-xs text-slate-300">{fields.phone}</span>
+                  </div>
+                )}
+                {fields.email && (
+                  <div className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/5 border border-white/5">
+                    <Mail className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    <span className="font-mono text-xs text-slate-300">{fields.email}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* Expiry notice — use the earliest non-null expiresAt */}
+        {(theirDisclosure?.expiresAt ?? myDisclosure?.expiresAt) && (
+          <p className="font-mono text-[9px] text-slate-600 text-center pt-1">
+            Contact info expires{" "}
+            {new Date(
+              (theirDisclosure?.expiresAt ?? myDisclosure?.expiresAt)!
+            ).toLocaleDateString("en-ZA", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            })}
+          </p>
+        )}
+      </div>
+    </div>
   );
 }

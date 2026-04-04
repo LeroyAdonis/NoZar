@@ -1,5 +1,13 @@
 import { Link, Outlet, useLocation, useNavigation } from "react-router";
-import { Bell, ShieldCheck } from "lucide-react";
+import {
+  Bell,
+  ShieldCheck,
+  Home,
+  Map as MapIcon,
+  Plus,
+  MessageSquare,
+  User,
+} from "lucide-react";
 import type { Route } from "./+types/dashboard";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
@@ -56,6 +64,14 @@ function getActiveTab(pathname: string): string {
   return "home";
 }
 
+const SIDEBAR_LINKS = [
+  { id: "home",     label: "Index",     href: "/dashboard",          icon: Home },
+  { id: "map",      label: "Radar",     href: "/dashboard/map",      icon: MapIcon },
+  { id: "add",      label: "Add Asset", href: "/dashboard/add",      icon: Plus },
+  { id: "messages", label: "Pings",     href: "/dashboard/pings",    icon: MessageSquare },
+  { id: "profile",  label: "Node",      href: "/dashboard/profile",  icon: User },
+] as const;
+
 export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const location = useLocation();
   const navigation = useNavigation();
@@ -69,7 +85,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const displayName = user.name ?? "User";
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-50 font-sans pb-28 selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-[#030712] text-slate-50 font-sans pb-28 md:pb-0 md:pl-60 selection:bg-emerald-500/30">
       {/* Global navigation loading bar — fixed at very top of viewport */}
       {isNavigating && (
         <div className="fixed top-0 left-0 right-0 z-[100]">
@@ -85,14 +101,138 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
         <div className="absolute top-[-10%] left-[-20%] w-[60%] h-[30%] rounded-full bg-emerald-900/10 blur-[120px]" />
       </div>
 
+      {/* ── Desktop Sidebar ────────────────────────────────────────────── */}
+      <aside
+        className="hidden md:flex flex-col fixed left-0 top-0 bottom-0 w-60 bg-[#0F172A] border-r border-white/5 z-40"
+        aria-label="Desktop sidebar navigation"
+      >
+        {/* Logo */}
+        <div className="p-6 border-b border-white/5 shrink-0">
+          <Link
+            to="/dashboard"
+            aria-disabled={isNavigating}
+            tabIndex={isNavigating ? -1 : undefined}
+            onClick={isNavigating ? (e) => e.preventDefault() : undefined}
+            className="flex items-center gap-2.5 group"
+          >
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:border-emerald-500/40 transition-all">
+              <img src="/logo.svg" alt="NoZar" className="w-5 h-5" />
+            </div>
+            <span className="font-black text-lg tracking-tighter uppercase text-white group-hover:text-emerald-400 transition-colors">
+              NoZar.
+            </span>
+          </Link>
+        </div>
+
+        {/* Nav links */}
+        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto" aria-label="Sidebar navigation">
+          {SIDEBAR_LINKS.map((link) => {
+            const isActive = activeTab === link.id;
+            const Icon = link.icon;
+
+            if (link.id === "add") {
+              return (
+                <Link
+                  key={link.id}
+                  to={link.href}
+                  aria-disabled={isNavigating}
+                  tabIndex={isNavigating ? -1 : undefined}
+                  onClick={isNavigating ? (e) => e.preventDefault() : undefined}
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all my-2 ${
+                    isActive
+                      ? "bg-emerald-400 text-[#030712]"
+                      : "bg-emerald-500 text-[#030712] hover:bg-emerald-400 shadow-[0_0_16px_rgba(16,185,129,0.3)]"
+                  } ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
+                >
+                  <Icon className="w-4 h-4 shrink-0 stroke-[2.5]" />
+                  {link.label}
+                </Link>
+              );
+            }
+
+            return (
+              <Link
+                key={link.id}
+                to={link.href}
+                aria-disabled={isNavigating}
+                tabIndex={isNavigating ? -1 : undefined}
+                onClick={isNavigating ? (e) => e.preventDefault() : undefined}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-mono text-[10px] uppercase tracking-widest transition-all border ${
+                  isActive
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                    : "text-slate-400 hover:text-white hover:bg-white/5 border-transparent"
+                } ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
+              >
+                <Icon
+                  className={`w-4 h-4 shrink-0 ${isActive ? "text-emerald-400" : "text-slate-500"}`}
+                />
+                {link.label}
+                {link.id === "messages" && unreadCount > 0 && (
+                  <span className="ml-auto min-w-[18px] h-[18px] rounded-full bg-emerald-500 flex items-center justify-center px-1">
+                    <span className="text-[9px] font-bold text-white">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
+                  </span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* User info + notifications at bottom */}
+        <div className="p-4 border-t border-white/5 shrink-0 space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex items-center justify-center shrink-0">
+              {profile?.avatarUrl ? (
+                <img
+                  src={profile.avatarUrl}
+                  alt={displayName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="bg-slate-700 w-full h-full flex items-center justify-center text-emerald-400 font-bold text-xs">
+                  {displayName.charAt(0).toUpperCase()}
+                </span>
+              )}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="font-bold text-xs text-white truncate">{displayName}</p>
+              <div className="flex items-center gap-1 text-emerald-400 font-mono text-[9px] uppercase tracking-widest mt-0.5">
+                <ShieldCheck className="w-2.5 h-2.5 shrink-0" />
+                <span>{user.emailVerified ? "Verified" : "Unverified"}</span>
+              </div>
+            </div>
+            <Link
+              to="/dashboard/notifications"
+              aria-label={
+                unreadCount > 0
+                  ? `${unreadCount} unread notifications`
+                  : "Notifications"
+              }
+              className="relative shrink-0 w-7 h-7 rounded-lg bg-[#030712] border border-white/10 flex items-center justify-center hover:border-white/20 transition-colors"
+            >
+              <Bell className="w-3.5 h-3.5 text-slate-400" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] rounded-full bg-emerald-500 border border-[#030712] flex items-center justify-center px-0.5">
+                  <span className="text-[8px] font-bold text-white">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                </span>
+              )}
+            </Link>
+          </div>
+        </div>
+      </aside>
+
       {/* Sticky header */}
       <header className="sticky top-0 z-40 bg-[#030712]/90 backdrop-blur-xl border-b border-white/5 px-6 py-4 flex justify-between items-center">
+        {/* Logo — mobile only (desktop sidebar carries it) */}
         <Link
           to="/dashboard"
           aria-disabled={isNavigating}
           tabIndex={isNavigating ? -1 : undefined}
           onClick={isNavigating ? (e) => e.preventDefault() : undefined}
-          className={`flex items-center gap-2 group cursor-pointer text-slate-400 hover:text-emerald-400 transition-colors ${
+          className={`md:hidden flex items-center gap-2 group cursor-pointer text-slate-400 hover:text-emerald-400 transition-colors ${
             isNavigating ? "opacity-70 pointer-events-none" : ""
           }`}
         >
@@ -104,8 +244,24 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
           </span>
         </Link>
 
+        {/* Desktop: section label replacing logo */}
+        <div className="hidden md:flex items-center gap-2">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">
+            {activeTab === "home"
+              ? "// Local Index"
+              : activeTab === "map"
+              ? "// Radar"
+              : activeTab === "add"
+              ? "// New Asset"
+              : activeTab === "messages"
+              ? "// Pings"
+              : "// Profile"}
+          </span>
+        </div>
+
         <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center gap-3 text-right">
+          {/* User info — sm screens on mobile only (desktop has sidebar) */}
+          <div className="hidden sm:flex md:hidden items-center gap-3 text-right">
             <div>
               <h1 className="font-bold text-sm leading-tight text-white">
                 {displayName}
@@ -117,6 +273,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
             </div>
           </div>
 
+          {/* Notifications — mobile only (desktop sidebar has it) */}
           <Link
             to="/dashboard/notifications"
             aria-label={
@@ -127,7 +284,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
             aria-disabled={isNavigating}
             tabIndex={isNavigating ? -1 : undefined}
             onClick={isNavigating ? (e) => e.preventDefault() : undefined}
-            className={`relative w-10 h-10 rounded-xl bg-[#0F172A] border border-white/10 flex items-center justify-center hover:border-white/20 transition-colors ${
+            className={`md:hidden relative w-10 h-10 rounded-xl bg-[#0F172A] border border-white/10 flex items-center justify-center hover:border-white/20 transition-colors ${
               isNavigating ? "opacity-70 cursor-not-allowed" : ""
             }`}
           >
@@ -169,7 +326,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
 
       {/* Main content */}
       <main
-        className={`relative z-10 p-6 max-w-2xl mx-auto transition-opacity duration-200 ${
+        className={`relative z-10 p-6 max-w-2xl mx-auto md:max-w-4xl md:mx-0 md:px-8 md:py-8 transition-opacity duration-200 ${
           isNavigating ? "opacity-70" : ""
         }`}
         aria-busy={isNavigating}
@@ -179,7 +336,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
 
       {needsRegion && <RegionPrompt />}
 
-      {/* Bottom navigation */}
+      {/* Bottom navigation — mobile only (BottomNav itself adds md:hidden) */}
       <BottomNav activeTab={activeTab} isPending={isNavigating} />
     </div>
   );

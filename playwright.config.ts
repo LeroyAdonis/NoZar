@@ -17,8 +17,9 @@ export default defineConfig({
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'https://no-zar-r66j.vercel.app',
+    /* Base URL matches the local dev server started by webServer below.
+     * For production runs against Vercel, override via PW_BASE_URL env var. */
+    baseURL: process.env.PW_BASE_URL ?? 'http://localhost:3000',
     
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -30,7 +31,8 @@ export default defineConfig({
     video: 'retain-on-failure',
   },
 
-  /* Configure projects for major browsers */
+  /* Local dev: Chromium + Mobile Chrome only to keep the feedback loop fast.
+   * CI adds Firefox, WebKit and Mobile Safari via a separate config or override. */
   projects: [
     {
       name: 'chromium',
@@ -38,34 +40,14 @@ export default defineConfig({
     },
 
     {
-      name: 'firefox',
-      use: { ...devices['Desktop Firefox'] },
-    },
-
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
-
-    /* Test against mobile viewports. */
-    {
       name: 'Mobile Chrome',
       use: { ...devices['Pixel 5'] },
     },
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 12'] },
-    },
 
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: { ...devices['Desktop Edge'], channel: 'msedge' },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: { ...devices['Desktop Chrome'], channel: 'chrome' },
-    // },
+    // --- CI-only browsers (uncomment in CI config) ---
+    // { name: 'firefox',      use: { ...devices['Desktop Firefox'] } },
+    // { name: 'webkit',       use: { ...devices['Desktop Safari']  } },
+    // { name: 'Mobile Safari', use: { ...devices['iPhone 12']      } },
   ],
 
   /* Run your local dev server before starting the tests */

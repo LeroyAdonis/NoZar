@@ -9,6 +9,7 @@ import { db } from "~/lib/db.server";
 import { resolveRegion, MVP_REGIONS } from "~/lib/regions";
 import type { RegionSlug } from "~/lib/regions";
 import { listings, profiles } from "~/lib/schema";
+import { haversineKm } from "~/lib/utils";
 
 import type { Route } from "./+types/map";
 
@@ -75,6 +76,14 @@ export default function Map({ loaderData }: Route.ComponentProps) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [center, setCenter] = useState(regionCenter);
+  // Default radius: 25 km — matches the active radar ring highlight
+  const [radiusKm, setRadiusKm] = useState(25);
+
+  // Filter pins to those within the active radar radius of the region centre.
+  // haversineKm is O(n) and only re-runs when pins or radius change.
+  const filteredPins = pins.filter(
+    (pin) => haversineKm(regionCenter.lat, regionCenter.lng, pin.lat, pin.lng) <= radiusKm,
+  );
 
   const handlePinClick = useCallback(
     (id: number) => {
@@ -116,10 +125,13 @@ export default function Map({ loaderData }: Route.ComponentProps) {
 
       <NozarMap
         apiKey={apiKey}
-        pins={pins}
+        pins={filteredPins}
         center={center}
         zoom={12}
         onPinClick={handlePinClick}
+        radarCenter={regionCenter}
+        radarRadiusKm={radiusKm}
+        onRadiusChange={setRadiusKm}
       />
 
       {/* Floating recenter button */}
@@ -144,18 +156,18 @@ export default function Map({ loaderData }: Route.ComponentProps) {
         Recenter
       </button>
 
-      {/* Listings count badge */}
-      {pins.length > 0 && (
+      {/* Listings count badge — reflects active radar filter */}
+      {filteredPins.length > 0 && (
         <div className="absolute left-6 top-6 z-10 rounded-full bg-slate-800/90 px-3 py-1.5 text-xs font-medium text-slate-300 shadow-lg ring-1 ring-slate-700 backdrop-blur">
-          {pins.length} {pins.length === 1 ? "listing" : "listings"} nearby
+          {filteredPins.length} {filteredPins.length === 1 ? "listing" : "listings"} within {radiusKm}km
         </div>
       )}
 
-      {pins.length === 0 && (
+      {filteredPins.length === 0 && (
         <div className="absolute left-6 top-6 z-10 rounded-2xl border border-white/10 bg-[#0F172A]/90 px-4 py-3 shadow-lg backdrop-blur">
-          <p className="text-sm font-semibold text-slate-100">No nearby listings yet</p>
+          <p className="text-sm font-semibold text-slate-100">No listings within {radiusKm}km</p>
           <p className="mt-1 text-xs text-slate-400">
-            Try again later or add your own listing to get started.
+            Try expanding the radius or add your own listing to get started.
           </p>
         </div>
       )}

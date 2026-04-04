@@ -357,7 +357,7 @@ export default function DashboardHome({
       )}
 
       {/* Category filter pills */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-1 px-1">
+      <div className="flex gap-2 overflow-x-auto md:flex-wrap md:overflow-x-visible pb-2 scrollbar-hide -mx-1 px-1">
         {CATEGORIES.map((category) => {
           const isActive = activeCategory === category;
           return (
@@ -378,7 +378,7 @@ export default function DashboardHome({
 
       {/* Asset feed */}
       {loaderData.listings.length > 0 ? (
-        <div className="space-y-4">
+        <div data-testid="feed" className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {loaderData.listings.map((listing) => (
             <div key={listing.id} className="relative">
               {matchedIds?.has(listing.id) && (

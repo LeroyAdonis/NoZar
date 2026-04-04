@@ -1,5 +1,14 @@
-import { Link } from "react-router";
+import { data, Link } from "react-router";
 import type { Route } from "./+types/$";
+
+/**
+ * This loader is the critical piece: without it the SSR server sends HTTP 200
+ * even though the UI says "404". `data(null, { status: 404 })` keeps the
+ * custom NotFound component rendering while signalling the real HTTP status.
+ */
+export function loader(): ReturnType<typeof data> {
+  return data(null, { status: 404 });
+}
 
 export function meta(_args: Route.MetaArgs) {
   return [

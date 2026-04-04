@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Form, useNavigation, useFetcher } from "react-router";
+import { useRef, useState } from "react";
+import { Form, useNavigation, useFetcher, Link } from "react-router";
 import { eq, or, and, count, avg, inArray } from "drizzle-orm";
 import {
   Star,
@@ -21,6 +21,7 @@ import {
   Trash2,
   ImagePlus,
   Plus,
+  Phone,
 } from "lucide-react";
 
 import type { Route } from "./+types/profile";
@@ -31,6 +32,7 @@ import {
   validateImageUrl,
   sanitizeImageUrl,
 } from "~/lib/media-validation.server";
+import { uploadToBlob, isBlobConfigured } from "~/lib/blob.server";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Badge } from "~/components/ui/badge";
@@ -168,6 +170,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   return {
     user,
     profile,
+    blobConfigured: isBlobConfigured(),
     stats: {
       tradeCount: tradeStats.tradeCount,
       completedCount: completedStats.completedCount,
@@ -205,6 +208,37 @@ export async function action({ request }: Route.ActionArgs) {
       .where(eq(profiles.userId, user.id));
 
     return { success: true, intent: "update-avatar" };
+  }
+
+  if (intent === "upload-avatar-file") {
+    if (!isBlobConfigured()) {
+      return { success: false, intent: "upload-avatar-file", error: "File upload is not configured. Use URL input instead." };
+    }
+
+    const file = formData.get("file");
+    if (!file || typeof file === "string") {
+      return { success: false, intent: "upload-avatar-file", error: "No file received." };
+    }
+
+    if (!file.type.startsWith("image/")) {
+      return { success: false, intent: "upload-avatar-file", error: "File must be an image." };
+    }
+
+    const MAX_BYTES = 5 * 1024 * 1024;
+    if (file.size > MAX_BYTES) {
+      return { success: false, intent: "upload-avatar-file", error: "Image must be under 5 MB." };
+    }
+
+    try {
+      const avatarUrl = await uploadToBlob(file, "avatars");
+      await db
+        .update(profiles)
+        .set({ avatarUrl, updatedAt: new Date() })
+        .where(eq(profiles.userId, user.id));
+      return { success: true, intent: "upload-avatar-file", avatarUrl };
+    } catch {
+      return { success: false, intent: "upload-avatar-file", error: "Upload failed. Please try again." };
+    }
   }
 
   if (intent === "remove-avatar") {
@@ -379,13 +413,15 @@ export async function action({ request }: Route.ActionArgs) {
 // ─── Component ─────────────────────────────────────────────────
 
 export default function Profile({ loaderData, actionData }: Route.ComponentProps) {
-  const { user, profile, stats, listings: userListings, listingImagesMap } = loaderData;
+  const { user, profile, blobConfigured, stats, listings: userListings, listingImagesMap } = loaderData;
   const navigation = useNavigation();
   const [isEditing, setIsEditing] = useState(false);
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [confirmArchiveId, setConfirmArchiveId] = useState<number | null>(null);
   const avatarFetcher = useFetcher();
   const [avatarInput, setAvatarInput] = useState(profile.avatarUrl ?? "");
+  // Hidden file input for avatar upload
+  const avatarFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const isSubmitting = navigation.state === "submitting";
   const submittingIntent = isSubmitting
@@ -403,8 +439,25 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
   const activeListings = userListings.filter((l) => l.status === "active");
   const archivedListings = userListings.filter((l) => l.status === "archived");
 
-  const avatarActionData = avatarFetcher.data as { success?: boolean; intent?: string; error?: string } | undefined;
+  const avatarActionData = avatarFetcher.data as { success?: boolean; intent?: string; error?: string; avatarUrl?: string } | undefined;
   const isAvatarSubmitting = avatarFetcher.state === "submitting";
+  const isAvatarFileUploading =
+    isAvatarSubmitting && avatarFetcher.formData?.get("intent") === "upload-avatar-file";
+
+  // When file upload succeeds, mirror the new URL into the URL input field
+  const prevAvatarState = useRef<string>("idle");
+  useEffect(() => {
+    if (
+      prevAvatarState.current === "submitting" &&
+      avatarFetcher.state === "idle" &&
+      avatarActionData?.intent === "upload-avatar-file" &&
+      avatarActionData?.success &&
+      avatarActionData?.avatarUrl
+    ) {
+      setAvatarInput(avatarActionData.avatarUrl);
+    }
+    prevAvatarState.current = avatarFetcher.state;
+  }, [avatarFetcher.state, avatarActionData]);
 
   // Generate initials for avatar fallback
   const initials = (profile.displayName || user.name || "?")
@@ -457,8 +510,64 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
             )}
           </div>
 
-          {/* Avatar URL form */}
+          {/* Avatar controls */}
           <div className="flex-1 space-y-3">
+            {/* ── File upload (when blob is configured) ── */}
+            {blobConfigured && (
+              <div>
+                {/* Hidden file input */}
+                <input
+                  ref={avatarFileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  tabIndex={-1}
+                  disabled={isAvatarSubmitting}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    const fd = new FormData();
+                    fd.set("intent", "upload-avatar-file");
+                    fd.set("file", file);
+                    avatarFetcher.submit(fd, { method: "post" });
+                    e.target.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={isAvatarSubmitting}
+                  onClick={() => avatarFileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/30 text-xs font-mono uppercase tracking-widest transition-all disabled:opacity-50"
+                >
+                  {isAvatarFileUploading ? (
+                    <>
+                      <Spinner />
+                      Uploading…
+                    </>
+                  ) : (
+                    <>
+                      <ImagePlus className="w-3.5 h-3.5" />
+                      Upload Photo
+                    </>
+                  )}
+                </button>
+
+                {/* File upload error */}
+                {avatarActionData && !avatarActionData.success && avatarActionData.intent === "upload-avatar-file" && (
+                  <p className="mt-1.5 text-red-400 text-xs font-mono">
+                    {avatarActionData.error}
+                  </p>
+                )}
+                {/* File upload success */}
+                {avatarActionData?.success && avatarActionData.intent === "upload-avatar-file" && (
+                  <p className="mt-1.5 text-emerald-400 text-xs font-mono uppercase tracking-widest">
+                    Photo uploaded ✓
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* ── URL form ── */}
             <avatarFetcher.Form method="post" className="space-y-3">
               <input type="hidden" name="intent" value="update-avatar" />
 
@@ -467,7 +576,7 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
                   htmlFor="avatarUrl"
                   className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
                 >
-                  Image URL
+                  {blobConfigured ? "Or paste an image URL" : "Image URL"}
                 </label>
                 <input
                   id="avatarUrl"
@@ -505,7 +614,7 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
                   ) : (
                     <Camera className="w-3.5 h-3.5" />
                   )}
-                  Update Avatar
+                  Save URL
                 </button>
 
                 {profile.avatarUrl && (
@@ -592,6 +701,42 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
                   <ShieldX className="w-3 h-3 mr-0.5" />
                   Unverified
                 </Badge>
+              )}
+            </div>
+
+            {/* Phone + verification badge */}
+            <div className="flex items-center gap-2 mt-1.5">
+              <Phone className="w-3 h-3 text-slate-600 flex-shrink-0" />
+              {profile.phone ? (
+                <>
+                  <span className="text-[10px] font-mono text-slate-500 truncate">
+                    {profile.phone}
+                  </span>
+                  {profile.phoneVerified ? (
+                    <Badge variant="verified">
+                      <ShieldCheck className="w-3 h-3 mr-0.5" />
+                      Verified
+                    </Badge>
+                  ) : (
+                    <Badge variant="unverified">
+                      <ShieldX className="w-3 h-3 mr-0.5" />
+                      Unverified
+                    </Badge>
+                  )}
+                  <Link
+                    to="/dashboard/verify-phone"
+                    className="text-[10px] font-mono uppercase tracking-widest text-cyan-500 hover:text-cyan-400 transition-colors ml-auto"
+                  >
+                    {profile.phoneVerified ? "Change" : "Verify"}
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  to="/dashboard/verify-phone"
+                  className="text-[10px] font-mono uppercase tracking-widest text-emerald-500 hover:text-emerald-400 transition-colors"
+                >
+                  + Add Phone
+                </Link>
               )}
             </div>
           </div>

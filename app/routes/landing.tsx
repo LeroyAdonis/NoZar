@@ -280,7 +280,7 @@ export default function LandingPage({
 
       {/* Hero Section */}
       <main className="relative z-10 pt-40 pb-20 lg:pt-56 lg:pb-32 px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <div className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono uppercase tracking-widest text-emerald-400 mb-10 backdrop-blur-md">
+        <div data-testid="network-status" className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono uppercase tracking-widest text-emerald-400 mb-10 backdrop-blur-md">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -302,6 +302,7 @@ export default function LandingPage({
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
           <MagneticButton>
             <Link
+              data-testid="hero-cta"
               to={isLoggedIn ? "/dashboard" : "/register"}
               className="w-full sm:w-auto px-10 py-5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-lg hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-3"
             >

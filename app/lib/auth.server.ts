@@ -4,6 +4,43 @@ import { redirect } from "react-router";
 import { db } from "./db.server";
 import * as schema from "./schema";
 
+/**
+ * Resolves the base URL for Better Auth.
+ *
+ * Better Auth uses this to construct the OAuth callback URL:
+ *   {baseURL}/api/auth/callback/google
+ *
+ * That URL must match exactly what is registered in the Google Cloud Console
+ * as an "Authorized redirect URI".
+ *
+ * Priority:
+ *   1. BETTER_AUTH_URL env var (explicit, always wins)
+ *   2. http://localhost:3000 in development (safe default, avoids a silent misconfiguration)
+ *   3. undefined in production (Better Auth will attempt to infer from the request,
+ *      but this is unreliable — always set BETTER_AUTH_URL in production env vars)
+ */
+function resolveBaseURL(): string | undefined {
+  const url = process.env.BETTER_AUTH_URL;
+  if (url) return url;
+
+  if (process.env.NODE_ENV !== "production") {
+    console.warn(
+      "[auth] BETTER_AUTH_URL is not set — falling back to http://localhost:5173. " +
+        "Add BETTER_AUTH_URL=http://localhost:5173 to .env.local to silence this warning.",
+    );
+    return "http://localhost:5173";
+  }
+
+  // Production with no BETTER_AUTH_URL: log a hard error so it shows up in
+  // deployment logs, then let Better Auth try to infer it.
+  console.error(
+    "[auth] BETTER_AUTH_URL is not set in production. " +
+      "Google OAuth callback URLs will be wrong and sign-in will fail. " +
+      "Set BETTER_AUTH_URL to the canonical public URL of this deployment.",
+  );
+  return undefined;
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -25,7 +62,7 @@ export const auth = betterAuth({
       maxAge: 5 * 60,
     },
   },
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL: resolveBaseURL(),
   secret: process.env.BETTER_AUTH_SECRET,
 });
 

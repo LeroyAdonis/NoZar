@@ -79,6 +79,8 @@ export const profiles = pgTable("profiles", {
   lng: real("lng"),
   searchRadiusKm: integer("search_radius_km").notNull().default(10),
   avatarUrl: text("avatar_url"),
+  phone: text("phone"),
+  phoneVerified: boolean("phone_verified").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

@@ -19,6 +19,7 @@ export default [
     route("map", "routes/dashboard/map.tsx"),
     route("add", "routes/dashboard/add.tsx"),
     route("profile", "routes/dashboard/profile.tsx"),
+    route("verify-phone", "routes/dashboard/verify-phone.tsx"),
   ]),
   route("legal", "routes/legal.tsx", [
     route("terms", "routes/legal/terms.tsx"),

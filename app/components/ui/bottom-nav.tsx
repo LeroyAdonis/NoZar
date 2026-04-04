@@ -68,7 +68,8 @@ type BottomNavProps = {
 export function BottomNav({ activeTab, isPending = false }: BottomNavProps) {
   return (
     <nav
-      className="fixed bottom-0 w-full z-50 bg-[#030712]/90 backdrop-blur-xl border-t border-white/10 pb-safe pt-2 px-6"
+      data-testid="bottom-nav"
+      className="fixed bottom-0 w-full z-50 bg-[#030712]/90 backdrop-blur-xl border-t border-white/10 pb-safe pt-2 px-6 md:hidden"
       aria-label="Main navigation"
     >
       <div className="max-w-md mx-auto flex justify-between items-center relative pb-4">

@@ -8,7 +8,7 @@ type RegionToggleProps = {
 
 export function RegionToggle({ activeRegion, onChange }: RegionToggleProps) {
   return (
-    <div className="flex gap-1.5 bg-[#0F172A] border border-white/10 rounded-full p-1">
+    <div data-testid="region-toggle" className="flex gap-1.5 bg-[#0F172A] border border-white/10 rounded-full p-1">
       {REGION_SLUGS.map((slug) => {
         const region = MVP_REGIONS[slug];
         const isActive = slug === activeRegion;

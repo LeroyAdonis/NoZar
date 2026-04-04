@@ -9,6 +9,7 @@ type AssetCardProps = {
 export function AssetCard({ listing, onClick }: AssetCardProps) {
   return (
     <div
+      data-testid="asset-card"
       onClick={onClick}
       className="bg-[#0F172A] border border-white/10 rounded-3xl p-4 flex gap-4 hover:border-white/20 transition-colors cursor-pointer group shadow-lg"
     >

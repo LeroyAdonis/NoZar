@@ -32,6 +32,8 @@ const KNOWN_IMAGE_HOSTS = new Set([
   "ik.imagekit.io",
   "media.istockphoto.com",
   "upload.wikimedia.org",
+  // Vercel Blob — URLs from @vercel/blob `put()` land here
+  "blob.vercel-storage.com",
 ]);
 
 interface ValidationResult {

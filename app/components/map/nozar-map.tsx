@@ -17,6 +17,12 @@ type NozarMapProps = {
   center?: { lat: number; lng: number };
   zoom?: number;
   onPinClick?: (id: number) => void;
+  /** Center point for radar rings — defaults to `center` prop */
+  radarCenter?: { lat: number; lng: number };
+  /** Active radar radius in km; when set, draws concentric rings */
+  radarRadiusKm?: number;
+  /** Called when user selects a new radius from the floating control */
+  onRadiusChange?: (km: number) => void;
 };
 
 const DARK_MAP_STYLE: google.maps.MapTypeStyle[] = [
@@ -56,12 +62,33 @@ const DARK_MAP_STYLE: google.maps.MapTypeStyle[] = [
 
 const JHB_CENTER = { lat: -26.2041, lng: 28.0473 };
 
+// Radius options shown in the floating selector (km)
+const RADIUS_OPTIONS = [10, 25, 50, 100] as const;
+
+/**
+ * Build the "You are here" SVG as a data URL for use as a Marker icon.
+ * Outer emerald ring → cyan fill → white centre dot.
+ */
+function youAreHereSvgUrl(): string {
+  const svg = [
+    '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">',
+    '<circle cx="16" cy="16" r="14" fill="rgba(16,185,129,0.15)" stroke="rgba(16,185,129,0.75)" stroke-width="1.5"/>',
+    '<circle cx="16" cy="16" r="7" fill="rgba(6,182,212,0.9)" stroke="white" stroke-width="2"/>',
+    '<circle cx="16" cy="16" r="3" fill="white"/>',
+    "</svg>",
+  ].join("");
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
 export function NozarMap({
   apiKey,
   pins,
   center = JHB_CENTER,
   zoom = 12,
   onPinClick,
+  radarCenter,
+  radarRadiusKm,
+  onRadiusChange,
 }: NozarMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
@@ -130,6 +157,90 @@ export function NozarMap({
     };
   }, [mapInstance, pins, onPinClick]);
 
+  /**
+   * "You are here" beacon at radarCenter (or center).
+   * Cleanup closure removes the marker before the next effect run.
+   */
+  useEffect(() => {
+    if (!mapInstance) return;
+
+    const effectCenter = radarCenter ?? center;
+
+    const marker = new google.maps.Marker({
+      position: effectCenter,
+      map: mapInstance,
+      title: "You are here",
+      icon: {
+        url: youAreHereSvgUrl(),
+        scaledSize: new google.maps.Size(32, 32),
+        anchor: new google.maps.Point(16, 16),
+      },
+      zIndex: 1000,
+      clickable: false,
+    });
+
+    return () => {
+      marker.setMap(null);
+    };
+  }, [mapInstance, radarCenter, center]);
+
+  /**
+   * Radar concentric rings.
+   * Three overlapping circles (outer → middle → inner) with decreasing opacity
+   * simulate visual depth without CSS animation (Google Maps circles are DOM-agnostic).
+   * The closure captures `circles` so the cleanup removes exactly the rings it created.
+   */
+  useEffect(() => {
+    if (!mapInstance || radarRadiusKm === undefined) return;
+
+    const effectCenter = radarCenter ?? center;
+    const radiusM = radarRadiusKm * 1000;
+
+    const circles = [
+      // Outer ring — 8% fill, faint stroke
+      new google.maps.Circle({
+        map: mapInstance,
+        center: effectCenter,
+        radius: radiusM,
+        fillColor: "#10B981",
+        fillOpacity: 0.08,
+        strokeColor: "#10B981",
+        strokeOpacity: 0.5,
+        strokeWeight: 1,
+        clickable: false,
+      }),
+      // Middle ring — 15% fill, cyan tint, slightly stronger stroke
+      new google.maps.Circle({
+        map: mapInstance,
+        center: effectCenter,
+        radius: radiusM * 0.66,
+        fillColor: "#06B6D4",
+        fillOpacity: 0.15,
+        strokeColor: "#10B981",
+        strokeOpacity: 0.65,
+        strokeWeight: 1,
+        clickable: false,
+      }),
+      // Inner ring — 25% fill, solid stroke
+      new google.maps.Circle({
+        map: mapInstance,
+        center: effectCenter,
+        radius: radiusM * 0.33,
+        fillColor: "#10B981",
+        fillOpacity: 0.25,
+        strokeColor: "#10B981",
+        strokeOpacity: 0.85,
+        strokeWeight: 1.5,
+        clickable: false,
+      }),
+    ];
+
+    // Cleanup: remove circles before next radius/center change
+    return () => {
+      circles.forEach((c) => c.setMap(null));
+    };
+  }, [mapInstance, radarCenter, radarRadiusKm, center]);
+
   if (error) {
     return (
       <div className="flex h-full w-full items-center justify-center bg-[#030712] px-6">
@@ -149,6 +260,31 @@ export function NozarMap({
           <div className="flex items-center gap-3 rounded-full border border-white/10 bg-[#0F172A]/90 px-4 py-2 text-sm text-slate-300">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
             Loading map…
+          </div>
+        </div>
+      )}
+
+      {/* Radar radius selector — bottom-left, above the parent's recenter button */}
+      {onRadiusChange !== undefined && radarRadiusKm !== undefined && (
+        <div className="absolute bottom-6 left-6 z-10 rounded-xl border border-white/10 bg-[#0F172A]/90 p-2 shadow-lg backdrop-blur">
+          <p className="mb-1.5 px-1 font-mono text-[10px] uppercase tracking-widest text-slate-500">
+            Radius
+          </p>
+          <div className="flex gap-1">
+            {RADIUS_OPTIONS.map((km) => (
+              <button
+                key={km}
+                type="button"
+                onClick={() => onRadiusChange(km)}
+                className={
+                  radarRadiusKm === km
+                    ? "rounded-lg bg-emerald-500 px-2.5 py-1.5 font-mono text-xs font-semibold text-[#030712] transition-colors"
+                    : "rounded-lg px-2.5 py-1.5 font-mono text-xs font-semibold text-slate-300 transition-colors hover:bg-white/10"
+                }
+              >
+                {km}km
+              </button>
+            ))}
           </div>
         </div>
       )}
