@@ -240,7 +240,7 @@ export const readinessFlags = pgTable("readiness_flags", {
     .references(() => users.id),
   ready: boolean("ready").notNull().default(false),
   readyAt: timestamp("ready_at"),
-}, (t) => [unique("readiness_flags_trade_user_uq", t.tradeId, t.userId)]);
+}, (t) => [unique("readiness_flags_trade_user_uq").on(t.tradeId, t.userId)]);
 
 export const meetupSpots = pgTable("meetup_spots", {
   id: serial("id").primaryKey(),
@@ -265,7 +265,7 @@ export const meetupVotes = pgTable("meetup_votes", {
     .notNull()
     .references(() => meetupSpots.id),
   createdAt: timestamp("created_at").notNull().defaultNow(),
-}, (t) => [unique("meetup_votes_trade_user_uq", t.tradeId, t.userId)]);
+}, (t) => [unique("meetup_votes_trade_user_uq").on(t.tradeId, t.userId)]);
 
 export const tradeItems = pgTable("trade_items", {
   id: serial("id").primaryKey(),

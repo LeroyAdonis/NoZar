@@ -1,14 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams, useFetcher } from "react-router";
-<<<<<<< HEAD
 import { eq, ne, and, desc, inArray, ilike, or } from "drizzle-orm";
 import { GoogleGenAI } from "@google/genai";
 import { Sparkles, Search, X } from "lucide-react";
-=======
-import { eq, ne, and, desc, inArray, ilike, or } from "drizzle-orm";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { Sparkles, Search, X } from "lucide-react";
->>>>>>> cf24171 (feat(search): add debounced text search to dashboard home)
 import type { Route } from "./+types/home";
 import type { ListingCard } from "~/lib/types";
 import { requireAuth } from "~/lib/auth.server";

@@ -13,7 +13,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import type { Route } from "./+types/add";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
@@ -56,7 +56,7 @@ function getGeminiModel() {
   if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY") {
     throw new Error("Gemini API key not configured");
   }
-  const genAI = new GoogleGenerativeAI(apiKey);
+  const genAI = new (GoogleGenAI as any)(apiKey);
   return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 }
 

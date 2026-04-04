@@ -33,7 +33,7 @@ export function BalancePile({
   yourValue,
 }: Props) {
   const [mode, setMode] = useState<"listing" | "service" | null>(null);
-  const [selectedListings, setSelectedListings] = useState<Number[]>([]);
+  const [selectedListings, setSelectedListings] = useState<number[]>([]);
   const [customService, setCustomService] = useState("");
   const [customValue, setCustomValue] = useState("");
 
