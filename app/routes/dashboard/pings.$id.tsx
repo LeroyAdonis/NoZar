@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { data, Form, Link, useNavigation, useRevalidator } from "react-router";
-import { eq, asc, and, count } from "drizzle-orm";
+import { eq, asc, and, or, count, avg } from "drizzle-orm";
 import {
   ChevronLeft,
   Lock,
@@ -126,12 +126,24 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   // ── Trust system extra queries ──────────────────────────────
 
-  // Trust profile for current user
-  const [myTrust] = await db
+  // Trust profile for current user — auto-create if missing (same pattern as profile.tsx loader)
+  let [myTrust] = await db
     .select({ level: trustProfiles.level, completedTrades: trustProfiles.completedTrades })
     .from(trustProfiles)
     .where(eq(trustProfiles.userId, user.id))
     .limit(1);
+
+  if (!myTrust) {
+    const [created] = await db
+      .insert(trustProfiles)
+      .values({
+        userId: user.id,
+        level: "newcomer",
+        completedTrades: 0,
+      })
+      .returning({ level: trustProfiles.level, completedTrades: trustProfiles.completedTrades });
+    myTrust = created;
+  }
 
   // Readiness flags for double-blind contact reveal
   const [myReadyRow, theirReadyRow] = await Promise.all([
@@ -346,6 +358,54 @@ export async function action({ request, params }: Route.ActionArgs) {
         type: "system",
       });
 
+      // ── Update trust profiles for both participants ──────────
+      const counterpartyId =
+        trade.initiatorId === user.id ? trade.responderId : trade.initiatorId;
+
+      for (const uid of [user.id, counterpartyId]) {
+        // Auto-create trust profile if missing
+        let [tp] = await db
+          .select()
+          .from(trustProfiles)
+          .where(eq(trustProfiles.userId, uid))
+          .limit(1);
+
+        if (!tp) {
+          [tp] = await db
+            .insert(trustProfiles)
+            .values({ userId: uid, level: "newcomer", completedTrades: 0 })
+            .returning();
+        }
+
+        // Count completed trades for this user
+        const [{ completedCount }] = await db
+          .select({ completedCount: count() })
+          .from(trades)
+          .where(and(
+            eq(trades.status, "completed"),
+            or(eq(trades.initiatorId, uid), eq(trades.responderId, uid)),
+          ));
+
+        // Calculate average rating
+        const [ratingAvg] = await db
+          .select({ avgRating: avg(ratings.score) })
+          .from(ratings)
+          .where(eq(ratings.rateeId, uid));
+
+        const averageRating = ratingAvg.avgRating ? parseFloat(ratingAvg.avgRating) : null;
+        const completedTrades = Number(completedCount);
+
+        // Determine level from thresholds
+        const level = completedTrades >= 4 ? "trusted"
+          : completedTrades >= 1 ? "verified"
+          : "newcomer";
+
+        await db
+          .update(trustProfiles)
+          .set({ level, completedTrades, averageRating, lastActiveAt: new Date(), updatedAt: new Date() })
+          .where(eq(trustProfiles.userId, uid));
+      }
+
       return { ok: true };
     }
 
@@ -401,6 +461,47 @@ export async function action({ request, params }: Route.ActionArgs) {
         score,
         comment,
       });
+
+      // ── Recalculate rated user's trust profile ───────────────
+      // Auto-create trust profile if missing
+      let [tp] = await db
+        .select()
+        .from(trustProfiles)
+        .where(eq(trustProfiles.userId, counterpartyId))
+        .limit(1);
+
+      if (!tp) {
+        [tp] = await db
+          .insert(trustProfiles)
+          .values({ userId: counterpartyId, level: "newcomer", completedTrades: 0 })
+          .returning();
+      }
+
+      // Recount completed trades
+      const [{ completedCount }] = await db
+        .select({ completedCount: count() })
+        .from(trades)
+        .where(and(
+          eq(trades.status, "completed"),
+          or(eq(trades.initiatorId, counterpartyId), eq(trades.responderId, counterpartyId)),
+        ));
+
+      // Recalculate average rating
+      const [ratingAvg] = await db
+        .select({ avgRating: avg(ratings.score) })
+        .from(ratings)
+        .where(eq(ratings.rateeId, counterpartyId));
+
+      const averageRating = ratingAvg.avgRating ? parseFloat(ratingAvg.avgRating) : null;
+      const completedTrades = Number(completedCount);
+      const level = completedTrades >= 4 ? "trusted"
+        : completedTrades >= 1 ? "verified"
+        : "newcomer";
+
+      await db
+        .update(trustProfiles)
+        .set({ level, completedTrades, averageRating, lastActiveAt: new Date(), updatedAt: new Date() })
+        .where(eq(trustProfiles.userId, counterpartyId));
 
       return { ok: true };
     }
