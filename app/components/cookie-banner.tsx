@@ -1,15 +1,10 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router";
 
+// Single global localStorage key — replaces both nozar-consent and nozar_cookie_consent
 const CONSENT_KEY = "nozar-consent";
 const CONSENT_VALUE = "accepted";
 
-/**
- * Global cookie consent banner (POPIA-compliant).
- *
- * Single instance rendered in root layout — site-wide coverage.
- * Replaces the landing-page-only CookieConsentBanner duplicate.
- */
 export function CookieBanner() {
   const [visible, setVisible] = useState(false);
 
@@ -18,7 +13,6 @@ export function CookieBanner() {
       typeof window !== "undefined" &&
       localStorage.getItem(CONSENT_KEY) !== CONSENT_VALUE
     ) {
-      // Small delay so the slide-up animation is visible on first load
       const timer = setTimeout(() => setVisible(true), 300);
       return () => clearTimeout(timer);
     }
@@ -40,7 +34,8 @@ export function CookieBanner() {
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
         <p className="text-sm text-slate-400 text-center md:text-left">
           We use essential cookies to keep you signed in and improve your
-          experience. No tracking cookies are used. Read our{" "}
+          experience. No tracking or third-party analytics cookies are used.
+          Read our{" "}
           <Link
             to="/legal/privacy"
             className="text-emerald-400 hover:text-emerald-300 underline"
