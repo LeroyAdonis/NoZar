@@ -1,6 +1,6 @@
 import { useNavigate, useSearchParams, useFetcher } from "react-router";
 import { eq, ne, and, desc, inArray } from "drizzle-orm";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { Sparkles } from "lucide-react";
 import type { Route } from "./+types/home";
 import type { ListingCard } from "~/lib/types";
@@ -244,10 +244,12 @@ Return ONLY the JSON array, no explanation.`;
       return { error: "AI matching is not configured" };
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
+    const ai = new GoogleGenAI({ apiKey });
+    const result = await ai.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: prompt,
+    });
+    const text = (result.text ?? "").trim();
 
     // Parse the JSON array from Gemini's response
     // Strip markdown code fences if present

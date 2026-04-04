@@ -12,7 +12,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import type { Route } from "./+types/add";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
@@ -51,36 +51,37 @@ const textareaStyles =
 
 // ─── Gemini helpers (server-only) ──────────────────────────────
 
-function getGeminiModel() {
+function getGeminiClient() {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY") {
     throw new Error("Gemini API key not configured");
   }
-  const genAI = new GoogleGenerativeAI(apiKey);
-  return genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  return new GoogleGenAI({ apiKey });
 }
 
 async function generateDescription(
   title: string,
   category: string,
 ): Promise<string> {
-  const model = getGeminiModel();
-  const result = await model.generateContent(
-    `Write a compelling 2-3 sentence listing description for a South African barter platform.
+  const ai = getGeminiClient();
+  const result = await ai.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents: `Write a compelling 2-3 sentence listing description for a South African barter platform.
      Item: "${title}" (Category: ${category}).
      Use natural SA English. Be specific about condition and value. Keep it concise.`,
-  );
-  return result.response.text();
+  });
+  return result.text ?? "";
 }
 
 async function suggestMeetupSpots(suburb: string): Promise<string[]> {
-  const model = getGeminiModel();
-  const result = await model.generateContent(
-    `Suggest exactly 3 safe public meetup locations near ${suburb}, South Africa for a barter exchange.
+  const ai = getGeminiClient();
+  const result = await ai.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents: `Suggest exactly 3 safe public meetup locations near ${suburb}, South Africa for a barter exchange.
      Focus on shopping malls, police stations, or community centres.
      Return ONLY a JSON array of 3 strings, no explanation. Example: ["Location 1", "Location 2", "Location 3"]`,
-  );
-  const text = result.response.text().trim();
+  });
+  const text = (result.text ?? "").trim();
   const match = text.match(/\[.*\]/s);
   if (!match) throw new Error("Invalid response format from AI");
   const parsed: unknown = JSON.parse(match[0]);
