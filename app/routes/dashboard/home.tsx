@@ -1,7 +1,14 @@
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams, useFetcher } from "react-router";
-import { eq, ne, and, desc, inArray } from "drizzle-orm";
+<<<<<<< HEAD
+import { eq, ne, and, desc, inArray, ilike, or } from "drizzle-orm";
 import { GoogleGenAI } from "@google/genai";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Search, X } from "lucide-react";
+=======
+import { eq, ne, and, desc, inArray, ilike, or } from "drizzle-orm";
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Sparkles, Search, X } from "lucide-react";
+>>>>>>> cf24171 (feat(search): add debounced text search to dashboard home)
 import type { Route } from "./+types/home";
 import type { ListingCard } from "~/lib/types";
 import { requireAuth } from "~/lib/auth.server";
@@ -52,6 +59,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const category = url.searchParams.get("category");
   const regionParam = url.searchParams.get("region");
+  const searchQuery = url.searchParams.get("q");
 
   // Fetch user's province for region resolution
   const [userProfile] = await db
@@ -62,6 +70,15 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const currentRegion = resolveRegion(regionParam, userProfile?.province);
   const regionConfig = MVP_REGIONS[currentRegion];
+
+  // Build where clause: always filter by status + region, optionally add search
+  const searchFilter =
+    searchQuery
+      ? or(
+          ilike(listings.title, `%${searchQuery}%`),
+          ilike(listings.description, `%${searchQuery}%`),
+        )
+      : undefined;
 
   const rows = await db
     .select({
@@ -86,10 +103,11 @@ export async function loader({ request }: Route.LoaderArgs) {
       and(
         eq(listings.status, "active"),
         eq(profiles.province, regionConfig.province),
+        searchFilter,
       ),
     )
     .orderBy(desc(listings.createdAt))
-    .limit(20);
+    .limit(50);
 
   // Fetch first images for listings
   const listingIds = rows.map((r) => r.id);
@@ -130,7 +148,12 @@ export async function loader({ request }: Route.LoaderArgs) {
       imageUrl: imageMap.get(r.id) ?? null,
     }));
 
-  return { listings: items, currentRegion, needsRegion: !userProfile?.province || !provinceToSlug(userProfile.province) };
+  return {
+    listings: items,
+    currentRegion,
+    needsRegion: !userProfile?.province || !provinceToSlug(userProfile.province),
+    searchQuery: searchQuery ?? null,
+  };
 }
 
 // ─── Action (AI Match) ─────────────────────────────────────────
@@ -282,7 +305,31 @@ export default function DashboardHome({
   const activeCategory = searchParams.get("category") ?? "All";
   const radiusKm = Number(searchParams.get("radius") ?? "10");
   const fetcher = useFetcher<typeof action>();
-  const { currentRegion } = loaderData;
+  const { currentRegion, searchQuery } = loaderData;
+
+  // ── Client-side debounced search (300 ms) ──
+  const [inputValue, setInputValue] = useState(searchQuery ?? "");
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  useEffect(() => {
+    setInputValue(searchQuery ?? "");
+  }, [searchQuery]);
+
+  function handleSearchInput(value: string) {
+    setInputValue(value);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setSearchParams((prev) => {
+        const p = new URLSearchParams(prev);
+        if (value.trim()) {
+          p.set("q", value.trim());
+        } else {
+          p.delete("q");
+        }
+        return p;
+      }, { preventScrollReset: true });
+    }, 300);
+  }
 
   function handleRegionChange(slug: RegionSlug) {
     const params = new URLSearchParams(searchParams);
@@ -336,6 +383,29 @@ export default function DashboardHome({
         </fetcher.Form>
       </div>
 
+      {/* Search bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => handleSearchInput(e.target.value)}
+          placeholder="Search by title or description…"
+          autoComplete="off"
+          className="w-full bg-[#0F172A] border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
+        />
+        {inputValue && (
+          <button
+            type="button"
+            onClick={() => handleSearchInput("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+            aria-label="Clear search"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
       {/* AI Match feedback */}
       {matchError === "no_listings" && (
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-xs text-amber-400 font-mono">
@@ -350,6 +420,11 @@ export default function DashboardHome({
       {matchedIds && matchedIds.size > 0 && (
         <div className="bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3 text-xs text-purple-400 font-mono">
           Found {matchedIds.size} AI-matched listing{matchedIds.size !== 1 ? "s" : ""} for you
+        </div>
+      )}
+      {searchQuery && loaderData.listings.length > 0 && (
+        <div className="bg-slate-500/10 border border-slate-500/20 rounded-xl px-4 py-2 text-xs text-slate-400 font-mono">
+          Showing {loaderData.listings.length} result{loaderData.listings.length !== 1 ? "s" : ""} for &quot;{searchQuery}&quot;
         </div>
       )}
       {matchedIds && matchedIds.size === 0 && (
@@ -403,9 +478,15 @@ export default function DashboardHome({
             No results
           </p>
           <p className="text-slate-600 text-xs">
-            No assets found in this region
+            No assets found
+            {searchQuery && (
+              <> for <span className="font-mono text-slate-500">"{searchQuery}"</span></>
+            )}
             {activeCategory !== "All" && (
-              <> under <span className="font-mono text-slate-500">{activeCategory}</span></>
+              <> in <span className="font-mono text-slate-500">{activeCategory}</span></>
+            )}
+            {!searchQuery && activeCategory === "All" && (
+              <> in this region</>
             )}
           </p>
         </div>
