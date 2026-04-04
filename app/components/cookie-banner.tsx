@@ -4,6 +4,12 @@ import { Link } from "react-router";
 const CONSENT_KEY = "nozar-consent";
 const CONSENT_VALUE = "accepted";
 
+/**
+ * Global cookie consent banner (POPIA-compliant).
+ *
+ * Single instance rendered in root layout — site-wide coverage.
+ * Replaces the landing-page-only CookieConsentBanner duplicate.
+ */
 export function CookieBanner() {
   const [visible, setVisible] = useState(false);
 
