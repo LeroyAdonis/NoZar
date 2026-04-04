@@ -37,6 +37,12 @@ import {
 } from "~/lib/schema";
 import { timeAgo } from "~/lib/utils";
 import { markThreadRead } from "~/lib/notifications.server";
+import {
+  newMessageEmail,
+  tradeAcceptedEmail,
+  contactSharedEmail,
+  tradeCompletedEmail,
+} from "~/lib/email.server";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 import { TrustBadge } from "~/components/ui/trust-badge";
 import { ReportModal } from "~/components/ui/report-modal";
@@ -268,6 +274,25 @@ export async function action({ request, params }: Route.ActionArgs) {
         text,
         type: "text",
       });
+
+      // Email counterparty about new message (non-blocking)
+      const counterpartyId_msg =
+        trade.initiatorId === user.id ? trade.responderId : trade.initiatorId;
+      const [[listForMsg], [cpForMsg]] = await Promise.all([
+        db.select({ title: listings.title }).from(listings).where(eq(listings.id, trade.listingId)).limit(1),
+        db.select({ email: users.email, name: users.name }).from(users).where(eq(users.id, counterpartyId_msg)).limit(1),
+      ]);
+      if (cpForMsg?.email) {
+        newMessageEmail({
+          to: cpForMsg.email,
+          recipientName: cpForMsg.name,
+          senderName: user.name,
+          messageSnippet: text,
+          tradeId,
+          listingTitle: listForMsg?.title ?? "a listing",
+        });
+      }
+
       return { ok: true };
     }
 
@@ -308,6 +333,23 @@ export async function action({ request, params }: Route.ActionArgs) {
         type: "system",
       });
 
+      // Email initiator that handshake was accepted (non-blocking)
+      const counterpartyId_accept =
+        trade.initiatorId === user.id ? trade.responderId : trade.initiatorId;
+      const [[listForAccept], [cpForAccept]] = await Promise.all([
+        db.select({ title: listings.title }).from(listings).where(eq(listings.id, trade.listingId)).limit(1),
+        db.select({ email: users.email, name: users.name }).from(users).where(eq(users.id, counterpartyId_accept)).limit(1),
+      ]);
+      if (cpForAccept?.email) {
+        tradeAcceptedEmail({
+          to: cpForAccept.email,
+          recipientName: cpForAccept.name,
+          senderName: user.name,
+          tradeId,
+          listingTitle: listForAccept?.title ?? "a listing",
+        });
+      }
+
       return { ok: true };
     }
 
@@ -342,6 +384,29 @@ export async function action({ request, params }: Route.ActionArgs) {
         type: "system",
       });
 
+      // Email counterparty that contact was shared (non-blocking)
+      const counterpartyId_contact =
+        trade.initiatorId === user.id ? trade.responderId : trade.initiatorId;
+      const [cpForContact] = await db
+        .select({ email: users.email, name: users.name })
+        .from(users)
+        .where(eq(users.id, counterpartyId_contact))
+        .limit(1);
+      const [listingForContact] = await db
+        .select({ title: listings.title })
+        .from(listings)
+        .where(eq(listings.id, trade.listingId))
+        .limit(1);
+      if (cpForContact?.email) {
+        contactSharedEmail({
+          to: cpForContact.email,
+          recipientName: cpForContact.name,
+          senderName: user.name,
+          tradeId,
+          listingTitle: listingForContact?.title ?? "a listing",
+        });
+      }
+
       return { ok: true };
     }
 
@@ -365,6 +430,18 @@ export async function action({ request, params }: Route.ActionArgs) {
       // ── Update trust profiles for both participants ──────────
       const counterpartyId =
         trade.initiatorId === user.id ? trade.responderId : trade.initiatorId;
+
+      // Fetch counterparty before updating trust profiles (counterpartyId already computed)
+      const [cpForComplete] = await db
+        .select({ email: users.email, name: users.name })
+        .from(users)
+        .where(eq(users.id, counterpartyId))
+        .limit(1);
+      const [listingForComplete] = await db
+        .select({ title: listings.title })
+        .from(listings)
+        .where(eq(listings.id, trade.listingId))
+        .limit(1);
 
       for (const uid of [user.id, counterpartyId]) {
         // Auto-create trust profile if missing
@@ -408,6 +485,25 @@ export async function action({ request, params }: Route.ActionArgs) {
           .update(trustProfiles)
           .set({ level, completedTrades, averageRating, lastActiveAt: new Date(), updatedAt: new Date() })
           .where(eq(trustProfiles.userId, uid));
+
+        // Email both participants about trade completion (non-blocking)
+        if (cpForComplete?.email) {
+          tradeCompletedEmail({
+            to: cpForComplete.email,
+            recipientName: cpForComplete.name,
+            otherName: uid === counterpartyId ? user.name : cpForComplete.name,
+            tradeId,
+            listingTitle: listingForComplete?.title ?? "a listing",
+          });
+        }
+        // Also email the current user (they initiated completion)
+        tradeCompletedEmail({
+          to: user.email,
+          recipientName: user.name,
+          otherName: cpForComplete?.name ?? "your trading partner",
+          tradeId,
+          listingTitle: listingForComplete?.title ?? "a listing",
+        });
       }
 
       return { ok: true };
