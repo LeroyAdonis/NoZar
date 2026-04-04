@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Form, useNavigation, useFetcher, Link } from "react-router";
 import { eq, or, and, count, avg, inArray } from "drizzle-orm";
 import {
