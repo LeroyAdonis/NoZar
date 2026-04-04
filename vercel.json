@@ -1,5 +1,4 @@
 {
-  "framework": "remix",
   "headers": [
     {
       "source": "/assets/:path*",
