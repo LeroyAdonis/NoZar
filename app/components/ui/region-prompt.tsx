@@ -12,7 +12,7 @@ type RegionPromptProps = {
 
 export function RegionPrompt({ actionUrl }: RegionPromptProps) {
   return (
-    <div className="fixed inset-0 z-50 bg-[#030712]/95 backdrop-blur-xl flex items-center justify-center p-6">
+    <div className="fixed inset-0 z-50 bg-[#030712]/90 backdrop-blur-sm flex items-center justify-center p-6">
       <div className="max-w-md w-full space-y-8 text-center">
         {/* Header */}
         <div>
@@ -23,7 +23,7 @@ export function RegionPrompt({ actionUrl }: RegionPromptProps) {
             Select Your Region
           </h2>
           <p className="text-sm text-slate-400 mt-2">
-            Nozar is currently live in two regions. Pick yours to see nearby swaps.
+            Pick your region to see nearby swaps. You can change this later in your profile.
           </p>
         </div>
 

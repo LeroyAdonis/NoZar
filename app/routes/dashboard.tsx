@@ -45,9 +45,16 @@ export async function action({ request }: Route.ActionArgs) {
     const province = (formData.get("province") as string)?.trim() || null;
     if (province && provinceToSlug(province)) {
       await db
-        .update(profiles)
-        .set({ province, updatedAt: new Date() })
-        .where(eq(profiles.userId, user.id));
+        .insert(profiles)
+        .values({
+          userId: user.id,
+          province,
+          displayName: user.name || user.email?.split("@")[0] || "User",
+        })
+        .onConflictDoUpdate({
+          target: profiles.userId,
+          set: { province, updatedAt: new Date() },
+        });
     }
     return { success: true };
   }
