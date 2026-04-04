@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { data, Form, Link, useFetcher, useNavigation, useRevalidator } from "react-router";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { eq, asc, and, count } from "drizzle-orm";
 import {
   ChevronLeft,
@@ -595,20 +595,25 @@ export async function action({ request, params }: Route.ActionArgs) {
 
       // ── Call Gemini ──────────────────────────────────────────────────
       try {
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+        const ai = new GoogleGenAI({ apiKey });
 
-        const result = await model.generateContent(
-          `Suggest exactly 3 safe public meetup spots near ${location}, South Africa for a barter exchange.
+        const result = await ai.models.generateContent({
+          model: "gemini-2.0-flash",
+          contents: `Suggest exactly 3 safe public meetup spots near ${location}, South Africa for a barter exchange.
            Prefer shopping malls, police stations, community centres, or busy well-lit public spaces.
            Return ONLY a JSON array of exactly 3 objects with keys: name, address, reason.
            No markdown, no explanation, no code fences. Example:
            [{"name":"Sandton City Mall","address":"83 Rivonia Rd, Sandton, Johannesburg","reason":"High foot traffic with 24/7 security"}]`,
-        );
+        });
 
-        const raw = result.response.text().trim();
-        const match = raw.match(/\[.*\]/s);
-        if (!match) return { error: "invalid_ai_response" };
+        const raw = (result.text ?? "").trim();
+        // Strip markdown code fences if the model adds them despite instructions
+        const stripped = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+        const match = stripped.match(/\[.*\]/s);
+        if (!match) {
+          console.error("[generateSafeZone] No JSON array found in response:", raw);
+          return { error: "invalid_ai_response" };
+        }
 
         const parsed: unknown = JSON.parse(match[0]);
         if (!Array.isArray(parsed)) return { error: "invalid_ai_response" };
@@ -636,7 +641,8 @@ export async function action({ request, params }: Route.ActionArgs) {
         );
 
         return { ok: true };
-      } catch {
+      } catch (err) {
+        console.error("[generateSafeZone] Gemini API call failed:", err);
         return { error: "gemini_failed" };
       }
     }

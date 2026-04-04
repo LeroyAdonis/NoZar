@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.5.3",
-    "@google/generative-ai": "^0.24.1",
+    "@google/genai": "^1.48.0",
     "@googlemaps/js-api-loader": "^2.0.2",
     "@neondatabase/serverless": "^1.0.2",
     "@react-router/node": "7.12.0",
