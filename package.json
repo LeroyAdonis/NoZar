@@ -6,7 +6,18 @@
     "build": "react-router build",
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
-    "typecheck": "react-router typegen && tsc"
+    "typecheck": "react-router typegen && tsc",
+    "test": "playwright test",
+    "test:auth": "playwright test auth.spec.ts",
+    "test:landing": "playwright test landing.spec.ts",
+    "test:dashboard": "playwright test dashboard.spec.ts",
+    "test:chat": "playwright test chat.spec.ts",
+    "test:profile": "playwright test profile.spec.ts",
+    "test:legal": "playwright test legal.spec.ts",
+    "test:headed": "playwright test --headed",
+    "test:report": "playwright show-report",
+    "test:install": "playwright install",
+    "test:update": "playwright install --update"
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.5.3",
@@ -20,12 +31,12 @@
     "framer-motion": "^12.34.5",
     "isbot": "^5.1.31",
     "lucide-react": "^0.576.0",
-    "playwright": "^1.58.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router": "7.12.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@react-router/dev": "7.12.0",
     "@tailwindcss/vite": "^4.1.13",
     "@types/google.maps": "^3.58.1",
