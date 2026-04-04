@@ -5,6 +5,8 @@ description: REQUIRED for all image generation requests. Generate images using P
 
 # Nano Banana Image Generation Skill (Puter.js)
 
+> ⚠️ **Project-Specific Skill** — This skill uses **Puter.js Nano Banana** for image generation, which is configured for the **Purple Glow Social 2.0** project. If you are working in a different project or need a different image generation backend, this skill may not apply.
+
 ## Overview
 
 This skill uses **Puter.js** for client-side AI image generation via the Nano Banana model. No API keys needed — uses the "User-Pays" model where users cover their own costs.

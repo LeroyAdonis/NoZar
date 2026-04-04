@@ -1,6 +1,6 @@
 ---
 name: systematic-debugging
-description: Use when encountering bugs, test failures, regressions, or unexplained behavior, and require root-cause investigation before proposing fixes.
+description: Use when encountering bugs, test failures, regressions, or unexplained behavior that requires root-cause investigation before proposing fixes. Triggers on "why is this failing", "investigate this bug", "trace the root cause", "what's causing this", "reproduce this issue", or any situation where the cause is unclear and jumping straight to a fix risks missing the real problem.
 ---
 
 # Systematic Debugging

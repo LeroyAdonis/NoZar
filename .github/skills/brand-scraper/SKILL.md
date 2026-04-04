@@ -5,6 +5,8 @@ description: "Scrape public social media posts from a brand handle or URL to ext
 
 # Brand Scraper
 
+> ⚠️ **Project-Specific Skill** — This skill is configured for the **Purple Glow Social 2.0** project. It references specific Neon PostgreSQL tables, Drizzle ORM schemas, and workflows unique to that project. If you are working in a different project, this skill may not apply.
+
 Analyse a brand's public social presence and extract a reusable **brand profile** for downstream SA post generation.
 
 ## Overview

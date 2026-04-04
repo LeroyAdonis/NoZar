@@ -1,6 +1,6 @@
 ---
 name: dispatching-parallel-agents
-description: Use when a request has 2+ independent tasks (different files, bugs, or subsystems) that can run concurrently without shared state or ordering dependencies.
+description: Use when a request has 2+ independent tasks (different files, bugs, or subsystems) that can run concurrently without shared state or ordering dependencies. Triggers on phrases like "do all these tasks", "run these simultaneously", "handle both of these", "batch these", or any request where multiple distinct workstreams could progress in parallel. Do NOT use when tasks have ordering dependencies or share mutable state.
 ---
 
 # Dispatching Parallel Agents

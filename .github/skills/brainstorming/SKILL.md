@@ -94,3 +94,10 @@ digraph brainstorming {
 - **Explore alternatives** - Always propose 2-3 approaches before settling
 - **Incremental validation** - Present design, get approval before moving on
 - **Be flexible** - Go back and clarify when something doesn't make sense
+
+---
+
+## Related Skills
+
+- **writing-plans** — Run after brainstorming once intent is clear and requirements are understood. writing-plans produces the detailed implementation roadmap.
+- **dispatching-parallel-agents** — When the brainstormed approach reveals multiple independent workstreams, use this to execute them in parallel.

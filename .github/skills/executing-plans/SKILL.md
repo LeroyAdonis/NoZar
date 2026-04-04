@@ -1,6 +1,6 @@
 ---
 name: executing-plans
-description: Use when a written implementation plan already exists and should be executed in a separate session with batch checkpoints and review handoffs.
+description: Use when a written implementation plan already exists and should be executed in a **separate background session** with batch checkpoints and review handoffs. This is the right choice when you want plan execution fully isolated from the current conversation. Triggers on "implement this plan", "execute plan.md", "start implementation", "run this plan", or when the user has a completed written plan and wants it carried out autonomously. Contrast with superpowers:subagent-driven-development which executes plans inline in the current session.
 ---
 
 # Executing Plans

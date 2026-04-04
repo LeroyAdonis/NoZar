@@ -1,6 +1,6 @@
 ---
 name: subagent-driven-development
-description: Use when executing a written implementation plan in the current session and tasks are mostly independent enough to delegate one-by-one to fresh subagents.
+description: Use when executing a written implementation plan **in the current session**, delegating tasks one-by-one to fresh subagents while you coordinate. Best when tasks are mostly independent and you want to stay in the loop between delegations. Triggers on "implement this plan step by step", "delegate each task", or when you need inline visibility and control over each subagent's output. Contrast with superpowers:executing-plans which offloads the entire plan to a separate background session.
 ---
 
 # Subagent-Driven Development

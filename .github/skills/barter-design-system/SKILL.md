@@ -5,7 +5,9 @@ description: "Comprehensive design system for Barter SA marketplace. Use when bu
 
 # Barter Design System
 
-SA cultural identity meets modern minimalism. Every UI decision reinforces that Barter is proudly South African — through color, pattern, motion, and language — while keeping the interface clean, fast, and accessible.
+> ⚠️ **Project-Specific Skill** — This design system is built for the **Barter SA / NoZar** marketplace. It uses SA flag colors, ndebele patterns, and project-specific design tokens. If you are working in a different project, use the general `bold-designs-skill` or `frontend-design` skill instead.
+
+SA cultural identitymeets modern minimalism. Every UI decision reinforces that Barter is proudly South African — through color, pattern, motion, and language — while keeping the interface clean, fast, and accessible.
 
 ## Design Philosophy
 

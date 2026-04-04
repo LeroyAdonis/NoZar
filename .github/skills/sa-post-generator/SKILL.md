@@ -5,6 +5,8 @@ description: "Generate culturally-relevant South African social media posts usin
 
 # SA Post Generator
 
+> ⚠️ **Project-Specific Skill** — This skill is configured for the **Purple Glow Social 2.0** project and generates **South African** social media content using Gemini AI, SA cultural context, and project-specific brand profile data. It is not a general-purpose post generator.
+
 Generate high-quality, culturally authentic South African social media posts powered by Gemini Pro, tuned to a user's brand profile.
 
 ## Identity

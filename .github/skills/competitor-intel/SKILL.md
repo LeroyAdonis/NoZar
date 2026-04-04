@@ -5,6 +5,8 @@ description: "Playwright-driven competitor research skill for Purple Glow Social
 
 # Competitor Intel
 
+> ⚠️ **Project-Specific Skill** — This skill is configured for the **Purple Glow Social 2.0** project. It references specific Neon PostgreSQL tables, Drizzle ORM schemas, and workflows unique to that project. If you are working in a different project, this skill may not apply.
+
 Systematically research competitors' public-facing marketing and pricing pages with Playwright. Output structured intelligence for product decisions.
 
 ## Identity

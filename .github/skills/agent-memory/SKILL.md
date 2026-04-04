@@ -5,6 +5,8 @@ description: "Read/write persistent agent context to the agent_sessions table in
 
 # Agent Memory
 
+> ⚠️ **Project-Specific Skill** — This skill is configured for the **Purple Glow Social 2.0** project. It references specific Neon PostgreSQL tables, Drizzle ORM schemas, and workflows unique to that project. If you are working in a different project, this skill may not apply.
+
 Persist and restore agent state across sessions using the `agent_sessions` Drizzle table on Neon PostgreSQL.
 
 ## Overview

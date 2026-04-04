@@ -1,6 +1,6 @@
 ---
 name: writing-plans
-description: Use when you have specs/requirements and need a detailed multi-step implementation plan before touching code.
+description: Use when you have specs/requirements and need a detailed multi-step implementation plan before touching code. Triggers on "make a plan", "plan this out", "what's our approach", "help me plan", "before we start", "think through this", or any request where jumping directly to implementation risks missing edge cases, dependencies, or architectural decisions.
 ---
 
 # Writing Plans
@@ -114,3 +114,11 @@ After saving the plan, offer execution choice:
 **If Parallel Session chosen:**
 - Guide them to open new session in worktree
 - **REQUIRED SUB-SKILL:** New session uses superpowers:executing-plans
+
+---
+
+## Related Skills
+
+- **brainstorming** — Use before writing-plans when the feature/approach itself is still unclear. Brainstorming explores intent and requirements; writing-plans produces the implementation roadmap.
+- **executing-plans** — Run after writing-plans to execute the resulting plan in a separate background session.
+- **subagent-driven-development** — Alternative to executing-plans for inline plan execution in the current session.

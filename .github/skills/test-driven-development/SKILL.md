@@ -1,6 +1,6 @@
 ---
 name: test-driven-development
-description: Use when implementing features, bugfixes, or behavior changes where you should write a failing test first, implement the minimal fix, then refactor safely.
+description: Use when implementing features, bugfixes, or behavior changes where you should write a failing test first, implement the minimal fix, then refactor safely. Triggers on "TDD", "test-driven", "write tests first", "failing test", "red-green-refactor", "test before code", or any implementation task where correctness must be verified by tests before considering the work done.
 ---
 
 # Test-Driven Development (TDD)
