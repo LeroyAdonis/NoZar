@@ -47,7 +47,7 @@ const TRUST_BADGES: TrustBadge[] = [
 export function TrustBadgesSection() {
   return (
     <section className="relative z-10 py-16 bg-[#030712] overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <p className="text-center text-emerald-500 font-mono text-xs uppercase tracking-widest mb-10">
           {"// Compliance.Verified"}
         </p>

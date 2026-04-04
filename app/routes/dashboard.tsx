@@ -225,7 +225,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
       </aside>
 
       {/* Sticky header */}
-      <header className="sticky top-0 z-40 bg-[#030712]/90 backdrop-blur-xl border-b border-white/5 px-6 py-4 flex justify-between items-center">
+      <header className="sticky top-0 z-40 bg-[#030712]/90 backdrop-blur-xl border-b border-white/5 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
         {/* Logo — mobile only (desktop sidebar carries it) */}
         <Link
           to="/dashboard"
@@ -326,7 +326,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
 
       {/* Main content */}
       <main
-        className={`relative z-10 p-6 max-w-2xl mx-auto md:max-w-4xl md:mx-0 md:px-8 md:py-8 transition-opacity duration-200 ${
+        className={`relative z-10 p-4 sm:p-6 max-w-2xl mx-auto md:max-w-4xl md:mx-0 md:px-8 md:py-8 transition-opacity duration-200 ${
           isNavigating ? "opacity-70" : ""
         }`}
         aria-busy={isNavigating}

@@ -95,14 +95,14 @@ export function PricingSection() {
   return (
     <section
       id="pricing"
-      className="relative z-10 py-24 px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24"
+      className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24"
     >
       <ScrollReveal>
         <div className="mb-16 text-center">
           <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
             // Protocol.Pricing
           </span>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase">
             Choose Your Tier.
           </h2>
         </div>
@@ -110,7 +110,7 @@ export function PricingSection() {
 
       <StaggerChildren
         staggerDelay={0.12}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
       >
         {tiers.map((tier) => (
           <StaggerItem key={tier.name}>

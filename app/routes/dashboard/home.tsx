@@ -378,7 +378,7 @@ export default function DashboardHome({
 
       {/* Asset feed */}
       {loaderData.listings.length > 0 ? (
-        <div data-testid="feed" className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div data-testid="feed" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {loaderData.listings.map((listing) => (
             <div key={listing.id} className="relative">
               {matchedIds?.has(listing.id) && (

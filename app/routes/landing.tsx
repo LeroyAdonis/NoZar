@@ -124,7 +124,7 @@ export default function LandingPage({
       <nav
         className={`fixed top-0 w-full z-50 transition-all duration-500 ${isScrolled ? "bg-[#030712]/80 backdrop-blur-xl border-b border-white/5 py-4" : "bg-transparent py-6"}`}
       >
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 flex justify-between items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           {/* Logo */}
           <div
             className="flex items-center gap-3 cursor-pointer group"
@@ -279,7 +279,7 @@ export default function LandingPage({
       )}
 
       {/* Hero Section */}
-      <main className="relative z-10 pt-40 pb-20 lg:pt-56 lg:pb-32 px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
+      <main className="relative z-10 pt-28 sm:pt-40 pb-14 sm:pb-20 lg:pt-56 lg:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
         <div data-testid="network-status" className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono uppercase tracking-widest text-emerald-400 mb-10 backdrop-blur-md">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -287,13 +287,13 @@ export default function LandingPage({
           </span>
           Network Status: Beta Active (CPT/JHB)
         </div>
-        <h1 className="text-5xl md:text-8xl lg:text-[7.5rem] font-black tracking-tighter leading-[0.9] mb-8 uppercase text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50">
+        <h1 className="text-4xl sm:text-6xl md:text-8xl lg:text-[7.5rem] font-black tracking-tighter leading-[0.9] mb-6 sm:mb-8 uppercase text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50">
           Decentralize <br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">
             Your Value.
           </span>
         </h1>
-        <p className="text-lg md:text-2xl text-slate-400 max-w-3xl mx-auto mb-12 leading-relaxed font-light">
+        <p className="text-base sm:text-lg md:text-2xl text-slate-400 max-w-3xl mx-auto mb-8 sm:mb-12 leading-relaxed font-light">
           The spatial barter network for South Africa. Bypass inflation by
           exchanging idle assets, surplus inventory, and professional services
           directly.{" "}
@@ -325,23 +325,23 @@ export default function LandingPage({
       {/* The Bento Grid: How It Works */}
       <section
         id="how-it-works"
-        className="relative z-10 py-24 px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24"
+        className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24"
       >
         <ScrollReveal>
-          <div className="mb-16">
+          <div className="mb-12 sm:mb-16">
             <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
               // System Architecture
             </span>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase">
               How The Matrix Works.
             </h2>
           </div>
         </ScrollReveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6">
           {/* Value Parity Engine — spans 8 cols */}
           <ScrollReveal delay={0.1} className="md:col-span-8">
-          <div className="group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-white/20 transition-all duration-500 p-8 md:p-12 flex flex-col justify-between min-h-[400px]">
+          <div className="group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-white/20 transition-all duration-500 p-6 sm:p-8 md:p-12 flex flex-col justify-between min-h-[240px] sm:min-h-[320px] md:min-h-[400px]">
             <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 group-hover:bg-emerald-500/20 transition-all duration-700" />
             <div className="relative z-10">
               <Cpu className="w-10 h-10 text-emerald-400 mb-6" />
@@ -364,7 +364,7 @@ export default function LandingPage({
 
           {/* Hyper-Local Indexing — spans 4 cols */}
           <ScrollReveal delay={0.2} className="md:col-span-4">
-          <div className="group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-cyan-500/30 transition-all duration-500 p-8 md:p-12 flex flex-col justify-between min-h-[400px]">
+          <div className="group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-cyan-500/30 transition-all duration-500 p-6 sm:p-8 md:p-12 flex flex-col justify-between min-h-[240px] sm:min-h-[320px] md:min-h-[400px]">
             <div className="relative z-10">
               <Globe className="w-10 h-10 text-cyan-400 mb-6" />
               <h3 className="text-2xl font-bold tracking-tight mb-4">
@@ -386,13 +386,13 @@ export default function LandingPage({
       </section>
 
       {/* Dual Economies: Exchange (Consumer + Enterprise) */}
-      <section id="exchange" className="scroll-mt-32 pb-24">
+      <section id="exchange" className="scroll-mt-32 pb-16 sm:pb-24">
         <ScrollReveal>
-          <div className="max-w-7xl mx-auto px-6 lg:px-8 mb-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
             <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-3">
               // Dual Economies
             </span>
-            <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase">
               Pick Your{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
                 Channel.
@@ -404,11 +404,11 @@ export default function LandingPage({
             </p>
           </div>
         </ScrollReveal>
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         {/* For Consumers */}
         <ScrollReveal delay={0.1}>
         <div
-          className="relative rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-white/10 p-10 hover:border-blue-500/30 transition-all duration-500"
+          className="relative rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-white/10 p-6 sm:p-10 hover:border-blue-500/30 transition-all duration-500"
         >
           <span className="text-blue-400 font-mono text-xs uppercase tracking-widest block mb-6">
             // User Node: Consumer
@@ -447,7 +447,7 @@ export default function LandingPage({
         {/* For Business */}
         <ScrollReveal delay={0.2}>
         <div
-          className="relative rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-white/10 p-10 hover:border-emerald-500/30 transition-all duration-500"
+          className="relative rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-white/10 p-6 sm:p-10 hover:border-emerald-500/30 transition-all duration-500"
         >
           <span className="text-emerald-400 font-mono text-xs uppercase tracking-widest block mb-6">
             // User Node: Enterprise
@@ -489,19 +489,19 @@ export default function LandingPage({
       {/* Security Protocol */}
       <section
         id="safety"
-        className="relative z-10 py-32 bg-[#030712] border-y border-white/5 scroll-mt-20 overflow-hidden"
+        className="relative z-10 py-20 sm:py-32 bg-[#030712] border-y border-white/5 scroll-mt-20 overflow-hidden"
       >
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <ScrollReveal>
-            <div className="text-center mb-20">
+            <div className="text-center mb-12 sm:mb-20">
               <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
                 // Protocol.Security
               </span>
-              <h2 className="text-4xl md:text-6xl font-black tracking-tighter uppercase mb-6">
+              <h2 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tighter uppercase mb-4 sm:mb-6">
                 The Staged Trust <br /> Architecture.
               </h2>
-              <p className="text-slate-400 text-lg max-w-2xl mx-auto">
+              <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto">
                 Engineered specifically for the South African risk landscape. Your
                 identity and location remain sealed until mutual consensus is
                 achieved.
@@ -509,10 +509,10 @@ export default function LandingPage({
             </div>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             {/* Stage 01 */}
             <ScrollReveal delay={0.1}>
-            <div className="bg-[#0F172A] border border-white/10 p-8 rounded-3xl relative">
+            <div className="bg-[#0F172A] border border-white/10 p-6 sm:p-8 rounded-3xl relative">
               <div className="absolute top-0 left-8 -translate-y-1/2 bg-slate-900 border border-white/10 px-4 py-1 rounded-full font-mono text-xs text-slate-400">
                 STAGE_01
               </div>
@@ -528,7 +528,7 @@ export default function LandingPage({
             </ScrollReveal>
             {/* Stage 02 — elevated */}
             <ScrollReveal delay={0.2}>
-            <div className="bg-gradient-to-b from-[#0F172A] to-emerald-950/20 border border-emerald-500/20 p-8 rounded-3xl relative transform md:-translate-y-4 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
+            <div className="bg-gradient-to-b from-[#0F172A] to-emerald-950/20 border border-emerald-500/20 p-6 sm:p-8 rounded-3xl relative sm:transform sm:-translate-y-4 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
               <div className="absolute top-0 left-8 -translate-y-1/2 bg-emerald-900 border border-emerald-500/30 px-4 py-1 rounded-full font-mono text-xs text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
                 STAGE_02
               </div>
@@ -544,7 +544,7 @@ export default function LandingPage({
             </ScrollReveal>
             {/* Stage 03 */}
             <ScrollReveal delay={0.3}>
-            <div className="bg-[#0F172A] border border-white/10 p-8 rounded-3xl relative">
+            <div className="bg-[#0F172A] border border-white/10 p-6 sm:p-8 rounded-3xl relative">
               <div className="absolute top-0 left-8 -translate-y-1/2 bg-slate-900 border border-white/10 px-4 py-1 rounded-full font-mono text-xs text-slate-400">
                 STAGE_03
               </div>
@@ -575,11 +575,11 @@ export default function LandingPage({
       <FaqSection />
 
       {/* Brutalist Footer CTA */}
-      <section className="relative z-10 border-t border-white/5 bg-[#030712] py-32 overflow-hidden">
+      <section className="relative z-10 border-t border-white/5 bg-[#030712] py-20 sm:py-32 overflow-hidden">
         <div className="absolute inset-0 bg-emerald-500/5 backdrop-blur-3xl pointer-events-none" />
-        <div className="max-w-5xl mx-auto px-6 text-center relative z-10">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center relative z-10">
           <ScrollReveal>
-            <h2 className="text-5xl md:text-8xl font-black tracking-tighter uppercase mb-8">
+            <h2 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter uppercase mb-6 sm:mb-8">
               Bypass The{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-600">
                 Fiat.

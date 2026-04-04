@@ -68,14 +68,14 @@ export function FaqSection() {
   return (
     <section
       id="faq"
-      className="relative z-10 py-24 px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24"
+      className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto scroll-mt-24"
     >
       <ScrollReveal>
         <div className="mb-16">
           <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
             // Frequently.Asked
           </span>
-          <h2 className="text-4xl md:text-5xl font-black tracking-tighter uppercase">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase">
             Common Queries.
           </h2>
         </div>
