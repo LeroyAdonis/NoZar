@@ -102,12 +102,17 @@ export function NozarMap({
       v: "weekly",
     });
 
-    importLibrary("maps")
-      .then(({ Map }) => {
+    // Load both libraries upfront so "marker" is cached before the pin effects run.
+    Promise.all([importLibrary("maps"), importLibrary("marker")])
+      .then(([{ Map }]) => {
         const map = new Map(mapRef.current!, {
           center,
           zoom,
           styles: DARK_MAP_STYLE,
+          // mapId is required for AdvancedMarkerElement; DEMO_MAP_ID is
+          // Google's public test ID that enables Advanced Markers without
+          // Cloud Console setup.
+          mapId: "DEMO_MAP_ID",
           disableDefaultUI: true,
           zoomControl: true,
           mapTypeControl: false,
@@ -128,32 +133,44 @@ export function NozarMap({
   useEffect(() => {
     if (!mapInstance) return;
 
-    const markers: google.maps.Marker[] = [];
+    // "marker" library is already cached from the init effect — this resolves
+    // synchronously after the first load.
+    let cancelled = false;
+    const markers: google.maps.marker.AdvancedMarkerElement[] = [];
 
-    pins.forEach((pin) => {
-      const marker = new google.maps.Marker({
-        position: { lat: pin.lat, lng: pin.lng },
-        map: mapInstance,
-        title: pin.title,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: pin.type === "service" ? "#06B6D4" : "#10B981",
-          fillOpacity: 0.9,
-          strokeColor: "#030712",
-          strokeWeight: 2,
-        },
+    void importLibrary("marker").then(({ AdvancedMarkerElement, PinElement }) => {
+      if (cancelled) return;
+
+      pins.forEach((pin) => {
+        // PinElement reproduces the emerald/cyan colour scheme used previously
+        // with SymbolPath.CIRCLE icons.
+        const pin_elem = new PinElement({
+          background: pin.type === "service" ? "#06B6D4" : "#10B981",
+          borderColor: "#030712",
+          glyphColor: "#030712",
+        });
+
+        const marker = new AdvancedMarkerElement({
+          position: { lat: pin.lat, lng: pin.lng },
+          map: mapInstance,
+          title: pin.title,
+          content: pin_elem.element,
+        });
+
+        if (onPinClick) {
+          // AdvancedMarkerElement fires "gmp-click", not "click".
+          marker.addListener("gmp-click", () => onPinClick(pin.id));
+        }
+
+        markers.push(marker);
       });
-
-      if (onPinClick) {
-        marker.addListener("click", () => onPinClick(pin.id));
-      }
-
-      markers.push(marker);
     });
 
     return () => {
-      markers.forEach((marker) => marker.setMap(null));
+      cancelled = true;
+      markers.forEach((marker) => {
+        marker.map = null;
+      });
     };
   }, [mapInstance, pins, onPinClick]);
 
@@ -165,22 +182,33 @@ export function NozarMap({
     if (!mapInstance) return;
 
     const effectCenter = radarCenter ?? center;
+    let cancelled = false;
+    let beacon: google.maps.marker.AdvancedMarkerElement | null = null;
 
-    const marker = new google.maps.Marker({
-      position: effectCenter,
-      map: mapInstance,
-      title: "You are here",
-      icon: {
-        url: youAreHereSvgUrl(),
-        scaledSize: new google.maps.Size(32, 32),
-        anchor: new google.maps.Point(16, 16),
-      },
-      zIndex: 1000,
-      clickable: false,
+    void importLibrary("marker").then(({ AdvancedMarkerElement }) => {
+      if (cancelled) return;
+
+      // Use an <img> element carrying the SVG data URL as the marker content,
+      // preserving the outer emerald ring → cyan fill → white centre-dot design.
+      const img = document.createElement("img");
+      img.src = youAreHereSvgUrl();
+      img.width = 32;
+      img.height = 32;
+      img.style.display = "block";
+
+      beacon = new AdvancedMarkerElement({
+        position: effectCenter,
+        map: mapInstance,
+        title: "You are here",
+        content: img,
+        zIndex: 1000,
+        // No click listener — beacon is display-only.
+      });
     });
 
     return () => {
-      marker.setMap(null);
+      cancelled = true;
+      if (beacon) beacon.map = null;
     };
   }, [mapInstance, radarCenter, center]);
 

@@ -80,14 +80,52 @@ export async function loader({ request }: Route.LoaderArgs) {
     .limit(1);
 
   if (!profile) {
-    const [created] = await db
-      .insert(profiles)
-      .values({
-        userId: user.id,
-        displayName: user.name || "NoZar User",
-      })
-      .returning();
-    profile = created;
+    try {
+      const [created] = await db
+        .insert(profiles)
+        .values({
+          userId: user.id,
+          displayName: user.name || "NoZar User",
+        })
+        .returning();
+      profile = created;
+    } catch (insertErr) {
+      console.error(
+        "[profile] DB insert failed — has migration 0003 been applied? Run: psql $DATABASE_URL -f drizzle/0003_phone_verification.sql",
+        insertErr,
+      );
+      const msg = insertErr instanceof Error ? insertErr.message : String(insertErr);
+      // Column-not-found errors indicate migration 0003 hasn't been applied.
+      // Fall back to an insert that omits phone/phoneVerified from RETURNING so
+      // the SQL doesn't reference columns the DB doesn't yet have.
+      if (msg.includes("column") || msg.includes("does not exist")) {
+        const [created] = await db
+          .insert(profiles)
+          .values({
+            userId: user.id,
+            displayName: user.name || "NoZar User",
+          })
+          .returning({
+            id: profiles.id,
+            userId: profiles.userId,
+            displayName: profiles.displayName,
+            bio: profiles.bio,
+            suburb: profiles.suburb,
+            city: profiles.city,
+            province: profiles.province,
+            lat: profiles.lat,
+            lng: profiles.lng,
+            searchRadiusKm: profiles.searchRadiusKm,
+            avatarUrl: profiles.avatarUrl,
+            createdAt: profiles.createdAt,
+            updatedAt: profiles.updatedAt,
+          });
+        // Augment with defaults for the missing migration columns.
+        profile = { ...created, phone: null, phoneVerified: false } as typeof profile;
+      } else {
+        throw insertErr;
+      }
+    }
   }
 
   // Trade stats — count all trades where user is participant

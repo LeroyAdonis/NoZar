@@ -18,3 +18,6 @@ dev-server.log
 
 # Git worktrees
 /.worktrees/
+
+# opensrc - source code for packages
+opensrc/
