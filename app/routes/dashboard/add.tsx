@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Form, redirect, useFetcher, useNavigation } from "react-router";
 import {
+  Camera,
   Check,
   ImagePlus,
   Loader2,
@@ -9,6 +10,7 @@ import {
   Plus,
   Sparkles,
   Trash2,
+  Upload,
   X,
 } from "lucide-react";
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -225,6 +227,11 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
   const [type, setType] = useState<"item" | "service">("item");
   const [aiDismissed, setAiDismissed] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([""]);
+  const [uploadingFiles, setUploadingFiles] = useState<
+    { name: string; status: "uploading" | "done" | "error"; url?: string }[]
+  >([]);
+  const [dragActive, setDragActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const errors = actionData?.errors as Record<string, string> | undefined;
 
   const formRef = useRef<HTMLFormElement>(null);
@@ -250,6 +257,76 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
   const isListingSubmitting =
     navigation.state === "submitting" &&
     navigation.formData?.get("intent") == null;
+
+  // ── File upload handlers ──────────────────────────────────
+  async function handleFiles(files: FileList | File[]) {
+    const fileArray = Array.from(files);
+    const remaining = 5 - imageUrls.length;
+    const toUpload = [...fileArray].slice(0, remaining);
+    if (toUpload.length === 0) return;
+
+    const starts = toUpload.map((f) => ({ name: f.name, status: "uploading" as const }));
+    setUploadingFiles((prev) => [...prev, ...starts]);
+
+    for (let i = 0; i < toUpload.length; i++) {
+      const file = toUpload[i];
+      const fd = new FormData();
+      fd.append("file", file);
+      try {
+        const res = await fetch("/api/upload", { method: "POST", body: fd });
+        const data = await res.json();
+        if (res.ok && data.url) {
+          setImageUrls((prev) => [...prev, data.url]);
+          setUploadingFiles((prev) => {
+            const next = [...prev];
+            const idx = next.findIndex(
+              (f) => f.name === file.name && f.status === "uploading",
+            );
+            if (idx >= 0) next[idx] = { name: file.name, status: "done", url: data.url };
+            return next;
+          });
+        } else {
+          setUploadingFiles((prev) => {
+            const next = [...prev];
+            const idx = next.findIndex(
+              (f) => f.name === file.name && f.status === "uploading",
+            );
+            if (idx >= 0) next[idx] = { name: file.name, status: "error" };
+            return next;
+          });
+        }
+      } catch {
+        setUploadingFiles((prev) => {
+          const next = [...prev];
+          const idx = next.findIndex(
+            (f) => f.name === file.name && f.status === "uploading",
+          );
+          if (idx >= 0) next[idx] = { name: file.name, status: "error" };
+          return next;
+        });
+      }
+    }
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragActive(false);
+    handleFiles(e.dataTransfer.files);
+  }
+
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    setDragActive(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    setDragActive(false);
+  }
+
+  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
+    if (e.target.files) handleFiles(e.target.files);
+  }
 
   // Reset dismissed state when a new AI request starts
   useEffect(() => {
@@ -518,6 +595,98 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
             </span>
           </div>
 
+          {/* ── File upload zone ──────────────────────────────── */}
+          {imageUrls.length < 5 && (
+            <div
+              className={`rounded-xl border-2 border-dashed transition-all px-4 py-4 text-center ${
+                dragActive
+                  ? "border-emerald-400 bg-emerald-500/10"
+                  : "border-white/10 bg-[#0F172A]/50 hover:border-white/20"
+              }`}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+            >
+              <div className="flex flex-col items-center gap-2">
+                <Upload className="w-6 h-6 text-slate-500" />
+                <p className="text-[11px] text-slate-400">
+                  Drop images here or{" "}
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="text-emerald-400 hover:text-emerald-300 font-semibold underline underline-offset-2"
+                  >
+                    browse
+                  </button>
+                </p>
+                <p className="text-[10px] text-slate-600">
+                  JPG, PNG, WebP — max 5 MB each
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+              </div>
+
+              {/* Upload progress badges */}
+              {uploadingFiles.some((f) => f.status === "uploading") && (
+                <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+                  {uploadingFiles.map((f, i) => (
+                    <span
+                      key={`${f.name}-${i}`}
+                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-mono ${
+                        f.status === "uploading"
+                          ? "bg-amber-500/15 text-amber-300 border border-amber-500/20"
+                          : f.status === "done"
+                          ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/20"
+                          : "bg-red-500/15 text-red-300 border border-red-500/20"
+                      }`}
+                    >
+                      {f.status === "uploading" && (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      )}
+                      {f.status === "done" && <Check className="w-3 h-3" />}
+                      {f.status === "error" && <X className="w-3 h-3" />}
+                      {f.name.length > 18 ? f.name.slice(0, 16) + "…" : f.name}
+                      {f.status === "error" && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setUploadingFiles((prev) => prev.filter((_, j) => j !== i))
+                          }
+                          className="ml-0.5 text-red-300 hover:text-red-100"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Preview thumbnails */}
+              {uploadingFiles.filter((f) => f.status === "done").length > 0 && (
+                <div className="mt-3 flex flex-wrap justify-center gap-2">
+                  {uploadingFiles
+                    .filter((f) => f.status === "done")
+                    .map((f, i) => (
+                      <img
+                        key={`thumb-${i}`}
+                        src={f.url}
+                        alt={f.name}
+                        className="w-12 h-12 rounded-lg object-cover border border-white/10"
+                      />
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── URL text inputs ───────────────────────────── */}
           <div className="space-y-3">
             {imageUrls.map((url, index) => (
               <div key={index}>
@@ -578,7 +747,7 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
           )}
 
           <p className="mt-2 text-[11px] text-slate-600">
-            Paste HTTPS image URLs from Imgur, Unsplash, Cloudinary, or any
+            Or paste HTTPS image URLs from Imgur, Unsplash, Cloudinary, or any
             direct image link.
           </p>
         </div>
