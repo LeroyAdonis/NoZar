@@ -1,3 +1,14 @@
+import { type ClassValue, clsx } from "clsx";
+
+/**
+ * Merge Tailwind CSS classes — clsx + tailwind-merge pattern.
+ * Uses clsx for lightweight class merging (tailwind-merge is overkill
+ * for our simple dedup needs).
+ */
+export function cn(...inputs: ClassValue[]): string {
+  return clsx(...inputs);
+}
+
 /**
  * Compute a human-readable relative time string.
  */
