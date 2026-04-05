@@ -7,6 +7,8 @@ import {
 export default [
   index("routes/landing.tsx"),
   route("login", "routes/login.tsx"),
+  route("forgot-password", "routes/forgot-password.tsx"),
+  route("reset-password", "routes/reset-password.tsx"),
   route("register", "routes/register.tsx"),
   route("api/auth/*", "routes/api.auth.$.ts"),
   route("api/messages/:tradeId", "routes/api.messages.$tradeId.ts"),
