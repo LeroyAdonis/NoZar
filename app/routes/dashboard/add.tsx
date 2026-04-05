@@ -26,6 +26,35 @@ import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
+// ─── Geocoding (server-only) ─────────────────────────────────
+
+async function geocodeSuburb(suburb: string): Promise<{ lat: number; lng: number } | null> {
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  if (!apiKey || apiKey === "YOUR_GOOGLE_MAPS_API_KEY" || apiKey === "YOUR_GEMINI_API_KEY") {
+    console.error("[geocodeSuburb] Google Maps API key not configured");
+    return null;
+  }
+
+  const address = encodeURIComponent(`${suburb}, South Africa`);
+  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${apiKey}`;
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+
+    if (data.status !== "OK" || !data.results || data.results.length === 0) {
+      console.error("[geocodeSuburb] Geocoding failed for", suburb, "— status:", data.status);
+      return null;
+    }
+
+    const { lat, lng } = data.results[0].geometry.location;
+    return { lat, lng };
+  } catch (err) {
+    console.error("[geocodeSuburb] Fetch error for", suburb, err);
+    return null;
+  }
+}
+
 // ─── Constants ─────────────────────────────────────────────────
 
 const CATEGORIES = [
@@ -80,14 +109,22 @@ async function suggestMeetupSpots(suburb: string): Promise<string[]> {
      Focus on shopping malls, police stations, or community centres.
      Return ONLY a JSON array of 3 strings, no explanation. Example: ["Location 1", "Location 2", "Location 3"]`,
   );
-  const text = result.response.text().trim();
-  const match = text.match(/\[.*\]/s);
-  if (!match) throw new Error("Invalid response format from AI");
+  let raw = result.response.text().trim();
+
+  // Strip markdown code fences (e.g. ```json ... ```)
+  raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "");
+
+  const match = raw.match(/\[.*\]/s);
+  if (!match) {
+    console.error("[suggestMeetupSpots] No JSON array found in Gemini response:", raw);
+    throw new Error("Invalid response format from AI");
+  }
   const parsed: unknown = JSON.parse(match[0]);
   if (
     !Array.isArray(parsed) ||
     !parsed.every((item): item is string => typeof item === "string")
   ) {
+    console.error("[suggestMeetupSpots] Parsed response is not a string array:", parsed);
     throw new Error("Unexpected AI response shape");
   }
   return parsed;
@@ -143,7 +180,8 @@ export async function action({ request }: Route.ActionArgs) {
     try {
       const meetupSuggestions = await suggestMeetupSpots(suburb.trim());
       return { meetupSuggestions };
-    } catch {
+    } catch (err) {
+      console.error("[suggestMeetup action] Failed to fetch meetup spots for", suburb, err);
       return {
         meetupError:
           "Could not fetch meetup suggestions. Try again later.",
@@ -191,6 +229,13 @@ export async function action({ request }: Route.ActionArgs) {
     return { errors };
   }
 
+  // Geocode suburb → lat/lng for map pins
+  const suburb = formData.get("suburb") as string | null;
+  let geo: { lat: number; lng: number } | null = null;
+  if (suburb?.trim()) {
+    geo = await geocodeSuburb(suburb.trim());
+  }
+
   const [inserted] = await db
     .insert(listings)
     .values({
@@ -204,6 +249,8 @@ export async function action({ request }: Route.ActionArgs) {
       deliveryMethod: deliveryMethod || null,
       seekingDescription: seekingDescription?.trim() || null,
       status: "active",
+      lat: geo?.lat ?? null,
+      lng: geo?.lng ?? null,
     })
     .returning({ id: listings.id });
 
