@@ -6,6 +6,7 @@ import {
 
 export default [
   index("routes/landing.tsx"),
+  route("mission-control", "routes/mission-control.tsx"),
   route("login", "routes/login.tsx"),
   route("register", "routes/register.tsx"),
   route("api/auth/*", "routes/api.auth.$.ts"),

@@ -1,0 +1,836 @@
+/* ============================================================
+ * Mission Control — Isometric Office CSS
+ * Retro-futuristic dark theme with SA-inspired accents
+ * ============================================================ */
+
+/* ── Design Tokens ────────────────────────────────────────── */
+:root {
+  --mc-deep-ebony:      #0f0a1a;
+  --mc-deep-ebony-2:    #1a1128;
+  --mc-umber:           #2d2021;
+  --mc-umber-light:     #3d2f30;
+  --mc-ochre:           #b8956a;
+  --mc-protea-pink:     #d495b0;
+  --mc-spekboom-green:  #6f8a68;
+  --mc-springbok-gold:  #b8a052;
+  --mc-signal-red:      #d45252;
+  --mc-sky-blue:        #7fb8d4;
+  --mc-teal:            #4ecdc4;
+  --mc-purple:          #9b6bff;
+  --mc-glow-purple:     rgba(155, 107, 255, 0.4);
+  --mc-glow-teal:       rgba(78, 205, 196, 0.4);
+  --mc-gold-glow:       rgba(184, 160, 82, 0.3);
+}
+
+/* ── Isometric Floor ──────────────────────────────────────── */
+.mc-scene {
+  perspective: 1200px;
+  perspective-origin: 50% 50%;
+  overflow: hidden;
+  background: var(--mc-deep-ebony);
+  position: relative;
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mc-floor {
+  position: relative;
+  width: 720px;
+  height: 720px;
+  transform-style: preserve-3d;
+  transform: rotateX(55deg) rotateZ(-45deg) translateZ(-60px);
+}
+
+/* Subtle grid tiles on the floor */
+.mc-floor-tile {
+  position: absolute;
+  border: 1px solid rgba(184, 149, 106, 0.07);
+  box-sizing: border-box;
+}
+
+.mc-floor-tile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(78, 205, 196, 0.02) 0%,
+    transparent 70%
+  );
+}
+
+/* Ndebele-inspired floor accent lines */
+.mc-floor-accent {
+  position: absolute;
+  background: linear-gradient(
+    90deg,
+    var(--mc-protea-pink),
+    var(--mc-springbok-gold),
+    var(--mc-spekboom-green),
+    var(--mc-sky-blue)
+  );
+  opacity: 0.06;
+  filter: blur(1px);
+}
+
+/* ── Ambient Background Glow ─────────────────────────────── */
+.mc-ambient-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    radial-gradient(ellipse 60% 40% at 30% 40%, rgba(155, 107, 255, 0.08), transparent),
+    radial-gradient(ellipse 50% 50% at 70% 60%, rgba(78, 205, 196, 0.06), transparent),
+    radial-gradient(ellipse 70% 30% at 50% 80%, rgba(184, 160, 82, 0.04), transparent);
+  animation: mc-ambient-shift 12s ease-in-out infinite alternate;
+}
+
+@keyframes mc-ambient-shift {
+  0%   { opacity: 0.6; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.7; }
+}
+
+/* ── Desk ─────────────────────────────────────────────────── */
+.mc-desk {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  transform-style: preserve-3d;
+}
+
+/* Desk surface (top face) */
+.mc-desk-surface {
+  position: absolute;
+  width: 80px;
+  height: 44px;
+  transform: translateZ(18px);
+  border-radius: 4px;
+  background: linear-gradient(135deg, #3a2d25 0%, #2a1f18 100%);
+  box-shadow:
+    0 0 12px rgba(184, 149, 106, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Desk front face */
+.mc-desk-front {
+  position: absolute;
+  width: 80px;
+  height: 18px;
+  transform: rotateX(-90deg) translateZ(22px) translateY(9px);
+  transform-origin: top center;
+  background: linear-gradient(180deg, #2a1f18 0%, #1e1512 100%);
+  border-radius: 0 0 3px 3px;
+}
+
+/* Desk side face */
+.mc-desk-side {
+  position: absolute;
+  width: 44px;
+  height: 18px;
+  transform: rotateY(90deg) rotateX(-90deg) translateZ(58px) translateY(9px);
+  transform-origin: top center;
+  background: #1e1512;
+  border-radius: 0 0 3px 3px;
+}
+
+/* Desk glow under active agents */
+.mc-desk--active .mc-desk-surface {
+  box-shadow:
+    0 0 16px var(--mc-glow-teal),
+    0 0 32px rgba(78, 205, 196, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ── Agent Token (stands upright) ─────────────────────────── */
+.mc-agent {
+  position: absolute;
+  width: 40px;
+  height: 50px;
+  transform-style: preserve-3d;
+  /* Counter-rotate so agent stands upright on the isometric plane */
+  transform: rotateZ(45deg) rotateX(-55deg) translateZ(30px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: filter 0.3s ease;
+}
+
+.mc-agent:hover {
+  filter: brightness(1.3);
+}
+
+.mc-agent-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  background: var(--mc-deep-ebony-2);
+  border: 2px solid var(--mc-teal);
+  box-shadow: 0 0 8px var(--mc-glow-teal);
+}
+
+.mc-agent-status {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--mc-deep-ebony);
+}
+
+.mc-agent-status--working {
+  background: var(--mc-spekboom-green);
+  box-shadow: 0 0 6px rgba(111, 138, 104, 0.6);
+}
+
+.mc-agent-status--meeting {
+  background: var(--mc-sky-blue);
+  box-shadow: 0 0 6px rgba(127, 184, 212, 0.6);
+}
+
+.mc-agent-status--break {
+  background: var(--mc-springbok-gold);
+  box-shadow: 0 0 6px var(--mc-gold-glow);
+}
+
+.mc-agent-status--away {
+  background: #666;
+  box-shadow: none;
+}
+
+.mc-agent-label {
+  margin-top: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--mc-teal);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  text-shadow: 0 0 8px var(--mc-glow-teal);
+  font-family: 'JetBrains Mono', 'SF Mono', monospace, system-ui;
+}
+
+/* Agent fade-in/out */
+.mc-agent--away {
+  opacity: 0.35;
+  filter: saturate(0.3);
+}
+
+/* ── Desk Items (monitor, coffee, plant) ─────────────────── */
+.mc-desk-item {
+  position: absolute;
+  transform-style: preserve-3d;
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.mc-desk-item:hover {
+  transform: translateZ(12px) scale(1.1);
+  filter: brightness(1.4);
+}
+
+/* Monitor */
+.mc-monitor {
+  width: 30px;
+  height: 22px;
+  transform: translateZ(20px) rotateX(5deg);
+}
+
+.mc-monitor-screen {
+  width: 30px;
+  height: 18px;
+  background: linear-gradient(
+    135deg,
+    #0a1628 0%,
+    #0d1f3c 50%,
+    #162d50 100%
+  );
+  border: 1px solid #2a3f5f;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mc-monitor-screen::after {
+  content: '> _';
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  font-size: 7px;
+  color: var(--mc-teal);
+  font-family: 'JetBrains Mono', monospace;
+  animation: mc-blink-cursor 1.2s step-end infinite;
+}
+
+/* Code on the monitor screen */
+.mc-monitor-code {
+  position: absolute;
+  top: 2px;
+  left: 3px;
+  right: 3px;
+  bottom: 2px;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 5px;
+  line-height: 7px;
+  opacity: 0.45;
+}
+
+.mc-monitor-code .line-purple { color: var(--mc-purple); }
+.mc-monitor-code .line-teal    { color: var(--mc-teal); }
+.mc-monitor-code .line-gold    { color: var(--mc-springbok-gold); }
+.mc-monitor-code .line-pink    { color: var(--mc-protea-pink); }
+
+@keyframes mc-blink-cursor {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.mc-monitor-stand {
+  width: 8px;
+  height: 4px;
+  background: #3a3a3a;
+  margin: 0 auto;
+  border-radius: 0 0 1px 1px;
+}
+
+.mc-monitor-base {
+  width: 14px;
+  height: 2px;
+  background: #4a4a4a;
+  margin: 0 auto;
+  border-radius: 1px;
+}
+
+/* Monitor glow when active */
+.mc-monitor--active .mc-monitor-screen {
+  box-shadow: 0 0 8px var(--mc-glow-teal), inset 0 0 4px rgba(78, 205, 196, 0.15);
+}
+
+/* Coffee mug */
+.mc-coffee {
+  width: 14px;
+  height: 14px;
+  transform: translateZ(20px);
+}
+
+.mc-coffee-body {
+  width: 12px;
+  height: 12px;
+  background: linear-gradient(135deg, var(--mc-umber-light) 0%, var(--mc-umber) 100%);
+  border-radius: 2px;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.mc-coffee-body::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 3px;
+  width: 4px;
+  height: 6px;
+  border: 1.5px solid var(--mc-umber-light);
+  border-left: none;
+  border-radius: 0 3px 3px 0;
+}
+
+/* Animated steam from coffee */
+.mc-coffee-steam {
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  width: 4px;
+  height: 8px;
+  animation: mc-steam-rise 3s ease-in-out infinite;
+}
+
+.mc-steam-line {
+  position: absolute;
+  width: 1px;
+  height: 6px;
+  background: linear-gradient(to top, rgba(255, 255, 255, 0.08), transparent);
+  animation: mc-steam-wisp 2.5s ease-in-out infinite;
+}
+
+.mc-steam-line:nth-child(2) {
+  left: 2px;
+  animation-delay: 0.8s;
+  height: 4px;
+}
+
+@keyframes mc-steam-rise {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50% { transform: translateY(-3px); opacity: 0.3; }
+}
+
+@keyframes mc-steam-wisp {
+  0%, 100% { transform: scaleX(1); opacity: 0.5; }
+  50% { transform: scaleX(1.8) rotate(10deg); opacity: 0.15; }
+}
+
+/* Plant */
+.mc-plant {
+  width: 16px;
+  height: 24px;
+  transform: translateZ(20px);
+}
+
+.mc-plant-pot {
+  width: 12px;
+  height: 8px;
+  background: linear-gradient(180deg, #6b4226 0%, #4a2e1a 100%);
+  border-radius: 1px 1px 3px 3px;
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.mc-plant-leaves {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.mc-plant-leaf {
+  position: absolute;
+  width: 5px;
+  height: 10px;
+  background: var(--mc-spekboom-green);
+  border-radius: 50% 50% 2px 2px;
+  animation: mc-leaf-sway 4s ease-in-out infinite;
+  box-shadow: 0 0 4px rgba(111, 138, 104, 0.3);
+}
+
+.mc-plant-leaf:nth-child(1) {
+  transform: rotate(-15deg) translate(-1px, -2px);
+}
+
+.mc-plant-leaf:nth-child(2) {
+  transform: rotate(10deg) translate(2px, -3px);
+  animation-delay: 1s;
+}
+
+.mc-plant-leaf:nth-child(3) {
+  transform: rotate(-5deg) translate(0, -5px);
+  width: 4px;
+  height: 8px;
+  animation-delay: 2s;
+}
+
+@keyframes mc-leaf-sway {
+  0%, 100% { transform: rotate(var(--sway-start, -15deg)); }
+  50% { transform: rotate(var(--sway-end, -20deg)); }
+}
+
+/* ── Meeting Rooms ───────────────────────────────────────── */
+.mc-room {
+  position: absolute;
+  transform-style: preserve-3d;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mc-room--meeting {
+  border: 1px solid rgba(78, 205, 196, 0.15);
+  background: rgba(15, 30, 40, 0.7);
+  backdrop-filter: blur(2px);
+}
+
+.mc-room--break {
+  border: 1px solid rgba(184, 160, 82, 0.15);
+  background: rgba(30, 25, 18, 0.7);
+  backdrop-filter: blur(2px);
+}
+
+.mc-room-label {
+  padding: 4px 8px;
+  font-size: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--mc-teal);
+  white-space: nowrap;
+}
+
+.mc-room--break .mc-room-label {
+  color: var(--mc-springbok-gold);
+}
+
+.mc-room--occupying {
+  animation: mc-room-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes mc-room-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(78, 205, 196, 0.15); }
+  50% { box-shadow: 0 0 20px rgba(78, 205, 196, 0.35), 0 0 40px rgba(78, 205, 196, 0.1); }
+}
+
+/* ── Kanban Wall ──────────────────────────────────────────── */
+.mc-kanban-wall {
+  position: absolute;
+  transform-style: preserve-3d;
+  width: 160px;
+  height: 100px;
+  background: linear-gradient(135deg, #1e1512 0%, #241a15 100%);
+  border: 1px solid rgba(184, 149, 106, 0.15);
+  border-radius: 6px;
+  padding: 6px;
+  transform: translateZ(10px) rotateY(10deg);
+}
+
+.mc-kanban-columns {
+  display: flex;
+  gap: 4px;
+  height: 100%;
+}
+
+.mc-kanban-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mc-kanban-col-label {
+  font-size: 6px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mc-ochre);
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(184, 149, 106, 0.2);
+}
+
+.mc-kanban-card {
+  padding: 3px 4px;
+  border-radius: 2px;
+  font-size: 6px;
+  line-height: 1.2;
+  max-height: 16px;
+  overflow: hidden;
+  background: var(--mc-deep-ebony-2);
+  border-left: 2px solid var(--mc-purple);
+  color: rgba(255, 255, 255, 0.7);
+  position: relative;
+}
+
+.mc-kanban-card--high {
+  border-left-color: var(--mc-springbok-gold);
+}
+
+.mc-kanban-card--critical {
+  border-left-color: var(--mc-signal-red);
+}
+
+.mc-kanban-card--low {
+  border-left-color: var(--mc-sky-blue);
+}
+
+/* ── Project Monitors ─────────────────────────────────────── */
+.mc-project-wall {
+  position: absolute;
+  transform-style: preserve-3d;
+  display: flex;
+  gap: 6px;
+  transform: translateZ(15px);
+}
+
+.mc-project-monitor {
+  width: 54px;
+  padding: 5px;
+  background: linear-gradient(180deg, #0a1628 0%, #0d1f3c 100%);
+  border: 1px solid rgba(78, 205, 196, 0.2);
+  border-radius: 4px;
+  text-align: center;
+}
+
+.mc-project-name {
+  font-size: 7px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-family: 'JetBrains Mono', monospace;
+  margin-bottom: 2px;
+}
+
+.mc-project-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin: 0 auto 2px;
+}
+
+.mc-project-status--healthy {
+  background: var(--mc-spekboom-green);
+  box-shadow: 0 0 6px rgba(111, 138, 104, 0.6);
+}
+
+.mc-project-status--warning {
+  background: var(--mc-springbok-gold);
+  box-shadow: 0 0 6px var(--mc-gold-glow);
+}
+
+.mc-project-status--critical {
+  background: var(--mc-signal-red);
+  box-shadow: 0 0 6px rgba(212, 82, 82, 0.6);
+}
+
+.mc-project-time {
+  font-size: 5px;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Title / Header ───────────────────────────────────────── */
+.mc-title {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  text-align: center;
+  pointer-events: none;
+}
+
+.mc-title h1 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 6px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, var(--mc-purple) 0%, var(--mc-teal) 50%, var(--mc-protea-pink) 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 20px rgba(155, 107, 255, 0.3));
+  font-family: system-ui, sans-serif;
+}
+
+.mc-title .subtitle {
+  font-size: 11px;
+  color: rgba(78, 205, 196, 0.6);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-family: 'JetBrains Mono', monospace;
+  margin-top: 2px;
+}
+
+/* ── Navigation Bar ────────────────────────────────────────── */
+.mc-nav {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  gap: 2px;
+  background: rgba(15, 10, 26, 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(78, 205, 196, 0.15);
+  border-radius: 12px;
+  padding: 6px;
+}
+
+.mc-nav-btn {
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.6);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: system-ui, sans-serif;
+  letter-spacing: 0.3px;
+}
+
+.mc-nav-btn:hover, .mc-nav-btn--active {
+  color: var(--mc-teal);
+  background: rgba(78, 205, 196, 0.1);
+}
+
+/* ── Tooltip ───────────────────────────────────────────────── */
+.mc-tooltip {
+  position: fixed;
+  z-index: 1000;
+  background: rgba(15, 10, 26, 0.95);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(78, 205, 196, 0.2);
+  border-radius: 8px;
+  padding: 10px 14px;
+  pointer-events: none;
+  min-width: 160px;
+  animation: mc-tooltip-in 0.15s ease-out;
+}
+
+@keyframes mc-tooltip-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.mc-tooltip-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 2px;
+}
+
+.mc-tooltip-sub {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* ── Floating particles ───────────────────────────────────── */
+.mc-particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2;
+  overflow: hidden;
+}
+
+.mc-particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: var(--mc-teal);
+  opacity: 0;
+  animation: mc-float-particle linear infinite;
+}
+
+@keyframes mc-float-particle {
+  0% {
+    opacity: 0;
+    transform: translateY(100vh) scale(0);
+  }
+  10% { opacity: 0.6; }
+  90% { opacity: 0.6; }
+  100% {
+    opacity: 0;
+    transform: translateY(-10vh) scale(1);
+  }
+}
+
+/* ── Scanline effect (subtle) ──────────────────────────────── */
+.mc-scanlines {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.015) 2px,
+    rgba(0, 0, 0, 0.015) 4px
+  );
+}
+
+/* ── Mobile Responsive ────────────────────────────────────── */
+@media (max-width: 768px) {
+  .mc-floor {
+    transform: rotateX(55deg) rotateZ(-45deg) translateZ(-40px) scale(0.6);
+    width: 420px;
+    height: 420px;
+  }
+
+  .mc-agent {
+    transform: rotateZ(45deg) rotateX(-55deg) translateZ(20px);
+  }
+
+  .mc-agent-avatar {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+
+  .mc-agent-label {
+    font-size: 7px;
+  }
+
+  .mc-desk {
+    width: 55px;
+    height: 55px;
+  }
+
+  .mc-desk-surface {
+    width: 55px;
+    height: 30px;
+  }
+
+  .mc-desk-front {
+    width: 55px;
+  }
+
+  .mc-desk-side {
+    width: 30px;
+  }
+
+  .mc-title h1 {
+    font-size: 20px;
+    letter-spacing: 4px;
+  }
+
+  .mc-title .subtitle {
+    font-size: 9px;
+    letter-spacing: 2px;
+  }
+
+  .mc-kanban-wall {
+    transform: translateZ(8px) rotateY(10deg) scale(0.7);
+  }
+}
+
+@media (max-width: 480px) {
+  .mc-floor {
+    transform: rotateX(55deg) rotateZ(-45deg) translateZ(-30px) scale(0.45);
+    width: 340px;
+    height: 340px;
+  }
+
+  .mc-title h1 {
+    font-size: 16px;
+    letter-spacing: 3px;
+  }
+
+  .mc-nav {
+    bottom: 10px;
+    padding: 4px;
+  }
+
+  .mc-nav-btn {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+}
+
+/* ── Reduced Motion ───────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .mc-particle { display: none; }
+  .mc-ambient-layer { animation: none; opacity: 0.8; }
+}
