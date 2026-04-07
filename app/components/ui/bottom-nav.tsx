@@ -69,10 +69,10 @@ export function BottomNav({ activeTab, isPending = false }: BottomNavProps) {
   return (
     <nav
       data-testid="bottom-nav"
-      className="fixed bottom-0 w-full z-50 bg-[#030712]/90 backdrop-blur-xl border-t border-white/10 pb-safe pt-2 px-6 md:hidden"
+      className="fixed bottom-0 w-full z-50 bg-[#030712]/90 backdrop-blur-xl border-t border-white/10 pb-safe pt-1.5 sm:pt-2 px-4 sm:px-6 md:hidden"
       aria-label="Main navigation"
     >
-      <div className="max-w-md mx-auto flex justify-between items-center relative pb-4">
+      <div className="max-w-md mx-auto flex justify-between items-center relative pb-3 sm:pb-4">
         {NAV_TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
@@ -80,13 +80,13 @@ export function BottomNav({ activeTab, isPending = false }: BottomNavProps) {
           // Elevated FAB for the center "Add" button
           if (tab.id === "add") {
             return (
-              <div key={tab.id} className="relative -top-6">
+              <div key={tab.id} className="relative -top-5 sm:-top-6">
                 <Link
                   to={tab.href}
                   aria-disabled={isPending}
                   tabIndex={isPending ? -1 : undefined}
                   onClick={isPending ? (e) => e.preventDefault() : undefined}
-                  className={`w-14 h-14 rounded-full flex items-center justify-center transition-all ${
+                  className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all ${
                     isPending
                       ? "opacity-70 cursor-not-allowed"
                       : ""
@@ -97,7 +97,7 @@ export function BottomNav({ activeTab, isPending = false }: BottomNavProps) {
                   }`}
                 >
                   <Plus
-                    className={`w-8 h-8 stroke-[2.5] transition-transform ${
+                    className={`w-7 h-7 sm:w-8 sm:h-8 stroke-[2.5] transition-transform ${
                       isActive ? "rotate-45" : ""
                     }`}
                   />
@@ -124,7 +124,7 @@ export function BottomNav({ activeTab, isPending = false }: BottomNavProps) {
               }`}
             >
               <Icon
-                className={`w-6 h-6 ${isActive ? tab.activeFill : ""}`}
+                className={`w-5 h-5 sm:w-6 sm:h-6 ${isActive ? tab.activeFill : ""}`}
               />
               <span className="text-[9px] font-mono uppercase tracking-wider">
                 {tab.label}

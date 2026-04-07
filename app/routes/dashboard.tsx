@@ -92,7 +92,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const displayName = user.name ?? "User";
 
   return (
-    <div className="min-h-screen bg-[#030712] text-slate-50 font-sans pb-28 md:pb-0 md:pl-60 selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-[#030712] text-slate-50 font-sans pb-24 sm:pb-28 md:pb-0 md:pl-60 selection:bg-emerald-500/30">
       {/* Global navigation loading bar — fixed at very top of viewport */}
       {isNavigating && (
         <div className="fixed top-0 left-0 right-0 z-[100]">
@@ -232,7 +232,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
       </aside>
 
       {/* Sticky header */}
-      <header className="sticky top-0 z-40 bg-[#030712]/90 backdrop-blur-xl border-b border-white/5 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
+      <header className="sticky top-0 z-40 bg-[#030712]/90 backdrop-blur-xl border-b border-white/5 px-3 sm:px-4 md:px-6 py-2.5 sm:py-3 md:py-4 flex justify-between items-center">
         {/* Logo — mobile only (desktop sidebar carries it) */}
         <Link
           to="/dashboard"
@@ -291,7 +291,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
             aria-disabled={isNavigating}
             tabIndex={isNavigating ? -1 : undefined}
             onClick={isNavigating ? (e) => e.preventDefault() : undefined}
-            className={`md:hidden relative w-10 h-10 rounded-xl bg-[#0F172A] border border-white/10 flex items-center justify-center hover:border-white/20 transition-colors ${
+            className={`md:hidden relative w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[#0F172A] border border-white/10 flex items-center justify-center hover:border-white/20 transition-colors ${
               isNavigating ? "opacity-70 cursor-not-allowed" : ""
             }`}
           >
@@ -310,7 +310,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
             aria-disabled={isNavigating}
             tabIndex={isNavigating ? -1 : undefined}
             onClick={isNavigating ? (e) => e.preventDefault() : undefined}
-            className={`relative w-10 h-10 rounded-full overflow-hidden border border-white/10 flex items-center justify-center hover:border-emerald-500/30 transition-colors ${
+            className={`relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-white/10 flex items-center justify-center hover:border-emerald-500/30 transition-colors ${
               isNavigating ? "opacity-70 cursor-not-allowed" : ""
             }`}
           >
@@ -333,7 +333,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
 
       {/* Main content */}
       <main
-        className={`relative z-10 p-4 sm:p-6 max-w-2xl mx-auto md:max-w-4xl md:mx-0 md:px-8 md:py-8 transition-opacity duration-200 ${
+        className={`relative z-10 p-3 sm:p-4 md:p-6 max-w-2xl mx-auto md:max-w-4xl md:mx-0 md:px-8 md:py-8 transition-opacity duration-200 ${
           isNavigating ? "opacity-70" : ""
         }`}
         aria-busy={isNavigating}
