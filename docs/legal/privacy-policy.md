@@ -1,7 +1,7 @@
-# NoZar — Privacy Policy
+## NoZar — Privacy Policy
 
-**Effective Date:** [Launch Date]
-**Information Officer:** [Name] — privacy@bartersa.co.za
+**Effective Date:** 7 April 2026
+**Information Officer:** Digital Wave Tech — privacy@bartersa.co.za
 
 This Privacy Policy complies with the Protection of Personal Information Act 4 of 2013 ("POPIA") and the Electronic Communications and Transactions Act 25 of 2002 ("ECTA").
 
@@ -9,9 +9,9 @@ This Privacy Policy complies with the Protection of Personal Information Act 4 o
 
 [Your Legal Entity Name] is the "responsible party" as defined in POPIA.
 
-- **Information Officer:** [Name]
+- **Information Officer:** Digital Wave Tech
 - **Contact:** privacy@bartersa.co.za
-- **Deputy Information Officer:** [Name] (if applicable)
+- **Deputy Information Officer:** Digital Wave Tech (if applicable)
 
 ## 2. Personal Information We Collect
 
