@@ -348,17 +348,17 @@ export default function DashboardHome({
     <div className="space-y-6">
       {isMatching && <LoadingBar />}
       {/* Region toggle */}
-      <div className="flex justify-center pt-2">
+      <div className="pt-2 -mx-1 px-1 sm:mx-0 sm:px-0 sm:flex sm:justify-center">
         <RegionToggle activeRegion={currentRegion} onChange={handleRegionChange} />
       </div>
 
       {/* Section header */}
-      <div className="flex justify-between items-end">
+      <div className="flex justify-between items-end gap-2">
         <div>
           <span className="text-emerald-500 font-mono text-[10px] uppercase tracking-widest block mb-1">
             // Local Index
           </span>
-          <h2 className="text-xl font-bold uppercase tracking-tight">
+          <h2 className="text-lg sm:text-xl font-bold uppercase tracking-tight">
             Nearby Assets
           </h2>
         </div>
@@ -386,7 +386,7 @@ export default function DashboardHome({
           onChange={(e) => handleSearchInput(e.target.value)}
           placeholder="Search by title or description…"
           autoComplete="off"
-          className="w-full bg-[#0F172A] border border-white/10 rounded-xl pl-10 pr-10 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
+          className="w-full bg-[#0F172A] border border-white/10 rounded-xl pl-9 sm:pl-10 pr-9 sm:pr-10 py-2.5 sm:py-3 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
         />
         {inputValue && (
           <button
@@ -428,14 +428,14 @@ export default function DashboardHome({
       )}
 
       {/* Category filter pills */}
-      <div className="flex gap-2 overflow-x-auto md:flex-wrap md:overflow-x-visible pb-2 scrollbar-hide -mx-1 px-1">
+      <div className="flex gap-1.5 sm:gap-2 overflow-x-auto md:flex-wrap md:overflow-x-visible pb-2 scrollbar-hide -mx-1 px-1">
         {CATEGORIES.map((category) => {
           const isActive = activeCategory === category;
           return (
             <button
               key={category}
               onClick={() => handleCategoryClick(category)}
-              className={`whitespace-nowrap px-4 py-2 rounded-full text-xs font-mono uppercase tracking-widest transition-all border ${
+              className={`whitespace-nowrap px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[11px] sm:text-xs font-mono uppercase tracking-wider sm:tracking-widest transition-all border ${
                 isActive
                   ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                   : "bg-[#0F172A] text-slate-400 border-white/5 hover:border-white/20 hover:text-slate-300"
@@ -449,7 +449,7 @@ export default function DashboardHome({
 
       {/* Asset feed */}
       {loaderData.listings.length > 0 ? (
-        <div data-testid="feed" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div data-testid="feed" className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {loaderData.listings.map((listing) => (
             <div key={listing.id} className="relative">
               {matchedIds?.has(listing.id) && (
