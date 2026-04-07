@@ -12,6 +12,7 @@ export default [
   route("register", "routes/register.tsx"),
   route("api/auth/*", "routes/api.auth.$.ts"),
   route("api/messages/:tradeId", "routes/api.messages.$tradeId.ts"),
+  route("api/upload", "routes/api.upload.ts"),
   route("dashboard", "routes/dashboard.tsx", [
     index("routes/dashboard/home.tsx"),
     route("asset/:id", "routes/dashboard/asset.$id.tsx"),
