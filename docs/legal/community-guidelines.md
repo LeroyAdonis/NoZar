@@ -1,6 +1,6 @@
-# NoZar — Community Guidelines
+## NoZar — Community Guidelines
 
-**Effective Date:** [Launch Date]
+**Effective Date:** 7 April 2026
 
 These guidelines help keep NoZar safe and fair for everyone. Violating them may result in warnings, suspension, or permanent removal from the platform.
 
