@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Form, useNavigation, useFetcher, Link } from "react-router";
 import { eq, or, and, count, avg, inArray } from "drizzle-orm";
 import {
@@ -32,7 +32,7 @@ import {
   validateImageUrl,
   sanitizeImageUrl,
 } from "~/lib/media-validation.server";
-import { uploadToBlob, isBlobConfigured } from "~/lib/blob.server";
+import { isBlobConfigured } from "~/lib/blob.server";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Badge } from "~/components/ui/badge";
@@ -248,36 +248,10 @@ export async function action({ request }: Route.ActionArgs) {
     return { success: true, intent: "update-avatar" };
   }
 
-  if (intent === "upload-avatar-file") {
-    if (!isBlobConfigured()) {
-      return { success: false, intent: "upload-avatar-file", error: "File upload is not configured. Use URL input instead." };
-    }
-
-    const file = formData.get("file");
-    if (!file || typeof file === "string") {
-      return { success: false, intent: "upload-avatar-file", error: "No file received." };
-    }
-
-    if (!file.type.startsWith("image/")) {
-      return { success: false, intent: "upload-avatar-file", error: "File must be an image." };
-    }
-
-    const MAX_BYTES = 5 * 1024 * 1024;
-    if (file.size > MAX_BYTES) {
-      return { success: false, intent: "upload-avatar-file", error: "Image must be under 5 MB." };
-    }
-
-    try {
-      const avatarUrl = await uploadToBlob(file, "avatars");
-      await db
-        .update(profiles)
-        .set({ avatarUrl, updatedAt: new Date() })
-        .where(eq(profiles.userId, user.id));
-      return { success: true, intent: "upload-avatar-file", avatarUrl };
-    } catch {
-      return { success: false, intent: "upload-avatar-file", error: "Upload failed. Please try again." };
-    }
-  }
+  // NOTE: "upload-avatar-file" is now handled entirely on the client via
+  // @vercel/blob/client → /api/upload.  After the file lands in Blob storage
+  // the client submits the resulting URL through the "update-avatar" intent
+  // above, so no file bytes ever pass through this serverless function.
 
   if (intent === "remove-avatar") {
     await db
@@ -485,23 +459,10 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
 
   const avatarActionData = avatarFetcher.data as { success?: boolean; intent?: string; error?: string; avatarUrl?: string } | undefined;
   const isAvatarSubmitting = avatarFetcher.state === "submitting";
-  const isAvatarFileUploading =
-    isAvatarSubmitting && avatarFetcher.formData?.get("intent") === "upload-avatar-file";
 
-  // When file upload succeeds, mirror the new URL into the URL input field
-  const prevAvatarState = useRef<string>("idle");
-  useEffect(() => {
-    if (
-      prevAvatarState.current === "submitting" &&
-      avatarFetcher.state === "idle" &&
-      avatarActionData?.intent === "upload-avatar-file" &&
-      avatarActionData?.success &&
-      avatarActionData?.avatarUrl
-    ) {
-      setAvatarInput(avatarActionData.avatarUrl);
-    }
-    prevAvatarState.current = avatarFetcher.state;
-  }, [avatarFetcher.state, avatarActionData]);
+  // Client-side direct-to-blob upload state
+  const [isAvatarFileUploading, setIsAvatarFileUploading] = useState(false);
+  const [avatarUploadError, setAvatarUploadError] = useState<string | null>(null);
 
   // Generate initials for avatar fallback
   const initials = (profile.displayName || user.name || "?")
@@ -567,14 +528,49 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
                   className="sr-only"
                   tabIndex={-1}
                   disabled={isAvatarSubmitting}
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
-                    const fd = new FormData();
-                    fd.set("intent", "upload-avatar-file");
-                    fd.set("file", file);
-                    avatarFetcher.submit(fd, { method: "post", encType: "multipart/form-data" });
                     e.target.value = "";
+
+                    // Validate locally first
+                    if (!file.type.startsWith("image/")) {
+                      setAvatarUploadError("File must be an image.");
+                      return;
+                    }
+                    if (file.size > 5 * 1024 * 1024) {
+                      setAvatarUploadError("Image must be under 5 MB.");
+                      return;
+                    }
+
+                    setAvatarUploadError(null);
+                    setIsAvatarFileUploading(true);
+
+                    try {
+                      // Upload directly to Vercel Blob — file bytes never
+                      // touch the serverless function, so the 4.5 MB body
+                      // limit is bypassed entirely.
+                      const { upload } = await import("@vercel/blob/client");
+                      const blob = await upload(file.name, file, {
+                        access: "public",
+                        handleUploadUrl: "/api/upload",
+                      });
+
+                      // Persist the blob URL on the profile via the
+                      // existing lightweight "update-avatar" intent.
+                      setAvatarInput(blob.url);
+                      const fd = new FormData();
+                      fd.set("intent", "update-avatar");
+                      fd.set("avatarUrl", blob.url);
+                      avatarFetcher.submit(fd, { method: "post" });
+                    } catch (err) {
+                      console.error("[avatar] client upload failed:", err);
+                      setAvatarUploadError(
+                        err instanceof Error ? err.message : "Upload failed. Please try again.",
+                      );
+                    } finally {
+                      setIsAvatarFileUploading(false);
+                    }
                   }}
                 />
                 <button
@@ -596,16 +592,10 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
                   )}
                 </button>
 
-                {/* File upload error */}
-                {avatarActionData && !avatarActionData.success && avatarActionData.intent === "upload-avatar-file" && (
+                {/* File upload error (client-side) */}
+                {avatarUploadError && (
                   <p className="mt-1.5 text-red-400 text-xs font-mono">
-                    {avatarActionData.error}
-                  </p>
-                )}
-                {/* File upload success */}
-                {avatarActionData?.success && avatarActionData.intent === "upload-avatar-file" && (
-                  <p className="mt-1.5 text-emerald-400 text-xs font-mono uppercase tracking-widest">
-                    Photo uploaded ✓
+                    {avatarUploadError}
                   </p>
                 )}
               </div>
