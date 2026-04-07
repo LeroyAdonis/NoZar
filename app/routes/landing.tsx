@@ -30,14 +30,32 @@ export async function loader({ request }: Route.LoaderArgs) {
   return { isLoggedIn: !!session };
 }
 
+const APP_URL = "https://no-zar-r66j.vercel.app";
+const OG_DESCRIPTION =
+  "The spatial barter network for South Africa. Bypass inflation by exchanging idle assets, surplus inventory, and professional services directly. Zero ZAR required.";
+
 export function meta(_args: Route.MetaArgs) {
   return [
-    { title: "Nozar — Barter Without Boundaries" },
-    {
-      name: "description",
-      content:
-        "The spatial barter network for South Africa. Bypass inflation by exchanging idle assets, surplus inventory, and professional services directly. Zero ZAR required.",
-    },
+    { title: "NoZar — Barter Without Boundaries" },
+    { name: "description", content: OG_DESCRIPTION },
+
+    // Open Graph (WhatsApp, Facebook, LinkedIn)
+    { property: "og:type", content: "website" },
+    { property: "og:url", content: APP_URL },
+    { property: "og:site_name", content: "NoZar" },
+    { property: "og:title", content: "NoZar — Barter Without Boundaries" },
+    { property: "og:description", content: OG_DESCRIPTION },
+    { property: "og:image", content: `${APP_URL}/og-image.png` },
+    { property: "og:image:width", content: "1200" },
+    { property: "og:image:height", content: "630" },
+    { property: "og:image:alt", content: "NoZar — Barter Without Boundaries" },
+    { property: "og:locale", content: "en_ZA" },
+
+    // Twitter / X card
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "twitter:title", content: "NoZar — Barter Without Boundaries" },
+    { name: "twitter:description", content: OG_DESCRIPTION },
+    { name: "twitter:image", content: `${APP_URL}/og-image.png` },
   ];
 }
 
