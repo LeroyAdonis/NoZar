@@ -1,7 +1,7 @@
-# NoZar — Terms of Service
+## NoZar — Terms of Service
 
-**Effective Date:** [Launch Date]
-**Last Updated:** [Date]
+**Effective Date:** 7 April 2026
+**Last Updated:** 7 April 2026
 
 ## 1. Introduction
 
@@ -153,7 +153,7 @@ The following may NOT be listed on the Platform:
 ## 17. Contact
 
 [Your Legal Entity Name]
-Information Officer: [Name]
+Information Officer: Digital Wave Tech
 Email: legal@bartersa.co.za
 Physical Address: [SA address required by ECTA]
 CIPC Registration: [Number]
