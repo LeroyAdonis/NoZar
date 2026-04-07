@@ -1,7 +1,7 @@
-# NoZar — Complaints & Dispute Resolution Process
+## NoZar — Complaints & Dispute Resolution Process
 
-**Effective Date:** [Launch Date]
-**Last Updated:** [Date]
+**Effective Date:** 7 April 2026
+**Last Updated:** 7 April 2026
 
 ## 1. Introduction
 
@@ -144,7 +144,7 @@ We encourage you to use our internal process first, but you are not required to 
 
 Our Information Officer is responsible for handling POPIA-related complaints and ensuring compliance with data protection legislation.
 
-- **Name:** [Name]
+- **Name:** Digital Wave Tech
 - **Email:** privacy@bartersa.co.za
 - **Responsibilities:** Receiving and responding to data access requests, POPIA complaints, and queries about how NoZar processes personal information.
 
@@ -173,7 +173,7 @@ If your complaint relates to your personal data — including access requests, c
 For any questions about this complaints process:
 
 [Your Legal Entity Name]
-Information Officer: [Name]
+Information Officer: Digital Wave Tech
 Email: complaints@bartersa.co.za
 Physical Address: [SA address required by ECTA]
 CIPC Registration: [Number]
