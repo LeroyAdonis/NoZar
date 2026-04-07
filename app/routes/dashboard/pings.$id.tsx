@@ -263,9 +263,17 @@ export async function action({ request, params }: Route.ActionArgs) {
         }
       }
 
-      const text = (formData.get("text") as string)?.trim();
-      if (!text) {
+      const rawText = (formData.get("text") as string)?.trim();
+      if (!rawText) {
         return { error: "Message cannot be empty" };
+      }
+
+      // Scrub PII (phone numbers & emails) during blind-chat stage
+      let text = rawText;
+      if (trade.status === "proposed" || trade.status === "negotiating") {
+        text = text
+          .replace(/(\+?27|0)\s*\d[\d\s\-]{7,12}/g, "[phone redacted]")
+          .replace(/\b[\w.\-+]+@[\w.\-]+\.\w{2,}\b/gi, "[email redacted]");
       }
 
       await db.insert(messages).values({
@@ -358,6 +366,21 @@ export async function action({ request, params }: Route.ActionArgs) {
         return { error: "Trade must be agreed before sharing contact" };
       }
 
+      // Server-side readiness gate — both parties must be ready
+      const [myReady] = await db.select({ ready: readinessFlags.ready })
+        .from(readinessFlags)
+        .where(and(eq(readinessFlags.tradeId, tradeId), eq(readinessFlags.userId, user.id)))
+        .limit(1);
+      const counterpartyId_ready =
+        trade.initiatorId === user.id ? trade.responderId : trade.initiatorId;
+      const [theirReady] = await db.select({ ready: readinessFlags.ready })
+        .from(readinessFlags)
+        .where(and(eq(readinessFlags.tradeId, tradeId), eq(readinessFlags.userId, counterpartyId_ready)))
+        .limit(1);
+      if (!myReady?.ready || !theirReady?.ready) {
+        return { error: "Both parties must confirm readiness before sharing contacts" };
+      }
+
       const phone = (formData.get("phone") as string)?.trim() || null;
       const email = (formData.get("email") as string)?.trim() || null;
 
@@ -372,10 +395,18 @@ export async function action({ request, params }: Route.ActionArgs) {
         expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours
       });
 
-      await db
-        .update(trades)
-        .set({ status: "contact_shared", updatedAt: new Date() })
-        .where(eq(trades.id, tradeId));
+      // Only advance status when BOTH parties have shared contacts
+      const allDisclosures = await db.select({ userId: contactDisclosures.userId })
+        .from(contactDisclosures)
+        .where(eq(contactDisclosures.tradeId, tradeId));
+      const uniqueDisclosers = new Set(allDisclosures.map(d => d.userId));
+
+      if (uniqueDisclosers.size >= 2) {
+        await db
+          .update(trades)
+          .set({ status: "contact_shared", updatedAt: new Date() })
+          .where(eq(trades.id, tradeId));
+      }
 
       await db.insert(messages).values({
         tradeId,
@@ -779,7 +810,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
       const [ownerProfile] = listingRow
         ? await db
-            .select({ suburb: profiles.suburb, city: profiles.city })
+            .select({ suburb: profiles.suburb, city: profiles.city, province: profiles.province })
             .from(profiles)
             .where(eq(profiles.userId, listingRow.userId))
             .limit(1)
@@ -788,6 +819,7 @@ export async function action({ request, params }: Route.ActionArgs) {
       const location =
         ownerProfile?.suburb ??
         ownerProfile?.city ??
+        ownerProfile?.province ??
         "South Africa";
 
       // ── Call Gemini ──────────────────────────────────────────────────

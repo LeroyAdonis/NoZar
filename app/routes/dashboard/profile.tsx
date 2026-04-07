@@ -27,7 +27,7 @@ import {
 import type { Route } from "./+types/profile";
 import { requireAuth, auth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
-import { profiles, trades, ratings, listings, listingImages } from "~/lib/schema";
+import { profiles, trades, ratings, listings, listingImages, users } from "~/lib/schema";
 import {
   validateImageUrl,
   sanitizeImageUrl,
@@ -308,6 +308,12 @@ export async function action({ request }: Route.ActionArgs) {
       })
       .where(eq(profiles.userId, user.id));
 
+    // Keep users.name in sync so sidebar and other UI reflects the update
+    await db
+      .update(users)
+      .set({ name: displayName })
+      .where(eq(users.id, user.id));
+
     return { success: true, intent: "updateProfile" };
   }
 
@@ -567,7 +573,7 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
                     const fd = new FormData();
                     fd.set("intent", "upload-avatar-file");
                     fd.set("file", file);
-                    avatarFetcher.submit(fd, { method: "post" });
+                    avatarFetcher.submit(fd, { method: "post", encType: "multipart/form-data" });
                     e.target.value = "";
                   }}
                 />
