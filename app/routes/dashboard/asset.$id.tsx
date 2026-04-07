@@ -82,6 +82,44 @@ export async function action({ request, params }: Route.ActionArgs) {
   const formData = await request.formData();
   const intent = formData.get("intent") as string | null;
 
+  // Ping is initiated by non-owners — query without ownership filter
+  if (intent === "ping") {
+    const [listing] = await db
+      .select()
+      .from(listings)
+      .where(and(eq(listings.id, listingId), eq(listings.status, "active")))
+      .limit(1);
+
+    if (!listing) {
+      throw data(null, { status: 404 });
+    }
+
+    // Prevent self-ping
+    if (listing.userId === user.id) {
+      return { error: "You cannot ping your own listing" };
+    }
+
+    const [trade] = await db
+      .insert(trades)
+      .values({
+        initiatorId: user.id,
+        responderId: listing.userId,
+        listingId,
+        status: "proposed",
+      })
+      .returning();
+
+    await db.insert(messages).values({
+      tradeId: trade.id,
+      senderId: user.id,
+      text: `Trade initiated by ${user.name}`,
+      type: "system",
+    });
+
+    throw redirect(`/dashboard/pings/${trade.id}`);
+  }
+
+  // Owner-only actions below — verify ownership
   const [listing] = await db
     .select()
     .from(listings)
@@ -106,28 +144,6 @@ export async function action({ request, params }: Route.ActionArgs) {
       .set({ status: "active", updatedAt: new Date() })
       .where(and(eq(listings.id, listingId), eq(listings.userId, user.id)));
     throw redirect(`/dashboard/asset/${listingId}`);
-  }
-
-  if (intent === "ping") {
-    // Self-ping prevention checked above via listing.userId === user.id
-    const [trade] = await db
-      .insert(trades)
-      .values({
-        initiatorId: user.id,
-        responderId: listing.userId,
-        listingId,
-        status: "proposed",
-      })
-      .returning();
-
-    await db.insert(messages).values({
-      tradeId: trade.id,
-      senderId: user.id,
-      text: `Trade initiated by ${user.name}`,
-      type: "system",
-    });
-
-    throw redirect(`/dashboard/pings/${trade.id}`);
   }
 
   return { error: "Unknown intent" };
