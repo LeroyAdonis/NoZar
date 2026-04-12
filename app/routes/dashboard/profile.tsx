@@ -552,7 +552,7 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
                       // limit is bypassed entirely.
                       const { upload } = await import("@vercel/blob/client");
                       const blob = await upload(file.name, file, {
-                        access: "public",
+                        access: "private",
                         handleUploadUrl: "/api/upload",
                       });
 

@@ -1,5 +1,5 @@
 import { type ActionFunctionArgs } from "react-router";
-import { handleUpload, type HandleUploadBody } from "@vercel/blob";
+import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 
 /**
  * Client-upload endpoint for Vercel Blob.
