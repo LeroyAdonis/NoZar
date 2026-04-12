@@ -22,6 +22,8 @@ import {
 } from "~/lib/schema";
 import { Button } from "~/components/ui/button";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
+import { haversineKm, formatDistance } from "~/lib/utils";
+import { Globe, MapPin, AlertCircle } from "lucide-react";
 
 export function meta({ data: loaderData }: Route.MetaArgs) {
   const title = loaderData?.listing?.title ?? "Asset";
@@ -68,11 +70,26 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const listing = result[0].listing;
 
+  // Fetch current user's location for distance calculation
+  const [userProfile] = currentUserId 
+    ? await db.select({ lat: profiles.lat, lng: profiles.lng, searchRadiusKm: profiles.searchRadiusKm })
+        .from(profiles)
+        .where(eq(profiles.userId, currentUserId))
+        .limit(1)
+    : [null];
+
+  let distance: number | null = null;
+  if (userProfile?.lat && userProfile?.lng && listing.lat && listing.lng) {
+    distance = haversineKm(userProfile.lat, userProfile.lng, listing.lat, listing.lng);
+  }
+
   return {
     listing,
     owner: result[0].owner,
     images,
     isOwner: listing.userId === currentUserId,
+    distance,
+    searchRadiusKm: userProfile?.searchRadiusKm ?? 25,
   };
 }
 
@@ -151,9 +168,15 @@ export async function action({ request, params }: Route.ActionArgs) {
 
 export default function AssetDetail({ loaderData, actionData }: Route.ComponentProps) {
   const archiveFetcher = useFetcher();
-  const { listing, owner, images, isOwner } = loaderData;
+  const { listing, owner, images, isOwner, distance, searchRadiusKm } = loaderData;
   const heroImage = images[0]?.url;
   const isManaging = archiveFetcher.state !== "idle";
+
+  const isOutOfRange = 
+    listing.type === 'service' && 
+    !listing.isDigital && 
+    distance !== null && 
+    distance > searchRadiusKm;
 
   return (
     <div className="space-y-6 pb-24 animate-in slide-in-from-right-4 duration-300">
@@ -197,6 +220,18 @@ export default function AssetDetail({ loaderData, actionData }: Route.ComponentP
             {listing.condition}
           </div>
         )}
+        {/* Distance / Digital badge */}
+        <div className="absolute bottom-4 left-4 flex gap-2">
+          {listing.isDigital ? (
+            <div className="bg-blue-500/20 backdrop-blur-md rounded px-3 py-1.5 text-[10px] font-mono text-blue-400 uppercase border border-blue-500/30 flex items-center gap-1.5">
+              <Globe className="w-3 h-3" /> Digital Service
+            </div>
+          ) : distance !== null && (
+            <div className="bg-slate-900/60 backdrop-blur-md rounded px-3 py-1.5 text-[10px] font-mono text-slate-300 uppercase border border-white/10 flex items-center gap-1.5">
+              <MapPin className="w-3 h-3" /> {formatDistance(distance)} away
+            </div>
+          )}
+        </div>
         {/* Owner badge */}
         {isOwner && (
           <div className="absolute bottom-4 right-4 bg-emerald-500/20 backdrop-blur-md rounded px-3 py-1.5 text-[10px] font-mono text-emerald-400 uppercase border border-emerald-500/30 flex items-center gap-1.5">
@@ -318,15 +353,31 @@ export default function AssetDetail({ loaderData, actionData }: Route.ComponentP
             </archiveFetcher.Form>
           </div>
         ) : (
-          <Form method="post">
-            <input type="hidden" name="intent" value="ping" />
-            <button
-              type="submit"
-              className="w-full py-4 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-sm hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2"
-            >
-              <MessageSquare className="w-4 h-4 fill-[#030712]" /> Initialize Ping
-            </button>
-          </Form>
+          <div className="space-y-4">
+            {isOutOfRange && (
+              <div className="flex items-start gap-3 p-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 text-amber-200/80">
+                <AlertCircle className="w-5 h-5 shrink-0 text-amber-400" />
+                <div className="space-y-1">
+                  <p className="text-xs font-bold uppercase tracking-wider">Out of Radar Range</p>
+                  <p className="text-xs leading-relaxed opacity-80">
+                    This service is located {formatDistance(distance!)} away, which is outside your current trade radius ({searchRadiusKm}km).
+                  </p>
+                </div>
+              </div>
+            )}
+            
+            <Form method="post">
+              <input type="hidden" name="intent" value="ping" />
+              <button
+                type="submit"
+                disabled={isOutOfRange}
+                className="w-full py-4 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-sm hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed disabled:hover:shadow-none"
+              >
+                <MessageSquare className="w-4 h-4 fill-[#030712]" /> 
+                {isOutOfRange ? "Out of Range" : "Initialize Ping"}
+              </button>
+            </Form>
+          </div>
         )}
       </div>
     </div>
