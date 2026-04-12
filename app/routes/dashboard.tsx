@@ -16,7 +16,7 @@ import { eq } from "drizzle-orm";
 import { getUnreadCount } from "~/lib/notifications.server";
 import { BottomNav } from "~/components/ui/bottom-nav";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
-import { RegionPrompt } from "~/components/ui/region-prompt";
+import { LocationPromptModal } from "~/components/ui/location-prompt-modal";
 import { provinceToSlug } from "~/lib/regions";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -28,6 +28,8 @@ export async function loader({ request }: Route.LoaderArgs) {
       avatarUrl: profiles.avatarUrl,
       displayName: profiles.displayName,
       province: profiles.province,
+      lat: profiles.lat,
+      lng: profiles.lng,
     })
     .from(profiles)
     .where(eq(profiles.userId, user.id))
@@ -59,6 +61,27 @@ export async function action({ request }: Route.ActionArgs) {
     return { success: true };
   }
 
+  if (intent === "updateLocation") {
+    const lat = parseFloat(formData.get("lat") as string);
+    const lng = parseFloat(formData.get("lng") as string);
+
+    if (!isNaN(lat) && !isNaN(lng)) {
+      await db
+        .insert(profiles)
+        .values({
+          userId: user.id,
+          lat,
+          lng,
+          displayName: user.name || user.email?.split("@")[0] || "User",
+        })
+        .onConflictDoUpdate({
+          target: profiles.userId,
+          set: { lat, lng, updatedAt: new Date() },
+        });
+    }
+    return { success: true };
+  }
+
   return { error: "Unknown intent" };
 }
 
@@ -84,7 +107,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const navigation = useNavigation();
   const activeTab = getActiveTab(location.pathname);
   const { user, unreadCount, profile } = loaderData;
-  const needsRegion = !profile?.province;
+  const needsLocation = !profile?.lat || !profile?.lng;
 
   const isNavigating = navigation.state !== "idle";
 
@@ -341,7 +364,10 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
         <Outlet />
       </main>
 
-      {needsRegion && <RegionPrompt />}
+      <LocationPromptModal 
+        isOpen={needsLocation} 
+        onClose={() => {}} 
+      />
 
       {/* Bottom navigation — mobile only (BottomNav itself adds md:hidden) */}
       <BottomNav activeTab={activeTab} isPending={isNavigating} />
