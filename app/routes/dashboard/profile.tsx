@@ -551,8 +551,8 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
                       // touch the serverless function, so the 4.5 MB body
                       // limit is bypassed entirely.
                       const { upload } = await import("@vercel/blob/client");
-                      const blob = await upload(file.name, file, {
-                        access: "private",
+                      const blob = await upload(`avatars/${file.name}`, file, {
+                        access: "public",
                         handleUploadUrl: "/api/upload",
                       });
 

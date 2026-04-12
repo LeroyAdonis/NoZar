@@ -26,7 +26,7 @@ export async function uploadToBlob(
   const pathname = `${folder}/${Date.now()}.${ext}`;
 
   const blob = await put(pathname, file, {
-    access: "private",
+    access: "public",
     addRandomSuffix: true,
     contentType: file.type || "application/octet-stream",
   });

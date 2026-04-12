@@ -34,6 +34,7 @@ export async function action({ request }: ActionFunctionArgs) {
           "image/gif",
         ],
         maximumSizeInBytes: 5 * 1024 * 1024, // 5 MB
+        addRandomSuffix: true,
       }),
       onUploadCompleted: async ({ blob }) => {
         console.log("[upload] blob ready:", blob.url);

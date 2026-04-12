@@ -315,34 +315,27 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
     const starts = toUpload.map((f) => ({ name: f.name, status: "uploading" as const }));
     setUploadingFiles((prev) => [...prev, ...starts]);
 
+    const { upload } = await import("@vercel/blob/client");
+
     for (let i = 0; i < toUpload.length; i++) {
       const file = toUpload[i];
-      const fd = new FormData();
-      fd.append("file", file);
       try {
-        const res = await fetch("/api/upload", { method: "POST", body: fd });
-        const data = await res.json();
-        if (res.ok && data.url) {
-          setImageUrls((prev) => [...prev, data.url]);
-          setUploadingFiles((prev) => {
-            const next = [...prev];
-            const idx = next.findIndex(
-              (f) => f.name === file.name && f.status === "uploading",
-            );
-            if (idx >= 0) next[idx] = { name: file.name, status: "done", url: data.url };
-            return next;
-          });
-        } else {
-          setUploadingFiles((prev) => {
-            const next = [...prev];
-            const idx = next.findIndex(
-              (f) => f.name === file.name && f.status === "uploading",
-            );
-            if (idx >= 0) next[idx] = { name: file.name, status: "error" };
-            return next;
-          });
-        }
-      } catch {
+        const blob = await upload(`listings/${file.name}`, file, {
+          access: "public",
+          handleUploadUrl: "/api/upload",
+        });
+
+        setImageUrls((prev) => [...prev, blob.url]);
+        setUploadingFiles((prev) => {
+          const next = [...prev];
+          const idx = next.findIndex(
+            (f) => f.name === file.name && f.status === "uploading",
+          );
+          if (idx >= 0) next[idx] = { name: file.name, status: "done", url: blob.url };
+          return next;
+        });
+      } catch (err) {
+        console.error("[add-asset] upload failed:", err);
         setUploadingFiles((prev) => {
           const next = [...prev];
           const idx = next.findIndex(
