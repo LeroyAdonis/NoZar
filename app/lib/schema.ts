@@ -98,6 +98,7 @@ export const listings = pgTable("listings", {
   deliveryMethod: text("delivery_method"),
   seekingDescription: text("seeking_description"),
   type: text("type").notNull().default("item"),
+  isDigital: boolean("is_digital").notNull().default(false),
   status: text("status").notNull().default("active"),
   lat: real("lat"),
   lng: real("lng"),
