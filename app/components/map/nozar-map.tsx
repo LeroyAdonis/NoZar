@@ -1,14 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
+import { AnimatePresence } from "framer-motion";
+import { MapPinTooltip } from "./map-pin-tooltip";
 
-type MapPin = {
+export type MapPin = {
   id: number;
   lat: number;
   lng: number;
   title: string;
   type: "item" | "service";
+  description: string;
+  imageUrl: string | null;
+  user: {
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+  };
 };
 
 type NozarMapProps = {
@@ -93,6 +102,36 @@ export function NozarMap({
   const mapRef = useRef<HTMLDivElement>(null);
   const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [hoveredPin, setHoveredPin] = useState<MapPin | null>(null);
+  const [tooltipPosition, setTooltipPosition] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  /**
+   * Helper to calculate pixel coordinates from LatLng for the tooltip.
+   */
+  const getPixelPosition = useCallback(
+    (pin: MapPin) => {
+      if (!mapInstance) return null;
+      const projection = mapInstance.getProjection();
+      const bounds = mapInstance.getBounds();
+      if (!projection || !bounds) return null;
+
+      const latLng = new google.maps.LatLng(pin.lat, pin.lng);
+      const topRight = projection.fromLatLngToPoint(bounds.getNorthEast())!;
+      const bottomLeft = projection.fromLatLngToPoint(bounds.getSouthWest())!;
+      const scale = Math.pow(2, mapInstance.getZoom()!);
+      const worldPoint = projection.fromLatLngToPoint(latLng)!;
+
+      return {
+        x: (worldPoint.x - bottomLeft.x) * scale,
+        y: (worldPoint.y - topRight.y) * scale,
+      };
+    },
+    [mapInstance],
+  );
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -162,6 +201,25 @@ export function NozarMap({
           marker.addListener("gmp-click", () => onPinClick(pin.id));
         }
 
+        // Add mouseenter/mouseleave listeners to the marker's DOM element
+        marker.element.addEventListener("mouseenter", () => {
+          if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+          hoverTimeoutRef.current = setTimeout(() => {
+            const pos = getPixelPosition(pin);
+            if (pos) {
+              setTooltipPosition(pos);
+              setHoveredPin(pin);
+            }
+          }, 100); // 100ms enter delay
+        });
+
+        marker.element.addEventListener("mouseleave", () => {
+          if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+          hoverTimeoutRef.current = setTimeout(() => {
+            setHoveredPin(null);
+          }, 600); // 600ms exit delay (increased slightly)
+        });
+
         markers.push(marker);
       });
     });
@@ -173,6 +231,34 @@ export function NozarMap({
       });
     };
   }, [mapInstance, pins, onPinClick]);
+
+  /**
+   * Sync tooltip position with map coordinates.
+   */
+  useEffect(() => {
+    if (!hoveredPin || !mapInstance) {
+      setTooltipPosition(null);
+      return;
+    }
+
+    const updatePosition = () => {
+      const pos = getPixelPosition(hoveredPin);
+      if (pos) {
+        setTooltipPosition(pos);
+      }
+    };
+
+    updatePosition();
+
+    // Re-calculate on zoom or pan
+    const l1 = mapInstance.addListener("bounds_changed", updatePosition);
+    const l2 = mapInstance.addListener("zoom_changed", updatePosition);
+
+    return () => {
+      google.maps.event.removeListener(l1);
+      google.maps.event.removeListener(l2);
+    };
+  }, [hoveredPin, mapInstance]);
 
   /**
    * "You are here" beacon at radarCenter (or center).
@@ -292,7 +378,7 @@ export function NozarMap({
         </div>
       )}
 
-      {/* Radar radius selector — bottom-left, above the parent's recenter button */}
+      {/* Radar radius selector — bottom-left */}
       {onRadiusChange !== undefined && radarRadiusKm !== undefined && (
         <div className="absolute bottom-6 left-6 z-10 rounded-xl border border-white/10 bg-[#0F172A]/90 p-2 shadow-lg backdrop-blur">
           <p className="mb-1.5 px-1 font-mono text-[10px] uppercase tracking-widest text-slate-500">
@@ -316,6 +402,27 @@ export function NozarMap({
           </div>
         </div>
       )}
+
+      {/* Tooltip Overlay */}
+      <AnimatePresence>
+        {tooltipPosition && hoveredPin && (
+          <MapPinTooltip
+            key={hoveredPin.id}
+            pin={hoveredPin}
+            x={tooltipPosition.x}
+            y={tooltipPosition.y}
+            onMouseEnter={() => {
+              if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+            }}
+            onMouseLeave={() => {
+              if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+              hoverTimeoutRef.current = setTimeout(() => {
+                setHoveredPin(null);
+              }, 600); // 600ms exit delay
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

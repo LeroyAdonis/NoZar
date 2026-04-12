@@ -1854,7 +1854,7 @@ export default function PingDetail({
       onClose={() => setShowBalancePile(false)}
       onSubmit={() => { /* handled by form submission via BalancePile internals */ }}
       maxItems={maxItems ?? 5}
-      userListing={[]}
+      userListings={[]}
       theirValue={0}
       yourValue={0}
     />
