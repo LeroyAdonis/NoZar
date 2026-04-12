@@ -84,7 +84,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const navigation = useNavigation();
   const activeTab = getActiveTab(location.pathname);
   const { user, unreadCount, profile } = loaderData;
-  const needsRegion = !profile?.province || !provinceToSlug(profile.province);
+  const needsRegion = !profile?.province;
 
   const isNavigating = navigation.state !== "idle";
 

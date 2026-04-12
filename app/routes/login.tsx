@@ -6,7 +6,6 @@ import { authClient } from "~/lib/auth.client";
 import { redirect } from "react-router";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
-import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 import { LoginFormSkeleton } from "~/components/ui/skeleton";
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -42,7 +41,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [redirecting, setRedirecting] = useState(false);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +51,7 @@ export default function LoginPage() {
         { email, password },
         {
           onSuccess: () => {
-            setRedirecting(true);
+            navigate("/dashboard");
           },
           onError: (ctx) => {
             setError(getLoginErrorMessage(ctx.error));
@@ -75,28 +73,11 @@ export default function LoginPage() {
         provider: "google",
         callbackURL: "/dashboard",
       });
-      setRedirecting(true);
     } catch {
       setError(SAFE_LOGIN_ERROR);
       setLoading(false);
     }
   };
-
-  // Show loading skeleton during successful auth redirect
-  if (redirecting) {
-    return (
-      <div className="min-h-screen bg-[#030712] flex items-center justify-center px-4">
-        <div className="w-full max-w-sm">
-          <LoadingBar className="mb-4" />
-          <LoginFormSkeleton />
-          <div className="mt-8 text-center">
-            <Spinner className="w-8 h-8 mx-auto text-emerald-400" />
-            <p className="mt-3 text-sm text-slate-400">Redirecting to dashboard...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#030712] flex items-center justify-center px-4">
