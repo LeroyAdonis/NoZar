@@ -1,5 +1,5 @@
 import { eq, and, isNotNull, sql } from "drizzle-orm";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 
 import { NozarMap } from "~/components/map/nozar-map";
@@ -27,13 +27,23 @@ export async function loader({ request }: Route.LoaderArgs) {
   const regionParam = url.searchParams.get("region");
 
   const [userProfile] = await db
-    .select({ province: profiles.province })
+    .select({ 
+      province: profiles.province,
+      lat: profiles.lat,
+      lng: profiles.lng,
+      searchRadiusKm: profiles.searchRadiusKm,
+    })
     .from(profiles)
     .where(eq(profiles.userId, user.id))
     .limit(1);
 
   const currentRegion = resolveRegion(regionParam, userProfile?.province);
   const regionConfig = MVP_REGIONS[currentRegion];
+
+  // Use profile coordinates if available, otherwise fall back to region center
+  const userCenter = (userProfile?.lat && userProfile?.lng) 
+    ? { lat: userProfile.lat, lng: userProfile.lng }
+    : regionConfig.center;
 
   const activeListings = await db
     .select({
@@ -81,21 +91,28 @@ export async function loader({ request }: Route.LoaderArgs) {
   return {
     listings: pins,
     apiKey: process.env.GOOGLE_MAPS_API_KEY ?? "",
-    regionCenter: regionConfig.center,
+    regionCenter: userCenter,
+    searchRadiusKm: userProfile?.searchRadiusKm ?? 25,
     currentRegion,
   };
 }
 
 export default function Map({ loaderData }: Route.ComponentProps) {
-  const { listings: pins, apiKey, regionCenter, currentRegion } = loaderData;
+  const { listings: pins, apiKey, regionCenter, searchRadiusKm, currentRegion } = loaderData;
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [center, setCenter] = useState<{ lat: number; lng: number }>(regionCenter);
   const [radarCenter, setRadarCenter] = useState<{ lat: number; lng: number }>(regionCenter);
-  // Default radius: 25 km — matches the active radar ring highlight
-  const [radiusKm, setRadiusKm] = useState(25);
-  const [isLocating, setIsLocating] = useState(false);
+  // Default radius from profile
+  const [radiusKm, setRadiusKm] = useState(searchRadiusKm);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+
+  // Keep map state in sync with profile updates from the modal
+  useEffect(() => {
+    setCenter(regionCenter);
+    setRadarCenter(regionCenter);
+    setRadiusKm(searchRadiusKm);
+  }, [regionCenter, searchRadiusKm]);
 
   // Filter pins to those within the active radar radius of the radar centre.
   const filteredPins = pins.filter(
@@ -108,34 +125,6 @@ export default function Map({ loaderData }: Route.ComponentProps) {
     },
     [navigate],
   );
-
-  const handleUseMyLocation = useCallback(() => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
-      return;
-    }
-
-    setIsLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const newCenter = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        };
-        setCenter(newCenter);
-        setRadarCenter(newCenter);
-        setIsLocating(false);
-      },
-      (error) => {
-        console.error("Geolocation error:", error);
-        setIsLocating(false);
-        // If they denied permission, we should probably show a message, 
-        // but the prompt modal might help prevent this.
-        alert("Unable to retrieve your location. Please check your browser settings.");
-      },
-      { enableHighAccuracy: true },
-    );
-  }, []);
 
   const handleRadarClick = useCallback(() => {
     setShowLocationPrompt(true);
@@ -187,39 +176,37 @@ export default function Map({ loaderData }: Route.ComponentProps) {
         <button
           type="button"
           onClick={handleRadarClick}
-          disabled={isLocating}
           className="flex items-center gap-2 rounded-full bg-slate-800/90 px-5 py-3 text-sm font-bold text-emerald-400 shadow-xl ring-1 ring-emerald-500/50 backdrop-blur transition-all hover:bg-slate-700/90 hover:scale-105 active:scale-95 disabled:opacity-50"
         >
-          {isLocating ? (
-            <span className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
-          ) : (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-5 w-5"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <circle cx="12" cy="12" r="7" />
-              <circle cx="12" cy="12" r="4" />
-              <path d="M12 2v2" />
-              <path d="M12 20v2" />
-              <path d="M2 12h2" />
-              <path d="M20 12h2" />
-            </svg>
-          )}
-          {isLocating ? "Locating..." : "START RADAR"}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-5 w-5"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <circle cx="12" cy="12" r="7" />
+            <circle cx="12" cy="12" r="4" />
+            <path d="M12 2v2" />
+            <path d="M12 20v2" />
+            <path d="M2 12h2" />
+            <path d="M20 12h2" />
+          </svg>
+          START RADAR
         </button>
       </div>
 
       <LocationPromptModal
         isOpen={showLocationPrompt}
         onClose={() => setShowLocationPrompt(false)}
-        onAccept={handleUseMyLocation}
+        onSuccess={() => {
+          setShowLocationPrompt(false);
+          // The page will revalidate and update coordinates via the dashboard action
+        }}
       />
 
       {/* Listings count badge — reflects active radar filter */}
