@@ -43,13 +43,11 @@ export async function loader({ request }: Route.LoaderArgs) {
       type: listings.type,
     })
     .from(listings)
-    .innerJoin(profiles, eq(listings.userId, profiles.userId))
     .where(
       and(
         eq(listings.status, "active"),
         isNotNull(listings.lat),
         isNotNull(listings.lng),
-        eq(profiles.province, regionConfig.province),
       ),
     );
 
@@ -76,13 +74,14 @@ export default function Map({ loaderData }: Route.ComponentProps) {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [center, setCenter] = useState(regionCenter);
+  const [radarCenter, setRadarCenter] = useState(regionCenter);
   // Default radius: 25 km — matches the active radar ring highlight
   const [radiusKm, setRadiusKm] = useState(25);
+  const [isLocating, setIsLocating] = useState(false);
 
-  // Filter pins to those within the active radar radius of the region centre.
-  // haversineKm is O(n) and only re-runs when pins or radius change.
+  // Filter pins to those within the active radar radius of the radar centre.
   const filteredPins = pins.filter(
-    (pin) => haversineKm(regionCenter.lat, regionCenter.lng, pin.lat, pin.lng) <= radiusKm,
+    (pin) => haversineKm(radarCenter.lat, radarCenter.lng, pin.lat, pin.lng) <= radiusKm,
   );
 
   const handlePinClick = useCallback(
@@ -94,10 +93,40 @@ export default function Map({ loaderData }: Route.ComponentProps) {
 
   const handleRecenter = useCallback(() => {
     setCenter({ ...regionCenter });
+    setRadarCenter({ ...regionCenter });
   }, [regionCenter]);
 
+  const handleUseMyLocation = useCallback(() => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newCenter = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        setCenter(newCenter);
+        setRadarCenter(newCenter);
+        setIsLocating(false);
+      },
+      (error) => {
+        console.error("Geolocation error:", error);
+        setIsLocating(false);
+        alert("Unable to retrieve your location");
+      },
+      { enableHighAccuracy: true },
+    );
+  }, []);
+
   function handleRegionChange(slug: RegionSlug) {
+    const newRegion = MVP_REGIONS[slug];
     setSearchParams({ region: slug }, { preventScrollReset: true });
+    setCenter(newRegion.center);
+    setRadarCenter(newRegion.center);
   }
 
   if (!apiKey) {
@@ -129,42 +158,69 @@ export default function Map({ loaderData }: Route.ComponentProps) {
         center={center}
         zoom={12}
         onPinClick={handlePinClick}
-        radarCenter={regionCenter}
+        radarCenter={radarCenter}
         radarRadiusKm={radiusKm}
         onRadiusChange={setRadiusKm}
       />
 
-      {/* Floating recenter button */}
-      <button
-        type="button"
-        onClick={handleRecenter}
-        className="absolute bottom-6 right-6 z-10 flex items-center gap-2 rounded-full bg-slate-800/90 px-4 py-2 text-sm font-medium text-slate-100 shadow-lg ring-1 ring-slate-700 backdrop-blur transition-colors hover:bg-slate-700/90"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          className="h-4 w-4"
-          aria-hidden="true"
+      {/* Floating recenter/location buttons */}
+      <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-3">
+        <button
+          type="button"
+          onClick={handleUseMyLocation}
+          disabled={isLocating}
+          className="flex items-center gap-2 rounded-full bg-slate-800/90 px-4 py-2.5 text-sm font-medium text-emerald-400 shadow-lg ring-1 ring-emerald-500/30 backdrop-blur transition-all hover:bg-slate-700/90 disabled:opacity-50"
         >
-          <path
-            fillRule="evenodd"
-            d="M5.05 4.05a7 7 0 1 1 9.9 9.9L10 18.9l-4.95-4.95a7 7 0 0 1 0-9.9ZM10 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
-            clipRule="evenodd"
-          />
-        </svg>
-        Recenter
-      </button>
+          {isLocating ? (
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent" />
+          ) : (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className="h-4 w-4"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z"
+                clipRule="evenodd"
+              />
+            </svg>
+          )}
+          {isLocating ? "Locating..." : "My Location"}
+        </button>
+
+        <button
+          type="button"
+          onClick={handleRecenter}
+          className="flex items-center gap-2 rounded-full bg-slate-800/90 px-4 py-2 text-sm font-medium text-slate-100 shadow-lg ring-1 ring-slate-700 backdrop-blur transition-colors hover:bg-slate-700/90"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 20 20"
+            fill="currentColor"
+            className="h-4 w-4"
+            aria-hidden="true"
+          >
+            <path
+              fillRule="evenodd"
+              d="M5.05 4.05a7 7 0 1 1 9.9 9.9L10 18.9l-4.95-4.95a7 7 0 0 1 0-9.9ZM10 11a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"
+              clipRule="evenodd"
+            />
+          </svg>
+          Recenter
+        </button>
+      </div>
 
       {/* Listings count badge — reflects active radar filter */}
       {filteredPins.length > 0 && (
-        <div className="absolute left-6 top-6 z-10 rounded-full bg-slate-800/90 px-3 py-1.5 text-xs font-medium text-slate-300 shadow-lg ring-1 ring-slate-700 backdrop-blur">
+        <div className="absolute left-6 top-24 z-10 rounded-full bg-slate-800/90 px-3 py-1.5 text-xs font-medium text-slate-300 shadow-lg ring-1 ring-slate-700 backdrop-blur">
           {filteredPins.length} {filteredPins.length === 1 ? "listing" : "listings"} within {radiusKm}km
         </div>
       )}
 
       {filteredPins.length === 0 && (
-        <div className="absolute left-6 top-6 z-10 rounded-2xl border border-white/10 bg-[#0F172A]/90 px-4 py-3 shadow-lg backdrop-blur">
+        <div className="absolute left-6 top-24 z-10 rounded-2xl border border-white/10 bg-[#0F172A]/90 px-4 py-3 shadow-lg backdrop-blur">
           <p className="text-sm font-semibold text-slate-100">No listings within {radiusKm}km</p>
           <p className="mt-1 text-xs text-slate-400">
             Try expanding the radius or add your own listing to get started.

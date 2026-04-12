@@ -1,59 +1,23 @@
 // app/lib/regions.ts
 
 export const MVP_REGIONS = {
-  "western-cape": {
-    label: "Western Cape",
+  "cape-town": {
+    label: "Cape Town",
     province: "Western Cape",
     center: { lat: -33.9249, lng: 18.4241 },
     emoji: "🏔️",
   },
-  gauteng: {
-    label: "Gauteng",
+  johannesburg: {
+    label: "Johannesburg",
     province: "Gauteng",
     center: { lat: -26.2041, lng: 28.0473 },
     emoji: "🏙️",
   },
-  "kwazulu-natal": {
-    label: "KwaZulu-Natal",
+  durban: {
+    label: "Durban",
     province: "KwaZulu-Natal",
     center: { lat: -29.8587, lng: 31.0218 },
     emoji: "🌊",
-  },
-  "eastern-cape": {
-    label: "Eastern Cape",
-    province: "Eastern Cape",
-    center: { lat: -33.7180, lng: 25.6022 },
-    emoji: "🌿",
-  },
-  "free-state": {
-    label: "Free State",
-    province: "Free State",
-    center: { lat: -29.1211, lng: 26.2140 },
-    emoji: "🌾",
-  },
-  limpopo: {
-    label: "Limpopo",
-    province: "Limpopo",
-    center: { lat: -23.8962, lng: 29.4486 },
-    emoji: "🌳",
-  },
-  mpumalanga: {
-    label: "Mpumalanga",
-    province: "Mpumalanga",
-    center: { lat: -25.4653, lng: 30.9853 },
-    emoji: "🏞️",
-  },
-  "north-west": {
-    label: "North West",
-    province: "North West",
-    center: { lat: -25.8523, lng: 25.6440 },
-    emoji: "🌅",
-  },
-  "northern-cape": {
-    label: "Northern Cape",
-    province: "Northern Cape",
-    center: { lat: -28.7282, lng: 24.7499 },
-    emoji: "🏜️",
   },
 } as const;
 
@@ -70,7 +34,7 @@ export function provinceToSlug(province: string | null | undefined): RegionSlug 
   return null;
 }
 
-/** Resolve a region slug from URL param, falling back to user's province, then "gauteng". */
+/** Resolve a region slug from URL param, falling back to user's province, then "johannesburg". */
 export function resolveRegion(
   paramRegion: string | null,
   userProvince: string | null | undefined,
@@ -83,5 +47,5 @@ export function resolveRegion(
   const fromProfile = provinceToSlug(userProvince);
   if (fromProfile) return fromProfile;
   // Default
-  return "gauteng";
+  return "johannesburg";
 }
