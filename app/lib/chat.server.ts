@@ -1,6 +1,6 @@
 import { db } from "~/lib/db.server";
-import { chat_sessions, chat_messages } from "~/lib/schema";
-import { callNvidiaModel } from "~/lib/nvidia.server";
+import { chatSessions, chatMessages } from "~/lib/schema";
+import { generateContent } from "~/lib/ai.server";
 
 export async function handleChat({ user, sessionId, tradeId, input }: { user: any; sessionId?: number; tradeId?: number; input: string; }) {
   if (!input || input.trim().length === 0) throw new Error("empty input");
@@ -8,17 +8,16 @@ export async function handleChat({ user, sessionId, tradeId, input }: { user: an
 
   let sessId = sessionId;
   if (!sessId) {
-    const inserted = await db.insert(chat_sessions).values({ tradeId: tradeId ?? null, userId: user.id, context: {}, model: "nvidia" }).returning();
+    const inserted = await db.insert(chatSessions).values({ tradeId: tradeId ?? null, userId: user.id, context: {}, model: "nvidia" }).returning();
     // returning() yields array; extract id
     sessId = inserted[0].id;
   }
 
-  await db.insert(chat_messages).values({ sessionId: sessId, sender: "user", senderId: user.id, text: input }).run();
+  await db.insert(chatMessages).values({ sessionId: sessId!, sender: "user", senderId: user.id, text: input });
 
-  const modelResponse = await callNvidiaModel(input);
-  const assistantText = (modelResponse && (modelResponse.output || modelResponse.text || JSON.stringify(modelResponse))) ?? "(no response)";
+  const assistantText = await generateContent(input);
 
-  await db.insert(chat_messages).values({ sessionId: sessId, sender: "assistant", text: assistantText }).run();
+  await db.insert(chatMessages).values({ sessionId: sessId!, sender: "assistant", text: assistantText });
 
   return { sessionId: sessId, message: { role: "assistant", text: assistantText } };
 }

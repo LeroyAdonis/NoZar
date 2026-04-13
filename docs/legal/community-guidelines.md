@@ -1,10 +1,16 @@
 ## NoZar — Community Guidelines
 
-**Effective Date:** 7 April 2026
+**Effective Date:** 13 April 2026
 
-These guidelines help keep NoZar safe and fair for everyone. Violating them may result in warnings, suspension, or permanent removal from the platform.
+NoZar is currently in **Public MVP Beta**. These guidelines help keep NoZar safe and fair for everyone. Violating them may result in warnings, suspension, or permanent removal from the platform.
 
 ---
+
+## Beta Participation
+
+- **Expect Early Stages:** Features are being added and refined. Some functions (like regional map search) may be limited during the initial beta phase.
+- **Provide Constructive Feedback:** Your reports and suggestions help us build a better platform for everyone.
+- **Be Patient:** Support and dispute response times may be longer during the beta. We aim to acknowledge all reports within 48 hours.
 
 ## Be Honest
 

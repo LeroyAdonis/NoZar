@@ -74,8 +74,12 @@ export function TestimonialsSection() {
             // Network.Testimonials
           </span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase">
-            Verified Trades.
+            Beta Pilot Cases.
           </h2>
+          <p className="text-slate-500 text-sm mt-4 max-w-xl font-mono">
+            // Real scenarios we're facilitating during our MVP phase.
+            No cash, pure value exchange.
+          </p>
         </div>
       </ScrollReveal>
 

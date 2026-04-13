@@ -1,11 +1,11 @@
-import type { ActionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs } from "react-router";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import { meetupSpots, meetupVotes } from "~/lib/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc, count as countFn } from "drizzle-orm";
 
-export async function action({ request, params }: ActionArgs) {
-  const { user } = await requireAuth(request as any);
+export async function action({ request, params }: ActionFunctionArgs) {
+  const { user } = await requireAuth(request);
   const tradeId = Number(params.tradeId);
   const body = await request.json();
 
@@ -22,7 +22,7 @@ export async function action({ request, params }: ActionArgs) {
     const { spotId } = body;
     if (!spotId) return new Response(JSON.stringify({ error: 'missing_spotId' }), { status: 400 });
     try {
-      await db.insert(meetupVotes).values({ tradeId, userId: user.id, spotId }).run();
+      await db.insert(meetupVotes).values({ tradeId, userId: user.id, spotId });
       return new Response(JSON.stringify({ ok: true }), { status: 200 });
     } catch (err: any) {
       // unique constraint may trigger if user already voted
@@ -32,11 +32,19 @@ export async function action({ request, params }: ActionArgs) {
 
   if (act === 'finalize') {
     // pick spot with most votes
-    const sql = `SELECT spot_id, COUNT(*) AS cnt FROM meetup_votes WHERE trade_id = $1 GROUP BY spot_id ORDER BY cnt DESC LIMIT 1`;
-    const rows = await db.execute(sql, [tradeId]);
+    const rows = await db.select({
+      spotId: meetupVotes.spotId,
+      cnt: countFn()
+    })
+    .from(meetupVotes)
+    .where(eq(meetupVotes.tradeId, tradeId))
+    .groupBy(meetupVotes.spotId)
+    .orderBy(desc(countFn()))
+    .limit(1);
+
     if (!rows || rows.length === 0) return new Response(JSON.stringify({ error: 'no_votes' }), { status: 400 });
     const chosen = rows[0];
-    return new Response(JSON.stringify({ chosenSpotId: chosen.spot_id, votes: Number(chosen.cnt) }), { status: 200 });
+    return new Response(JSON.stringify({ chosenSpotId: chosen.spotId, votes: Number(chosen.cnt) }), { status: 200 });
   }
 
   return new Response(JSON.stringify({ error: 'unsupported_action' }), { status: 400 });

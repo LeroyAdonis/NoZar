@@ -1,9 +1,9 @@
-import type { ActionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs } from "react-router";
 import { requireAuth } from "~/lib/auth.server";
 import { handleChat } from "~/lib/chat.server";
 
-export async function action({ request }: ActionArgs) {
-  const { user } = await requireAuth(request as any);
+export async function action({ request }: ActionFunctionArgs) {
+  const { user } = await requireAuth(request);
   const body = await request.json();
   const { sessionId, tradeId, input } = body;
   try {

@@ -284,3 +284,27 @@ export const tradeItems = pgTable("trade_items", {
   accepted: boolean("accepted").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const chatSessions = pgTable("chat_sessions", {
+  id: serial("id").primaryKey(),
+  tradeId: integer("trade_id").references(() => trades.id),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id),
+  context: jsonb("context").notNull().default({}),
+  model: text("model").notNull().default("nvidia"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const chatMessages = pgTable("chat_messages", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id")
+    .notNull()
+    .references(() => chatSessions.id, { onDelete: "cascade" }),
+  sender: text("sender").notNull().default("user"),
+  senderId: text("sender_id").references(() => users.id),
+  text: text("text").notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});

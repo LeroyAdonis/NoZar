@@ -8,9 +8,9 @@ type StatItem = {
 };
 
 const stats: StatItem[] = [
-  { target: 1000, suffix: "+", label: "Active Listings" },
-  { target: 5, label: "Cities Live" },
-  { target: 100, suffix: "%", label: "Free to Start" },
+  { target: 500, suffix: "+", label: "Early Beta Spots" },
+  { target: 2, label: "Core Hubs (JHB/CPT)" },
+  { target: 0, suffix: " ZAR", label: "Subscription Cost" },
 ];
 
 const counterClassName =

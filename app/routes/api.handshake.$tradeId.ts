@@ -1,11 +1,11 @@
-import type { ActionArgs } from "@remix-run/node";
+import type { ActionFunctionArgs } from "react-router";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import { trades, messages } from "~/lib/schema";
 import { eq } from "drizzle-orm";
 
-export async function action({ request, params }: ActionArgs) {
-  const { user } = await requireAuth(request as any);
+export async function action({ request, params }: ActionFunctionArgs) {
+  const { user } = await requireAuth(request);
   const tradeId = Number(params.tradeId);
   const body = await request.json();
   const { action: act, payload } = body;
@@ -35,11 +35,12 @@ export async function action({ request, params }: ActionArgs) {
       return new Response(JSON.stringify({ error: 'unsupported_action' }), { status: 400 });
   }
 
-  await db.update(trades).set({ status: newStatus }).where(eq(trades.id, tradeId)).run();
+  await db.update(trades).set({ status: newStatus }).where(eq(trades.id, tradeId));
 
   // Insert an audit message
-  const text = payload && payload.note ? payload.note : `${user.name || user.id} performed ${act}`;
-  await db.insert(messages).values({ tradeId, senderId: user.id, text, type: 'handshake' }).run();
+  const name = (user as any).name || user.id;
+  const text = payload && payload.note ? payload.note : `${name} performed ${act}`;
+  await db.insert(messages).values({ tradeId, senderId: user.id, text, type: 'handshake' });
 
   return new Response(JSON.stringify({ tradeId, status: newStatus }), { status: 200 });
 }

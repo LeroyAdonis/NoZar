@@ -35,7 +35,7 @@ export default function CommunityGuidelinesPage({
           Community Guidelines
         </h1>
         <p className="text-slate-500 text-sm mt-1">
-          Keep trading safe and fair · Last updated: January 2025
+          Keep trading safe and fair · Last updated: April 2026
         </p>
       </div>
       <MarkdownRenderer blocks={loaderData.blocks} />

@@ -33,7 +33,7 @@ export default function ComplaintsPage({ loaderData }: Route.ComponentProps) {
           Complaints & Dispute Resolution
         </h1>
         <p className="text-slate-500 text-sm mt-1">
-          CPA and POPIA compliant · Last updated: January 2025
+          CPA and POPIA compliant · Last updated: April 2026
         </p>
       </div>
       <MarkdownRenderer blocks={loaderData.blocks} />

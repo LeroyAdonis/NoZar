@@ -33,7 +33,7 @@ export default function TermsPage({ loaderData }: Route.ComponentProps) {
           Terms of Service
         </h1>
         <p className="text-slate-500 text-sm mt-1">
-          Last updated: January 2025
+          Last updated: April 2026
         </p>
       </div>
       <MarkdownRenderer blocks={loaderData.blocks} />

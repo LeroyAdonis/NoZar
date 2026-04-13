@@ -119,9 +119,17 @@ export default function LandingPage({
         <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/cubes.png')] opacity-[0.02]" />
       </div>
 
+      {/* MVP Beta Banner */}
+      <div className="fixed top-0 w-full z-[60] bg-emerald-500/10 border-b border-emerald-500/20 py-2 text-center backdrop-blur-md">
+        <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-emerald-400">
+          <span className="inline-block animate-pulse mr-2">●</span> 
+          Public MVP Beta — Currently focused on JHB & CPT Metropolitan Areas
+        </p>
+      </div>
+
       {/* Fixed Navbar */}
       <nav
-        className={`fixed top-0 w-full z-50 transition-all duration-500 ${isScrolled ? "bg-[#030712]/80 backdrop-blur-xl border-b border-white/5 py-4" : "bg-transparent py-6"}`}
+        className={`fixed top-8 w-full z-50 transition-all duration-500 ${isScrolled ? "bg-[#030712]/80 backdrop-blur-xl border-b border-white/5 py-4" : "bg-transparent py-6"}`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center">
           {/* Logo */}

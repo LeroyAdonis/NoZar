@@ -33,7 +33,7 @@ export default function PrivacyPage({ loaderData }: Route.ComponentProps) {
           Privacy Policy
         </h1>
         <p className="text-slate-500 text-sm mt-1">
-          POPIA-compliant data handling · Last updated: January 2025
+          POPIA-compliant data handling · Last updated: April 2026
         </p>
       </div>
       <MarkdownRenderer blocks={loaderData.blocks} />

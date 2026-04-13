@@ -52,6 +52,12 @@ const faqItems: FaqItem[] = [
   },
   {
     id: "08",
+    question: "Is barter legal with SARS?",
+    answer:
+      "Absolutely. SARS (South African Revenue Service) recognizes barter as a legitimate form of commerce. Under the VAT Act and Income Tax Act, you are required to account for the fair market value of items or services received as taxable income. NoZar provides a built-in 'Trade Ledger' export feature to help you keep accurate records for 5 years, ensuring you remain compliant with the Tax Administration Act while bypassing cash flow constraints.",
+  },
+  {
+    id: "09",
     question: "How do ratings work?",
     answer:
       "After every completed trade, both parties submit a mutual rating — ensuring accountability on both sides. Ratings are locked until both are submitted to prevent retaliation bias. Once you hit 10+ completed trades with a 4.5+ average rating, you earn the Trusted Trader badge, which boosts your visibility in search results and signals reliability to other network participants.",

@@ -1,7 +1,7 @@
 ## NoZar — Complaints & Dispute Resolution Process
 
-**Effective Date:** 7 April 2026
-**Last Updated:** 7 April 2026
+**Effective Date:** 13 April 2026
+**Last Updated:** 13 April 2026
 
 ## 1. Introduction
 
