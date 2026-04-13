@@ -13,12 +13,6 @@ export const MVP_REGIONS = {
     center: { lat: -26.2041, lng: 28.0473 },
     emoji: "🏙️",
   },
-  durban: {
-    label: "Durban",
-    province: "KwaZulu-Natal",
-    center: { lat: -29.8587, lng: 31.0218 },
-    emoji: "🌊",
-  },
 } as const;
 
 export type RegionSlug = keyof typeof MVP_REGIONS;

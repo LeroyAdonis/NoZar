@@ -134,6 +134,12 @@ export function NozarMap({
   );
 
   useEffect(() => {
+    if (mapInstance && center) {
+      mapInstance.setCenter(center);
+    }
+  }, [mapInstance, center]);
+
+  useEffect(() => {
     if (!mapRef.current) return;
 
     setOptions({

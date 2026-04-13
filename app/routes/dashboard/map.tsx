@@ -41,8 +41,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   const regionConfig = MVP_REGIONS[currentRegion];
 
   // Use profile coordinates if available, otherwise fall back to region center
-  const userCenter = (userProfile?.lat && userProfile?.lng) 
-    ? { lat: userProfile.lat, lng: userProfile.lng }
+  const userCenter = (userProfile?.lat != null && userProfile?.lng != null) 
+    ? { lat: Number(userProfile.lat), lng: Number(userProfile.lng) }
     : regionConfig.center;
 
   const activeListings = await db

@@ -34,7 +34,7 @@ const testimonials: Testimonial[] = [
   {
     initials: "T",
     name: "Thabo D.",
-    location: "Durban, KZN",
+    location: "Midrand, JHB",
     traded: "Web design services → Photography sessions",
     quote:
       "As a freelance web developer, I bartered a landing page build for a professional headshot session. My new client profile photo has already landed me two paying clients. NoZar paid for itself.",
