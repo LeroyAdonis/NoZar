@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams, useFetcher } from "react-router";
 import { eq, ne, and, desc, inArray, ilike, or } from "drizzle-orm";
-import { GoogleGenAI } from "@google/genai";
+import { generateContent } from "~/lib/ai.server";
 import { Sparkles, Search, X, Radar } from "lucide-react";
 import type { Route } from "./+types/home";
 import type { ListingCard } from "~/lib/types";
@@ -257,21 +257,8 @@ Example response: [5, 12, 3]
 Return ONLY the JSON array, no explanation.`;
 
   try {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY") {
-      return { error: "AI matching is not configured" };
-    }
-
-    const ai = new GoogleGenAI({ apiKey });
-    const result = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: prompt,
-    });
-    const text = (result.text ?? "").trim();
-
-    // Parse the JSON array from Gemini's response
-    // Strip markdown code fences if present
-    const cleaned = text.replace(/```(?:json)?\s*/g, "").replace(/```/g, "").trim();
+    const text = await generateContent(prompt);
+    const cleaned = (text || "").replace(/```(?:json)?\s*/g, "").replace(/```/g, "").trim();
     const parsed: unknown = JSON.parse(cleaned);
 
     if (!Array.isArray(parsed)) {

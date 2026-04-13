@@ -24,3 +24,9 @@ opensrc/
 
 /local/
 
+.vercel
+.env*.local
+
+.idea/
+.junie/
+build-log.txt

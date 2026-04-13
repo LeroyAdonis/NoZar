@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { data, Form, Link, useFetcher, useNavigation, useRevalidator } from "react-router";
-import { GoogleGenAI } from "@google/genai";
+import { generateContent } from "~/lib/ai.server";
 import { eq, asc, and, or, count, avg } from "drizzle-orm";
 import {
   ChevronLeft,
@@ -795,12 +795,6 @@ export async function action({ request, params }: Route.ActionArgs) {
         return { ok: true };
       }
 
-      // ── Gemini key check ─────────────────────────────────────────────
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey || apiKey === "YOUR_GEMINI_API_KEY") {
-        return { error: "no_gemini_key" };
-      }
-
       // ── Resolve location from listing owner's profile ────────────────
       const [listingRow] = await db
         .select({ userId: listings.userId })
@@ -822,20 +816,16 @@ export async function action({ request, params }: Route.ActionArgs) {
         ownerProfile?.province ??
         "South Africa";
 
-      // ── Call Gemini ──────────────────────────────────────────────────
+      // ── Call AI ──────────────────────────────────────────────────
       try {
-        const ai = new GoogleGenAI({ apiKey });
-
-        const result = await ai.models.generateContent({
-          model: "gemini-2.0-flash",
-          contents: `Suggest exactly 3 safe public meetup spots near ${location}, South Africa for a barter exchange.
+        const prompt = `Suggest exactly 3 safe public meetup spots near ${location}, South Africa for a barter exchange.
            Prefer shopping malls, police stations, community centres, or busy well-lit public spaces.
            Return ONLY a JSON array of exactly 3 objects with keys: name, address, reason.
            No markdown, no explanation, no code fences. Example:
-           [{"name":"Sandton City Mall","address":"83 Rivonia Rd, Sandton, Johannesburg","reason":"High foot traffic with 24/7 security"}]`,
-        });
+           [{"name":"Sandton City Mall","address":"83 Rivonia Rd, Sandton, Johannesburg","reason":"High foot traffic with 24/7 security"}]`;
 
-        const raw = (result.text ?? "").trim();
+        const text = await generateContent(prompt);
+        const raw = (text || "").trim();
         // Strip markdown code fences if the model adds them despite instructions
         const stripped = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
         const match = stripped.match(/\[.*\]/s);
@@ -871,8 +861,8 @@ export async function action({ request, params }: Route.ActionArgs) {
 
         return { ok: true };
       } catch (err) {
-        console.error("[generateSafeZone] Gemini API call failed:", err);
-        return { error: "gemini_failed" };
+        console.error("[generateSafeZone] AI call failed:", err);
+        return { error: "ai_failed" };
       }
     }
 

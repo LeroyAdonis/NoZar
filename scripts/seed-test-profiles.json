@@ -1,0 +1,27 @@
+[
+  {
+    "user": { "id": "user_1", "name": "David M.", "email": "david@example.com" },
+    "profile": { "displayName": "David M.", "bio": "Camera enthusiast swapping gear.", "city": "Cape Town", "suburb": "Sea Point" },
+    "listings": [ { "id": 1, "title": "Sony A7III + 50mm", "description": "Lightly used Sony A7III body & 50mm f1.8.", "category": "Electronics", "estimatedValueZar": 26000, "type": "item", "status": "active" } ]
+  },
+  {
+    "user": { "id": "user_2", "name": "Sipho T.", "email": "sipho@example.com" },
+    "profile": { "displayName": "Sipho T.", "bio": "Plumber offering hours of service.", "city": "Johannesburg" },
+    "listings": [ { "id": 2, "title": "5hrs Plumbing Service", "description": "Certified plumber offering 5 hours.", "category": "Service", "estimatedValueZar": 450, "type": "service", "status": "active" } ]
+  },
+  {
+    "user": { "id": "user_3", "name": "Sarah K.", "email": "sarah@example.com" },
+    "profile": { "displayName": "Sarah K.", "bio": "Student selling furniture", "city": "Stellenbosch" },
+    "listings": [ { "id": 3, "title": "Office Desk (Oak)", "description": "Solid oak desk", "estimatedValueZar": 800, "category": "Furniture", "type": "item", "status": "active" } ]
+  },
+  {
+    "user": { "id": "user_4", "name": "Aisha R.", "email": "aisha@example.com" },
+    "profile": { "displayName": "Aisha R.", "bio": "Small business owner", "city": "Durban" },
+    "listings": [ { "id": 4, "title": "Used MacBook M1", "description": "Working MacBook M1, 16GB", "estimatedValueZar": 12000, "category": "Electronics", "type": "item", "status": "active" } ]
+  },
+  {
+    "user": { "id": "user_5", "name": "Thabo N.", "email": "thabo@example.com" },
+    "profile": { "displayName": "Thabo N.", "bio": "Collector of tools", "city": "Pretoria" },
+    "listings": [ { "id": 5, "title": "Drill set + case", "description": "Bosch drill set", "estimatedValueZar": 1200, "category": "Tools", "type": "item", "status": "active" } ]
+  }
+]
