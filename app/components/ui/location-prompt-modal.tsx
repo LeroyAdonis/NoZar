@@ -98,9 +98,9 @@ export function LocationPromptModal({
                 Initialize Radar
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-slate-400">
-                To use Nozar's radar feature and discover swaps nearby, you must
-                enable location services. This allows us to track items in your 
-                immediate vicinity and provide safe, local trading.
+                To use Nozar's radar feature and discover swaps nearby, we recommend
+                enabling location services. You can still browse by region without it, 
+                but exact distances and the radar map will be limited.
               </p>
             </div>
 

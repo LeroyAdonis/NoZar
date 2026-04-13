@@ -226,9 +226,13 @@ export default function AssetDetail({ loaderData, actionData }: Route.ComponentP
             <div className="bg-blue-500/20 backdrop-blur-md rounded px-3 py-1.5 text-[10px] font-mono text-blue-400 uppercase border border-blue-500/30 flex items-center gap-1.5">
               <Globe className="w-3 h-3" /> Digital Service
             </div>
-          ) : distance !== null && (
+          ) : distance !== null ? (
             <div className="bg-slate-900/60 backdrop-blur-md rounded px-3 py-1.5 text-[10px] font-mono text-slate-300 uppercase border border-white/10 flex items-center gap-1.5">
               <MapPin className="w-3 h-3" /> {formatDistance(distance)} away
+            </div>
+          ) : (
+            <div className="bg-slate-900/60 backdrop-blur-md rounded px-3 py-1.5 text-[10px] font-mono text-slate-400 uppercase border border-white/10 flex items-center gap-1.5">
+              <MapPin className="w-3 h-3 opacity-50" /> Dist. unknown
             </div>
           )}
         </div>

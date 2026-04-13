@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams, useFetcher } from "react-router";
 import { eq, ne, and, desc, inArray, ilike, or } from "drizzle-orm";
 import { GoogleGenAI } from "@google/genai";
-import { Sparkles, Search, X } from "lucide-react";
+import { Sparkles, Search, X, Radar } from "lucide-react";
 import type { Route } from "./+types/home";
 import type { ListingCard } from "~/lib/types";
 import { requireAuth } from "~/lib/auth.server";
@@ -135,7 +135,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       distance:
         userProfile?.lat != null && userProfile?.lng != null && r.lat != null && r.lng != null
           ? formatDistance(haversineKm(userProfile.lat, userProfile.lng, r.lat, r.lng))
-          : "Nearby",
+          : "Dist. unknown",
       timeAgo: timeAgo(new Date(r.createdAt)),
       userName: r.userName,
       isVerified: r.isVerified,
@@ -146,6 +146,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     listings: items,
     currentRegion,
     needsRegion: !userProfile?.province || !provinceToSlug(userProfile.province),
+    needsLocation: !userProfile?.lat || !userProfile?.lng,
     searchQuery: searchQuery ?? null,
   };
 }
@@ -347,6 +348,21 @@ export default function DashboardHome({
   return (
     <div className="space-y-6">
       {isMatching && <LoadingBar />}
+      {loaderData.needsLocation && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3 flex items-start gap-3 animate-in slide-in-from-top-4 duration-500">
+          <div className="p-1.5 rounded-full bg-amber-500/20">
+            <Radar className="w-3.5 h-3.5 text-amber-400" />
+          </div>
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-amber-400">
+              Limited Mode Active
+            </p>
+            <p className="text-[10px] text-amber-200/60 leading-relaxed mt-0.5">
+              Exact distances are hidden. Using <strong>{currentRegion.replace(/-/g, " ")}</strong> as your default region.
+            </p>
+          </div>
+        </div>
+      )}
       {/* Region toggle */}
       <div className="pt-2 -mx-1 px-1 sm:mx-0 sm:px-0 sm:flex sm:justify-center">
         <RegionToggle activeRegion={currentRegion} onChange={handleRegionChange} />

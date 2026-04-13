@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, Outlet, useLocation, useNavigation } from "react-router";
 import {
   Bell,
@@ -7,6 +8,7 @@ import {
   Plus,
   MessageSquare,
   User,
+  Radar,
 } from "lucide-react";
 import type { Route } from "./+types/dashboard";
 import { requireAuth } from "~/lib/auth.server";
@@ -108,6 +110,9 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const activeTab = getActiveTab(location.pathname);
   const { user, unreadCount, profile } = loaderData;
   const needsLocation = !profile?.lat || !profile?.lng;
+  const [isLocationDismissed, setIsLocationDismissed] = useState(false);
+
+  const showLocationModal = needsLocation && !isLocationDismissed;
 
   const isNavigating = navigation.state !== "idle";
 
@@ -275,7 +280,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
         </Link>
 
         {/* Desktop: section label replacing logo */}
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-4">
           <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">
             {activeTab === "home"
               ? "// Local Index"
@@ -287,9 +292,25 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
               ? "// Pings"
               : "// Profile"}
           </span>
+          {needsLocation && isLocationDismissed && (
+            <button
+              onClick={() => setIsLocationDismissed(false)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-mono uppercase tracking-widest border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-all animate-in fade-in zoom-in-95 duration-300"
+            >
+              <Radar className="w-3.5 h-3.5" /> Enable Radar
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-3">
+          {needsLocation && isLocationDismissed && (
+            <button
+              onClick={() => setIsLocationDismissed(false)}
+              className="md:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-mono uppercase tracking-widest border border-amber-500/30 bg-amber-500/10 text-amber-400 active:scale-95 transition-all"
+            >
+              <Radar className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Radar Off</span>
+            </button>
+          )}
           {/* User info — sm screens on mobile only (desktop has sidebar) */}
           <div className="hidden sm:flex md:hidden items-center gap-3 text-right">
             <div>
@@ -365,8 +386,8 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
       </main>
 
       <LocationPromptModal 
-        isOpen={needsLocation} 
-        onClose={() => {}} 
+        isOpen={showLocationModal} 
+        onClose={() => setIsLocationDismissed(true)} 
       />
 
       {/* Bottom navigation — mobile only (BottomNav itself adds md:hidden) */}
