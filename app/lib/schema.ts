@@ -194,6 +194,24 @@ export const contactDisclosures = pgTable("contact_disclosures", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// ─── Payment Tables ──────────────────────────────────────────
+
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  listingId: integer("listing_id")
+    .notNull()
+    .references(() => listings.id, { onDelete: "cascade" }),
+  amount: integer("amount").notNull(),
+  currency: text("currency").notNull().default("ZAR"),
+  status: text("status").notNull().default("pending"),
+  providerReference: text("provider_reference"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 
 // ─── Trust System Tables ───────────────────────────────────────
 
@@ -307,4 +325,28 @@ export const chatMessages = pgTable("chat_messages", {
   text: text("text").notNull(),
   metadata: jsonb("metadata"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  planCode: text("plan_code").notNull(), // plus | business | enterprise
+  status: text("status").notNull(), // active | cancelled | expired
+  subscriptionCode: text("subscription_code"),
+  email: text("email"),
+  nextPaymentDate: timestamp("next_payment_date"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const boostTokens = pgTable("boost_tokens", {
+  userId: text("user_id")
+    .notNull()
+    .unique()
+    .references(() => users.id, { onDelete: "cascade" }),
+  balance: integer("balance").notNull().default(0),
+  lastRefillAt: timestamp("last_refill_at").notNull().defaultNow(),
 });
