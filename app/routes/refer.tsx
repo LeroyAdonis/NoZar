@@ -1,20 +1,36 @@
-import { redirect } from "react-router";
+import { redirect, type LoaderFunctionArgs } from "react-router";
 import { useState, useEffect } from "react";
+import { useLoaderData } from "react-router";
 
-export async function loader() {
-  return {};
+export async function loader({ request }: LoaderFunctionArgs) {
+  const { requireAuth } = await import("~/lib/auth.server");
+  const { db } = await import("~/lib/db.server");
+  const { referrals } = await import("~/lib/schema");
+  const { count, eq } = await import("drizzle-orm");
+
+  const session = await requireAuth(request);
+
+  // Get referral count
+  const [{ value: referralCount }] = await db
+    .select({ value: count() })
+    .from(referrals)
+    .where(eq(referrals.referrerId, session.user.id));
+
+  return { 
+    referralCode: session.user.referralCode,
+    referralCount 
+  };
 }
 
 export default function ReferPage() {
-  const [referralCode, setReferralCode] = useState<string | null>(null);
+  const { referralCode, referralCount } = useLoaderData<typeof loader>();
+  const [origin, setOrigin] = useState("");
 
   useEffect(() => {
-    fetch("/api/refer")
-      .then((res) => res.json())
-      .then((data) => setReferralCode(data.referralCode));
+    setOrigin(window.location.origin);
   }, []);
 
-  const referralLink = referralCode ? `${window.location.origin}/r/${referralCode}` : "Loading...";
+  const referralLink = referralCode ? `${origin}/r/${referralCode}` : "Loading...";
 
   return (
     <div className="max-w-4xl mx-auto py-16 px-4">
@@ -36,6 +52,13 @@ export default function ReferPage() {
         >
             Share on WhatsApp
         </button>
+      </div>
+
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="p-6 bg-[#0F172A] rounded-xl border border-white/10 text-center">
+            <div className="text-4xl font-black text-emerald-500 mb-2">{referralCount}</div>
+            <div className="text-sm text-slate-400 uppercase tracking-widest font-bold">Successful Referrals</div>
+        </div>
       </div>
     </div>
   );

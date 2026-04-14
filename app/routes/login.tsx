@@ -47,9 +47,10 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await authClient.signIn.email(
-        { email, password },
-        {
+      await authClient.signIn.email({
+        email,
+        password,
+        fetchOptions: {
           onSuccess: () => {
             navigate("/dashboard");
           },
@@ -58,7 +59,7 @@ export default function LoginPage() {
             setLoading(false);
           },
         },
-      );
+      });
     } catch {
       setError(SAFE_LOGIN_ERROR);
       setLoading(false);

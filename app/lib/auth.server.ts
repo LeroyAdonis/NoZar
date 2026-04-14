@@ -90,8 +90,19 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
     usePlural: true,
-    schema,
+    schema: {
+      ...schema,
+      users: schema.users,
+    },
   }),
+  user: {
+    additionalFields: {
+      referralCode: {
+        type: "string",
+        fieldName: "referral_code",
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     async sendResetPassword({ user, url }) {
