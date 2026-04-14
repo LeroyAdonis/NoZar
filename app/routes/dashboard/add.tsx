@@ -157,26 +157,6 @@ export async function action({ request }: Route.ActionArgs) {
     }
   }
 
-  // ── Meetup Suggestions ────────────────────────────────────
-  if (intent === "suggestMeetup") {
-    const suburb = (formData.get("suburb") as string) || "";
-
-    if (!suburb.trim()) {
-      return { meetupError: "Enter your suburb first." };
-    }
-
-    try {
-      const meetupSuggestions = await suggestMeetupSpots(suburb.trim());
-      return { meetupSuggestions };
-    } catch (err) {
-      console.error("[suggestMeetup action] Failed to fetch meetup spots for", suburb, err);
-      return {
-        meetupError:
-          "Could not fetch meetup suggestions. Try again later.",
-      };
-    }
-  }
-
   // ── Create Listing (default) ──────────────────────────────
   const { user } = await requireAuth(request);
 
@@ -287,7 +267,6 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
 
   // Separate fetchers for AI actions — don't reset the main form
   const aiFetcher = useFetcher();
-  const meetupFetcher = useFetcher();
   const navigation = useNavigation();
 
   const aiData = aiFetcher.data as
@@ -295,13 +274,7 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
     | { aiError: string }
     | undefined;
 
-  const meetupData = meetupFetcher.data as
-    | { meetupSuggestions: string[] }
-    | { meetupError: string }
-    | undefined;
-
   const isAiLoading = aiFetcher.state !== "idle";
-  const isMeetupLoading = meetupFetcher.state !== "idle";
   const isListingSubmitting =
     navigation.state === "submitting" &&
     navigation.formData?.get("intent") == null;
@@ -377,12 +350,6 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
   const aiSuggestion =
     aiData && "aiSuggestion" in aiData ? aiData.aiSuggestion : null;
   const aiError = aiData && "aiError" in aiData ? aiData.aiError : null;
-  const meetupSuggestions =
-    meetupData && "meetupSuggestions" in meetupData
-      ? meetupData.meetupSuggestions
-      : null;
-  const meetupError =
-    meetupData && "meetupError" in meetupData ? meetupData.meetupError : null;
 
   function handleAiAssist() {
     if (!formRef.current) return;
@@ -408,32 +375,6 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
       descriptionRef.current.value = aiSuggestion;
     }
     setAiDismissed(true);
-  }
-
-  function handleSuggestMeetup() {
-    if (!formRef.current) return;
-    const suburbEl = formRef.current.elements.namedItem(
-      "suburb",
-    ) as HTMLInputElement | null;
-
-    meetupFetcher.submit(
-      {
-        intent: "suggestMeetup",
-        suburb: suburbEl?.value ?? "",
-      },
-      { method: "post" },
-    );
-  }
-
-  function handleSelectMeetup(spot: string) {
-    const seekingEl = formRef.current?.elements.namedItem(
-      "seekingDescription",
-    ) as HTMLTextAreaElement | null;
-    if (!seekingEl) return;
-    const prefix = seekingEl.value.trim();
-    seekingEl.value = prefix
-      ? `${prefix}\nPreferred meetup: ${spot}`
-      : `Preferred meetup: ${spot}`;
   }
 
   return (
@@ -845,29 +786,14 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
           </select>
         </div>
 
-        {/* Suburb + Meetup Suggestions */}
+        {/* Suburb */}
         <div>
-          <div className="flex items-end justify-between mb-1.5">
-            <label
-              htmlFor="suburb"
-              className="text-[10px] font-mono uppercase tracking-widest text-slate-400"
-            >
-              Suburb / Area
-            </label>
-            <button
-              type="button"
-              onClick={handleSuggestMeetup}
-              disabled={isMeetupLoading}
-              className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors"
-            >
-              {isMeetupLoading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <MapPin className="w-3.5 h-3.5" />
-              )}
-              {isMeetupLoading ? "Finding spots…" : "Suggest Safe Meetup Spots"}
-            </button>
-          </div>
+          <label
+            htmlFor="suburb"
+            className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
+          >
+            Suburb / Area
+          </label>
           <input
             id="suburb"
             name="suburb"
@@ -875,33 +801,6 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
             placeholder="e.g. Sandton, Camps Bay, Menlyn"
             className="w-full rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5"
           />
-
-          {/* Meetup suggestion chips */}
-          {meetupSuggestions && meetupSuggestions.length > 0 && (
-            <div className="mt-3 space-y-2">
-              <p className="text-[10px] font-mono uppercase tracking-widest text-slate-500">
-                Safe meetup spots nearby
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {meetupSuggestions.map((spot) => (
-                  <button
-                    key={spot}
-                    type="button"
-                    onClick={() => handleSelectMeetup(spot)}
-                    className="flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 px-3 py-1.5 text-xs text-emerald-300 hover:bg-emerald-500/15 hover:border-emerald-500/40 transition-colors"
-                  >
-                    <MapPin className="w-3 h-3" />
-                    {spot}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Meetup error */}
-          {meetupError && !isMeetupLoading && (
-            <p className="mt-2 text-xs text-amber-400">{meetupError}</p>
-          )}
         </div>
 
         {/* Seeking Description */}

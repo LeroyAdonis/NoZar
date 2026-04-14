@@ -11,11 +11,14 @@ export async function generateContent(prompt: string, systemInstruction?: string
       const genAI = new GoogleGenAI({ apiKey: geminiApiKey! });
       const result = await genAI.models.generateContent({
         model: "gemini-2.0-flash",
-        contents: systemInstruction ? `${systemInstruction}\n\n${prompt}` : prompt,
+        contents: [{ role: "user", parts: [{ text: systemInstruction ? `${systemInstruction}\n\n${prompt}` : prompt }] }],
       });
       if (result.text) return result.text;
-    } catch (error) {
-      console.error("Gemini failed, falling back to NVIDIA:", error);
+      if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
+        return result.candidates[0].content.parts[0].text;
+      }
+    } catch (error: any) {
+      console.error("Gemini failed, falling back to NVIDIA:", error.message || error);
     }
   }
 
@@ -24,8 +27,8 @@ export async function generateContent(prompt: string, systemInstruction?: string
   if (nvidiaApiKey && nvidiaApiKey !== "YOUR_NVIDIA_API_KEY") {
     try {
       return await callNvidiaModel(systemInstruction ? `${systemInstruction}\n\n${prompt}` : prompt);
-    } catch (error) {
-      console.error("NVIDIA fallback failed:", error);
+    } catch (error: any) {
+      console.error("NVIDIA fallback failed:", error.message || error);
     }
   }
 

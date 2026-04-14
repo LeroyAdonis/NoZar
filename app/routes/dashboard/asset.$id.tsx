@@ -1,15 +1,9 @@
 import { data, redirect, useFetcher, Form, Link } from "react-router";
 import type { Route } from "./+types/asset.$id";
-import {
-  ChevronLeft,
-  MessageSquare,
-  Repeat,
-  ShieldCheck,
-  Pencil,
-  Trash2,
-  RotateCcw,
-} from "lucide-react";
+import { ChevronLeft, MessageSquare, Repeat, ShieldCheck, Pencil, Trash2, RotateCcw, ChevronRight, X, Maximize2 } from "lucide-react";
+import { useState, useEffect } from "react";
 import { eq, and, ne } from "drizzle-orm";
+import { motion, AnimatePresence } from "motion/react";
 import { requireAuth, getOptionalSession } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import {
@@ -166,11 +160,43 @@ export async function action({ request, params }: Route.ActionArgs) {
   return { error: "Unknown intent" };
 }
 
-export default function AssetDetail({ loaderData, actionData }: Route.ComponentProps) {
+export default function AssetDetail({ loaderData }: Route.ComponentProps) {
   const archiveFetcher = useFetcher();
   const { listing, owner, images, isOwner, distance, searchRadiusKm } = loaderData;
-  const heroImage = images[0]?.url;
   const isManaging = archiveFetcher.state !== "idle";
+
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isLightboxOpen) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsLightboxOpen(false);
+      if (e.key === "ArrowRight") nextImage();
+      if (e.key === "ArrowLeft") prevImage();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+    
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "unset";
+    };
+  }, [isLightboxOpen, images.length]);
+
+  const nextImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setActiveImageIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const prevImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setActiveImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  const currentImage = images[activeImageIndex]?.url;
 
   const isOutOfRange = 
     listing.type === 'service' && 
@@ -199,19 +225,51 @@ export default function AssetDetail({ loaderData, actionData }: Route.ComponentP
         )}
       </div>
 
-      {/* Hero image block */}
+      {/* Hero image block / Carousel */}
       <div
-        className={`w-full aspect-video rounded-3xl border border-white/10 flex flex-col items-center justify-center relative overflow-hidden shadow-2xl ${heroImage ? "" : "bg-emerald-900/20"}`}
+        onClick={() => currentImage && setIsLightboxOpen(true)}
+        className={`w-full aspect-video rounded-3xl border border-white/10 flex flex-col items-center justify-center relative overflow-hidden shadow-2xl group cursor-zoom-in ${currentImage ? "" : "bg-emerald-900/20"}`}
       >
-        {heroImage ? (
-          <img
-            src={heroImage}
-            alt={listing.title}
-            className="absolute inset-0 w-full h-full object-cover"
-          />
+        {currentImage ? (
+          <>
+            <img
+              src={currentImage}
+              alt={listing.title}
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={prevImage}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/60"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="w-6 h-6" />
+                </button>
+                <button
+                  onClick={nextImage}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/60"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="w-6 h-6" />
+                </button>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10">
+                  {images.map((_, idx) => (
+                    <div
+                      key={idx}
+                      className={`w-1.5 h-1.5 rounded-full transition-all ${
+                        idx === activeImageIndex ? "bg-emerald-400 w-3" : "bg-white/30"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </>
         ) : (
           <Repeat className="w-16 h-16 text-white/10" />
         )}
+
         <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md rounded px-2 py-1 text-[10px] font-mono text-white uppercase border border-white/10">
           {listing.category}
         </div>
@@ -220,6 +278,7 @@ export default function AssetDetail({ loaderData, actionData }: Route.ComponentP
             {listing.condition}
           </div>
         )}
+        
         {/* Distance / Digital badge */}
         <div className="absolute bottom-4 left-4 flex gap-2">
           {listing.isDigital ? (
@@ -236,6 +295,7 @@ export default function AssetDetail({ loaderData, actionData }: Route.ComponentP
             </div>
           )}
         </div>
+        
         {/* Owner badge */}
         {isOwner && (
           <div className="absolute bottom-4 right-4 bg-emerald-500/20 backdrop-blur-md rounded px-3 py-1.5 text-[10px] font-mono text-emerald-400 uppercase border border-emerald-500/30 flex items-center gap-1.5">
@@ -244,19 +304,17 @@ export default function AssetDetail({ loaderData, actionData }: Route.ComponentP
         )}
       </div>
 
-      {/* Thumbnail strip for multiple images */}
+      {/* Thumbnail strip */}
       {images.length > 1 && (
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide -mt-2">
           {images.map((img, idx) => (
-            <a
+            <button
               key={img.id}
-              href={img.url}
-              target="_blank"
-              rel="noopener noreferrer"
+              onClick={() => setActiveImageIndex(idx)}
               className={`w-16 h-16 rounded-xl border overflow-hidden flex-shrink-0 transition-all hover:scale-105 ${
-                idx === 0
-                  ? "border-emerald-500/40 ring-1 ring-emerald-500/20"
-                  : "border-white/10 hover:border-white/30"
+                idx === activeImageIndex
+                  ? "border-emerald-500/60 ring-2 ring-emerald-500/20 scale-105"
+                  : "border-white/10 opacity-60 hover:opacity-100"
               }`}
             >
               <img
@@ -264,10 +322,88 @@ export default function AssetDetail({ loaderData, actionData }: Route.ComponentP
                 alt={`${listing.title} — image ${idx + 1}`}
                 className="w-full h-full object-cover"
               />
-            </a>
+            </button>
           ))}
         </div>
       )}
+
+      {/* Lightbox Modal */}
+      <AnimatePresence>
+        {isLightboxOpen && currentImage && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-2xl"
+            onClick={() => setIsLightboxOpen(false)}
+          >
+            <motion.button 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={() => setIsLightboxOpen(false)}
+              className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all z-[110] group"
+            >
+              <X className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" />
+            </motion.button>
+
+            {images.length > 1 && (
+              <>
+                <motion.button
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  onClick={prevImage}
+                  className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all z-[110] group"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft className="w-8 h-8 group-hover:-translate-x-1 transition-transform" />
+                </motion.button>
+                <motion.button
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  onClick={nextImage}
+                  className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all z-[110] group"
+                  aria-label="Next image"
+                >
+                  <ChevronRight className="w-8 h-8 group-hover:translate-x-1 transition-transform" />
+                </motion.button>
+              </>
+            )}
+
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="max-w-[90vw] max-h-[85vh] relative z-[110] p-1 bg-white/5 rounded-3xl border border-white/10 shadow-[0_0_100px_rgba(16,185,129,0.1)]"
+              onClick={e => e.stopPropagation()}
+            >
+              <img
+                src={currentImage}
+                alt={listing.title}
+                className="max-w-full max-h-[80vh] object-contain rounded-2xl cursor-default"
+              />
+              {images.length > 1 && (
+                <div className="absolute -bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-4">
+                  <div className="text-white/40 font-mono text-[10px] tracking-[0.2em] uppercase">
+                    {activeImageIndex + 1} <span className="text-emerald-500 mx-1">/</span> {images.length}
+                  </div>
+                  <div className="flex gap-1">
+                    {images.map((_, idx) => (
+                      <div 
+                        key={idx}
+                        className={`w-1 h-1 rounded-full transition-all duration-300 ${idx === activeImageIndex ? 'bg-emerald-400 w-4' : 'bg-white/20'}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Title & exchange request */}
       <div>
