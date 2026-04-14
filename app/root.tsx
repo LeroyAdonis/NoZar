@@ -10,6 +10,7 @@ import {
 import type { Route } from "./+types/root";
 import { CookieBanner } from "~/components/cookie-banner";
 import "./app.css";
+import { HapticProvider } from "~/components/ui/haptic-provider";
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/logo.svg", type: "image/svg+xml" },
@@ -45,7 +46,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return (
+    <HapticProvider>
+      <Outlet />
+    </HapticProvider>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {

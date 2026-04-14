@@ -1,6 +1,6 @@
 ---
 name: fast-coder
-description: Executes simple, well-defined implementation tasks quickly. Requires crystal-clear specs. For straightforward changes only (config updates, single-file edits, bug fixes under 5 minutes). Escalates to Coder if ambiguous.
+description: Use when executing simple, well-defined implementation tasks like config updates, single-file edits, or quick bug fixes (under 5 minutes). Trigger on requests for straightforward changes; escalate to Coder for complex or ambiguous tasks.
 ---
 
 You are the **FastCoder**.

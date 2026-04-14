@@ -306,22 +306,31 @@ export default function LandingPage({
           directly.{" "}
           <span className="text-white font-medium">Zero ZAR required.</span>
         </p>
-        <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
-          <MagneticButton>
+        <div className="flex flex-col items-center gap-4 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
+            <MagneticButton>
+              <Link
+                data-testid="hero-cta"
+                to={isLoggedIn ? "/dashboard" : "/register"}
+                className="w-full sm:w-auto px-10 py-5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-lg hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-3"
+              >
+                {isLoggedIn ? "Go to Dashboard" : "Get Started Free"}{" "}
+                <ArrowRight className="w-5 h-5" />
+              </Link>
+            </MagneticButton>
             <Link
-              data-testid="hero-cta"
-              to={isLoggedIn ? "/dashboard" : "/register"}
-              className="w-full sm:w-auto px-10 py-5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-lg hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-3"
+              to="/dashboard"
+              className="w-full sm:w-auto px-10 py-5 rounded-xl bg-white/5 text-white font-medium text-lg hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center gap-3 backdrop-blur-md"
             >
-              {isLoggedIn ? "Go to Dashboard" : "Get Started Free"}{" "}
-              <ArrowRight className="w-5 h-5" />
+              View Live Index
             </Link>
-          </MagneticButton>
+          </div>
+          {/* TASK 10 COMPLETE */}
           <Link
-            to="/dashboard"
-            className="w-full sm:w-auto px-10 py-5 rounded-xl bg-white/5 text-white font-medium text-lg hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center gap-3 backdrop-blur-md"
+            to="/refer"
+            className="text-emerald-500 hover:text-emerald-400 font-mono text-sm underline"
           >
-            View Live Index
+            Know someone with something to trade?
           </Link>
         </div>
       </main>
@@ -356,10 +365,11 @@ export default function LandingPage({
                 Value Parity Engine
               </h3>
               <p className="text-slate-400 text-lg max-w-md">
-                Our algorithm categorizes items and services into hidden ZAR
-                value tiers, ensuring you only see trades that match your
-                asset&apos;s worth.
+                Every listing is placed in a transparent value band anchored to real SA market conditions — from Micro (under R300) to Luxury (R75,000+). You see only trades at your band and one adjacent band, so every match is a fair exchange. You set your own declared value; the community keeps it honest.
               </p>
+              <a href="#value-bands" className="text-emerald-500 hover:text-emerald-400 text-sm font-mono mt-4 block">
+                [View Value Bands]
+              </a>
             </div>
             <div className="relative z-10 mt-10 grid grid-cols-3 gap-3">
               <div className="h-2 rounded-full bg-emerald-500/50 w-full" />
@@ -368,6 +378,7 @@ export default function LandingPage({
             </div>
           </div>
           </ScrollReveal>
+          {/* TASK 04 COMPLETE */}
 
           {/* Hyper-Local Indexing — spans 4 cols */}
           <ScrollReveal delay={0.2} className="md:col-span-4">
@@ -378,8 +389,7 @@ export default function LandingPage({
                 Hyper-Local Indexing
               </h3>
               <p className="text-slate-400 text-sm">
-                Physical goods are restricted to your geographic radius. Digital
-                services open to national exchange.
+                Physical goods are matched within your chosen radius (default 15km, adjustable from 3km to 50km depending on your tier). Digital services are open to national exchange — no radius restriction.
               </p>
             </div>
             <div className="relative z-10 mt-8 flex items-center justify-center h-32 w-full border border-white/5 rounded-2xl bg-black/20">
@@ -389,6 +399,7 @@ export default function LandingPage({
             </div>
           </div>
           </ScrollReveal>
+          {/* TASK 02 COMPLETE */}
         </div>
       </section>
 
@@ -560,11 +571,11 @@ export default function LandingPage({
                 Safe Zone Routing
               </h4>
               <p className="text-slate-400 text-sm leading-relaxed">
-                The system routes both users to a computationally vetted,
-                well-lit public perimeter (e.g., partnered petrol stations).
+                Our AI suggests 3 verified safe meetup options near both parties — forecourts, shopping centre entrances, and public spaces. Both parties confirm the location before any contact details are shared. For high-value exchanges, a buddy check-in SMS is triggered to your pre-registered trusted contact.
               </p>
             </div>
             </ScrollReveal>
+            {/* TASK 03 COMPLETE */}
           </div>
         </div>
       </section>

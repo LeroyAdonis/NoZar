@@ -1,6 +1,6 @@
 ---
 name: agent-memory
-description: "Read/write persistent agent context to the agent_sessions table in Neon PostgreSQL via Drizzle ORM. Use when any agent needs to save progress mid-task, resume work across sessions, record findings, or mark tasks complete. Standard operations: save_checkpoint, load_checkpoint, update_finding, mark_complete. Required for any long-running multi-session agent workflow in purple-glow-social-2.0."
+description: Use when any agent needs to save progress mid-task, resume work across sessions, record findings, or mark tasks complete in the agent_sessions table for long-running multi-session agent workflows in the purple-glow-social-2.0 project.
 ---
 
 # Agent Memory

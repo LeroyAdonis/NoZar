@@ -50,6 +50,7 @@ const tiers: PricingTier[] = [
     features: [
       { label: "20 active listings" },
       { label: "2 boost tokens/mo" },
+      { label: "Boost your listings' reach" },
       { label: "Priority in feed" },
       { label: "Advanced filters" },
       { label: "Trade analytics" },
@@ -66,7 +67,8 @@ const tiers: PricingTier[] = [
     features: [
       { label: "100 active listings" },
       { label: "10 boost tokens/mo" },
-      { label: "CIPC verification badge" },
+      { label: "Boost your listings' reach" },
+      { label: "CIPC verification badge (disclaimer applied)" },
       { label: "Enterprise filters" },
       { label: "SARS export" },
     ],
@@ -77,10 +79,11 @@ const tiers: PricingTier[] = [
     name: "Enterprise",
     price: "R249",
     period: "/mo",
-    description: "Full protocol access with dedicated support and custom integrations for large operations.",
+    description: "Full protocol access with dedicated support and custom integrations for large operations. (CIPC disclaimer applied)",
     features: [
       { label: "Unlimited listings" },
       { label: "30 boost tokens/mo" },
+      { label: "Boost your listings' reach" },
       { label: "Dedicated account manager" },
       { label: "API access" },
       { label: "Custom branding" },
@@ -90,6 +93,8 @@ const tiers: PricingTier[] = [
     ctaLink: "/dashboard",
   },
 ];
+
+// TASK 05 COMPLETE
 
 export function PricingSection() {
   return (

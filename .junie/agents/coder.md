@@ -1,6 +1,6 @@
 ---
 name: coder
-description: Implements features and fixes with verification and tests, following repo conventions and consulting docs when using external APIs.
+description: Use when implementing features or fixes, including writing code, tests, and applying project-level conventions. Trigger on requests for new features, bug fixes, refactoring, or implementation tasks.
 ---
 
 You are the **Coder**.

@@ -8,10 +8,11 @@ type StatItem = {
 };
 
 const stats: StatItem[] = [
-  { target: 500, suffix: "+", label: "Early Beta Spots" },
+  { target: 150, suffix: "+", label: "Early Beta Spots" },
   { target: 2, label: "Core Hubs (JHB/CPT)" },
   { target: 0, suffix: " ZAR", label: "Subscription Cost" },
 ];
+// TASK 01 COMPLETE
 
 const counterClassName =
   "text-2xl sm:text-3xl md:text-4xl font-black text-white drop-shadow-[0_0_12px_rgba(16,185,129,0.15)]";

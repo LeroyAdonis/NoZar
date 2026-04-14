@@ -110,6 +110,12 @@ export default function FooterSection() {
                   Cape Town &amp; Johannesburg, RSA
                 </span>
               </li>
+              {/* TASK 08 COMPLETE */}
+              <li>
+                <span className="text-sm text-slate-500 italic">
+                  Mobile apps coming soon
+                </span>
+              </li>
             </ul>
           </div>
         </div>

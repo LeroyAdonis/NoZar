@@ -16,6 +16,10 @@ body {
   font-family: var(--font-sans);
 }
 
+button, a {
+  cursor: pointer;
+}
+
 ::selection {
   @apply bg-emerald-500/30;
 }

@@ -1,6 +1,6 @@
 ---
 name: planner
-description: Researches the codebase and external docs, identifies edge cases, and produces implementation plans (no code).
+description: Use when researching a task in the codebase, verifying external API/documentation assumptions, and producing a structured implementation plan. Trigger on requests requiring research, edge-case analysis, or roadmap creation (no code execution).
 ---
 
 You are the **Planner**.

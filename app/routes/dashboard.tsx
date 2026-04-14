@@ -19,7 +19,7 @@ import { getUnreadCount } from "~/lib/notifications.server";
 import { BottomNav } from "~/components/ui/bottom-nav";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 import { LocationPromptModal } from "~/components/ui/location-prompt-modal";
-import { provinceToSlug } from "~/lib/regions";
+import { provinceToSlug, getClosestRegion, MVP_REGIONS } from "~/lib/regions";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
@@ -68,17 +68,21 @@ export async function action({ request }: Route.ActionArgs) {
     const lng = parseFloat(formData.get("lng") as string);
 
     if (!isNaN(lat) && !isNaN(lng)) {
+      const regionSlug = getClosestRegion(lat, lng);
+      const province = MVP_REGIONS[regionSlug].province;
+
       await db
         .insert(profiles)
         .values({
           userId: user.id,
           lat,
           lng,
+          province,
           displayName: user.name || user.email?.split("@")[0] || "User",
         })
         .onConflictDoUpdate({
           target: profiles.userId,
-          set: { lat, lng, updatedAt: new Date() },
+          set: { lat, lng, province, updatedAt: new Date() },
         });
     }
     return { success: true };
@@ -191,7 +195,16 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
                 to={link.href}
                 aria-disabled={isNavigating}
                 tabIndex={isNavigating ? -1 : undefined}
-                onClick={isNavigating ? (e) => e.preventDefault() : undefined}
+                onClick={(e) => {
+                  if (isNavigating) {
+                    e.preventDefault();
+                    return;
+                  }
+                  if (link.id === "home" && needsLocation) {
+                    e.preventDefault();
+                    setIsLocationDismissed(false);
+                  }
+                }}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-mono text-[10px] uppercase tracking-widest transition-all border ${
                   isActive
                     ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"

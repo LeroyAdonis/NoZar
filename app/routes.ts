@@ -10,8 +10,13 @@ export default [
   route("forgot-password", "routes/forgot-password.tsx"),
   route("reset-password", "routes/reset-password.tsx"),
   route("register", "routes/register.tsx"),
+  route("refer", "routes/refer.tsx"),
+  route("r/:referralCode", "routes/r.$referralCode.tsx"),
   route("api/auth/*", "routes/api.auth.$.ts"),
   route("api/messages/:tradeId", "routes/api.messages.$tradeId.ts"),
+  route("api/pay/upgrade", "routes/api.pay.upgrade.ts"),
+  route("api/pay/webhook", "routes/api.pay.webhook.ts"),
+  route("api/refer", "routes/api.refer.ts"),
   route("api/upload", "routes/api.upload.ts"),
   route("dashboard", "routes/dashboard.tsx", [
     index("routes/dashboard/home.tsx"),

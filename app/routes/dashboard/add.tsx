@@ -17,7 +17,8 @@ import { generateContent } from "~/lib/ai.server";
 import type { Route } from "./+types/add";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
-import { listings, listingImages } from "~/lib/schema";
+import { listings, listingImages, subscriptions } from "~/lib/schema";
+import { count, eq } from "drizzle-orm";
 import {
   validateImageUrl,
   sanitizeImageUrl,
@@ -178,6 +179,19 @@ export async function action({ request }: Route.ActionArgs) {
 
   // ── Create Listing (default) ──────────────────────────────
   const { user } = await requireAuth(request);
+
+  // --- START LIMIT ENFORCEMENT ---
+  const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.userId, user.id));
+  const listingCountResult = await db.select({ count: count() }).from(listings).where(eq(listings.userId, user.id));
+  const listingCount = listingCountResult[0].count;
+
+  const limits: Record<string, number> = { free: 5, plus: 20, business: 100, enterprise: Infinity };
+  const currentPlan = sub?.planCode || "free";
+
+  if (listingCount >= limits[currentPlan]) {
+    return redirect("/dashboard/billing?error=limit_exceeded");
+  }
+  // --- END LIMIT ENFORCEMENT ---
 
   const title = formData.get("title") as string | null;
   const description = formData.get("description") as string | null;

@@ -36,32 +36,39 @@ const faqItems: FaqItem[] = [
     id: "05",
     question: "How does contact exchange work?",
     answer:
-      "Contact details are never visible by default. Only after both parties complete a mutual Digital Handshake — confirming trade terms and intent — does selective info disclosure begin. You choose exactly which details to share (phone, email, or location). All shared contact data carries a 72-hour auto-expiry window, after which it's purged from the system unless the trade is completed.",
+      "Contact details are never visible by default. Only after both parties complete a mutual Digital Handshake — confirming trade terms and intent — does selective info disclosure begin. You choose exactly which details to share (phone, email, or location). All shared contact data carries a 72-hour auto-expiry window, which can be extended by 48 hours once if both parties agree. If not completed, it's purged from the system.",
   },
   {
     id: "06",
-    question: "What areas do you cover?",
+    question: "How are disputes resolved?",
     answer:
-      "The NoZar network is currently in beta across Cape Town and Johannesburg, with hyper-local matching active in both metros. We're expanding to Durban, Pretoria, and Bloemfontein in the next rollout phase. Digital services (design, dev, tutoring) are already open for national exchange regardless of your location.",
+      "NoZar uses a community-led mediation process. If a trade goes wrong, open a dispute in your trade ledger. We then assign a neutral moderator from the local community to review the digital handshake records and chat history to propose a fair, binding resolution.",
   },
   {
     id: "07",
+    question: "What areas do you cover?",
+    answer:
+      "The NoZar network is currently in beta across Cape Town and Johannesburg, with hyper-local matching active in both metros. We're expanding to Durban, Pretoria, and Bloemfontein in the next rollout phase. Digital services (design, dev, tutoring) are already open for national exchange regardless of your location. Your local matching radius defaults to 15km from your home area and can be adjusted between 3km and 50km in your profile settings.",
+  },
+  {
+    id: "08",
     question: "Can businesses use NoZar?",
     answer:
       "Absolutely. Our Enterprise Protocol is purpose-built for registered South African entities. Verify your company via CIPC integration to unlock a verified business badge, dedicated B2B filters, and SARS-compliant ledger exports for every trade. Liquidate dead stock, monetise idle equipment, and preserve cash flow — all within a structured barter framework.",
   },
   {
-    id: "08",
+    id: "09",
     question: "Is barter legal with SARS?",
     answer:
       "Absolutely. SARS (South African Revenue Service) recognizes barter as a legitimate form of commerce. Under the VAT Act and Income Tax Act, you are required to account for the fair market value of items or services received as taxable income. NoZar provides a built-in 'Trade Ledger' export feature to help you keep accurate records for 5 years, ensuring you remain compliant with the Tax Administration Act while bypassing cash flow constraints.",
   },
   {
-    id: "09",
+    id: "10",
     question: "How do ratings work?",
     answer:
       "After every completed trade, both parties submit a mutual rating — ensuring accountability on both sides. Ratings are locked until both are submitted to prevent retaliation bias. Once you hit 10+ completed trades with a 4.5+ average rating, you earn the Trusted Trader badge, which boosts your visibility in search results and signals reliability to other network participants.",
   },
+  // TASK 06 & 07 COMPLETE
 ];
 
 export function FaqSection() {
