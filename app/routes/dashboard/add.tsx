@@ -27,35 +27,6 @@ import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
-// ─── Geocoding (server-only) ─────────────────────────────────
-
-async function geocodeSuburb(suburb: string): Promise<{ lat: number; lng: number } | null> {
-  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
-  if (!apiKey || apiKey === "YOUR_GOOGLE_MAPS_API_KEY" || apiKey === "YOUR_GEMINI_API_KEY") {
-    console.error("[geocodeSuburb] Google Maps API key not configured");
-    return null;
-  }
-
-  const address = encodeURIComponent(`${suburb}, South Africa`);
-  const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${apiKey}`;
-
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-
-    if (data.status !== "OK" || !data.results || data.results.length === 0) {
-      console.error("[geocodeSuburb] Geocoding failed for", suburb, "— status:", data.status);
-      return null;
-    }
-
-    const { lat, lng } = data.results[0].geometry.location;
-    return { lat, lng };
-  } catch (err) {
-    console.error("[geocodeSuburb] Fetch error for", suburb, err);
-    return null;
-  }
-}
-
 // ─── Constants ─────────────────────────────────────────────────
 
 const CATEGORIES = [
@@ -79,45 +50,6 @@ const selectStyles =
 const textareaStyles =
   "w-full rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 resize-none";
 
-// ─── Gemini helpers (server-only) ──────────────────────────────
-
-async function generateDescription(
-  title: string,
-  category: string,
-): Promise<string> {
-  const prompt = `Write a compelling 2-3 sentence listing description for a South African barter platform.
-     Item: "${title}" (Category: ${category}).
-     Use natural SA English. Be specific about condition and value. Keep it concise.`;
-  return await generateContent(prompt);
-}
-
-async function suggestMeetupSpots(suburb: string): Promise<string[]> {
-  const prompt = `Suggest exactly 3 safe public meetup locations near ${suburb}, South Africa for a barter exchange.
-     Focus on shopping malls, police stations, or community centres.
-     Return ONLY a JSON array of 3 strings, no explanation. Example: ["Location 1", "Location 2", "Location 3"]`;
-  
-  const text = await generateContent(prompt);
-  let raw = (text || "").trim();
-
-  // Strip markdown code fences (e.g. ```json ... ```)
-  raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "");
-
-  const match = raw.match(/\[.*\]/s);
-  if (!match) {
-    console.error("[suggestMeetupSpots] No JSON array found in AI response:", raw);
-    throw new Error("Invalid response format from AI");
-  }
-  const parsed: unknown = JSON.parse(match[0]);
-  if (
-    !Array.isArray(parsed) ||
-    !parsed.every((item): item is string => typeof item === "string")
-  ) {
-    console.error("[suggestMeetupSpots] Parsed response is not a string array:", parsed);
-    throw new Error("Unexpected AI response shape");
-  }
-  return parsed;
-}
-
 // ─── Meta ──────────────────────────────────────────────────────
 
 export function meta({}: Route.MetaArgs) {
@@ -130,6 +62,56 @@ export function meta({}: Route.MetaArgs) {
 // ─── Action ────────────────────────────────────────────────────
 
 export async function action({ request }: Route.ActionArgs) {
+  // ─── Geocoding (server-only) ─────────────────────────────────
+  async function geocodeSuburb(
+    suburb: string,
+  ): Promise<{ lat: number; lng: number } | null> {
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (
+      !apiKey ||
+      apiKey === "YOUR_GOOGLE_MAPS_API_KEY" ||
+      apiKey === "YOUR_GEMINI_API_KEY"
+    ) {
+      console.error("[geocodeSuburb] Google Maps API key not configured");
+      return null;
+    }
+
+    const address = encodeURIComponent(`${suburb}, South Africa`);
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${address}&key=${apiKey}`;
+
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+
+      if (data.status !== "OK" || !data.results || data.results.length === 0) {
+        console.error(
+          "[geocodeSuburb] Geocoding failed for",
+          suburb,
+          "— status:",
+          data.status,
+        );
+        return null;
+      }
+
+      const { lat, lng } = data.results[0].geometry.location;
+      return { lat, lng };
+    } catch (err) {
+      console.error("[geocodeSuburb] Fetch error for", suburb, err);
+      return null;
+    }
+  }
+
+  // ─── Gemini helpers (server-only) ──────────────────────────────
+  async function generateDescription(
+    title: string,
+    category: string,
+  ): Promise<string> {
+    const prompt = `Write a compelling 2-3 sentence listing description for a South African barter platform.
+     Item: "${title}" (Category: ${category}).
+     Use natural SA English. Be specific about condition and value. Keep it concise.`;
+    return await generateContent(prompt);
+  }
+
   await requireAuth(request);
   const formData = await request.formData();
   const intent = formData.get("intent") as string | null;
