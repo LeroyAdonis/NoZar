@@ -363,3 +363,35 @@ export const boostTokens = pgTable("boost_tokens", {
   balance: integer("balance").notNull().default(0),
   lastRefillAt: timestamp("last_refill_at").notNull().defaultNow(),
 });
+
+export const tradeProposals = pgTable("trade_proposals", {
+  id: serial("id").primaryKey(),
+  requesterId: text("requester_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  receiverId: text("receiver_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  targetItemId: integer("target_item_id")
+    .notNull()
+    .references(() => listings.id, { onDelete: "cascade" }),
+  offeredItemId: integer("offered_item_id")
+    .notNull()
+    .references(() => listings.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("pending"), // pending, accepted, countered, declined
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const reputation = pgTable("reputation", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  reviewerId: text("reviewer_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  rating: integer("rating").notNull(),
+  comment: text("comment"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
