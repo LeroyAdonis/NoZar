@@ -32,11 +32,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export function meta(_args: Route.MetaArgs) {
   return [
-    { title: "Nozar — Barter Without Boundaries" },
+    { title: "NoZar — Trade Without Boundaries" },
     {
       name: "description",
       content:
-        "The spatial barter network for South Africa. Bypass inflation by exchanging idle assets, surplus inventory, and professional services directly. Zero ZAR required.",
+        "South Africa's barter platform. Keep your Rands in your pocket by swapping your stuff, skills, and services directly. No cash needed.",
     },
   ];
 }
@@ -154,8 +154,8 @@ export default function LandingPage({
           <div className="hidden md:flex items-center gap-10">
             {[
               { label: "Platform", id: "how-it-works" as const },
-              { label: "Exchange", id: "exchange" as const },
-              { label: "Protocol", id: "safety" as const },
+              { label: "Trade", id: "exchange" as const },
+              { label: "Safety Rules", id: "safety" as const },
               { label: "Pricing", id: "pricing" as const },
               { label: "FAQ", id: "faq" as const },
             ].map((link) => {
@@ -232,8 +232,8 @@ export default function LandingPage({
           <div className="flex flex-col gap-8 text-lg font-mono uppercase tracking-widest">
             {[
               { num: "01", label: "Platform", id: "how-it-works" as const },
-              { num: "02", label: "Exchange", id: "exchange" as const },
-              { num: "03", label: "Trust Protocol", id: "safety" as const },
+              { num: "02", label: "Trade", id: "exchange" as const },
+              { num: "03", label: "Safety Rules", id: "safety" as const },
               { num: "04", label: "Pricing", id: "pricing" as const },
               { num: "05", label: "FAQ", id: "faq" as const },
             ].map((link) => {
@@ -301,10 +301,9 @@ export default function LandingPage({
           </span>
         </h1>
         <p className="text-base sm:text-lg md:text-2xl text-slate-400 max-w-3xl mx-auto mb-8 sm:mb-12 leading-relaxed font-light">
-          The spatial barter network for South Africa. Bypass inflation by
-          exchanging idle assets, surplus inventory, and professional services
-          directly.{" "}
-          <span className="text-white font-medium">Zero ZAR required.</span>
+          South Africa's barter platform. Keep your Rands in your pocket by
+          swapping your stuff, skills, and services directly.{" "}
+          <span className="text-white font-medium">No cash needed.</span>
         </p>
         <div className="flex flex-col items-center gap-4 w-full sm:w-auto">
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
@@ -403,7 +402,7 @@ export default function LandingPage({
         </div>
       </section>
 
-      {/* Dual Economies: Exchange (Consumer + Enterprise) */}
+      {/* Dual Economies: Trade (Consumer + Enterprise) */}
       <section id="exchange" className="scroll-mt-32 pb-16 sm:pb-24">
         <ScrollReveal>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
@@ -429,16 +428,16 @@ export default function LandingPage({
           className="relative rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-white/10 p-6 sm:p-10 hover:border-blue-500/30 transition-all duration-500"
         >
           <span className="text-blue-400 font-mono text-xs uppercase tracking-widest block mb-6">
-            // User Node: Consumer
+            // For Members: Consumer
           </span>
           <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-8 border border-blue-500/20">
             <User className="w-8 h-8 text-blue-400" />
           </div>
           <h3 className="text-3xl font-bold tracking-tight mb-4">
-            Peer-to-Peer Exchange
+            Swap With Your Neighbours
           </h3>
           <p className="text-slate-400 mb-10 text-lg">
-            Turn your idle assets and spare time into the things you actually
+            Turn your stuff and spare time into the things you actually
             need. 100% free to join and trade locally.
           </p>
           <ul className="space-y-4 mb-12 font-mono text-sm text-slate-300">
@@ -457,7 +456,7 @@ export default function LandingPage({
             to="/dashboard"
             className="block w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 font-bold transition-colors text-center"
           >
-            Initialize Consumer Node
+            Start Trading Free
           </Link>
         </div>
         </ScrollReveal>
@@ -468,13 +467,13 @@ export default function LandingPage({
           className="relative rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-white/10 p-6 sm:p-10 hover:border-emerald-500/30 transition-all duration-500"
         >
           <span className="text-emerald-400 font-mono text-xs uppercase tracking-widest block mb-6">
-            // User Node: Enterprise
+            // For Members: Enterprise
           </span>
           <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-8 border border-emerald-500/20">
             <Briefcase className="w-8 h-8 text-emerald-400" />
           </div>
           <h3 className="text-3xl font-bold tracking-tight mb-4">
-            B2B Liquidity Protocol
+            Business-to-Business Swaps
           </h3>
           <p className="text-slate-400 mb-10 text-lg">
             Liquidate dead stock and monetize idle equipment to preserve cash
@@ -497,14 +496,14 @@ export default function LandingPage({
             to="/dashboard"
             className="block w-full py-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold transition-colors text-center"
           >
-            View Enterprise Protocol
+            View Business Options
           </Link>
         </div>
         </ScrollReveal>
       </div>
       </section>
 
-      {/* Security Protocol */}
+      {/* Safety Rules */}
       <section
         id="safety"
         className="relative z-10 py-20 sm:py-32 bg-[#030712] border-y border-white/5 scroll-mt-20 overflow-hidden"
@@ -514,10 +513,10 @@ export default function LandingPage({
           <ScrollReveal>
             <div className="text-center mb-12 sm:mb-20">
               <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
-                // Protocol.Security
+                // Safety Rules
               </span>
               <h2 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tighter uppercase mb-4 sm:mb-6">
-                The Staged Trust <br /> Architecture.
+                How We Keep <br /> You Safe.
               </h2>
               <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto">
                 Engineered specifically for the South African risk landscape. Your
@@ -598,9 +597,9 @@ export default function LandingPage({
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center relative z-10">
           <ScrollReveal>
             <h2 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter uppercase mb-6 sm:mb-8">
-              Bypass The{" "}
+              Trade Without <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-600">
-                Fiat.
+                The Middleman.
               </span>
             </h2>
           </ScrollReveal>

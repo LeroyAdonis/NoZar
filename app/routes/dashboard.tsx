@@ -103,9 +103,9 @@ function getActiveTab(pathname: string): string {
 const SIDEBAR_LINKS = [
   { id: "home",     label: "Index",     href: "/dashboard",          icon: Home },
   { id: "map",      label: "Radar",     href: "/dashboard/map",      icon: MapIcon },
-  { id: "add",      label: "Add Asset", href: "/dashboard/add",      icon: Plus },
+  { id: "add",      label: "Add Item",  href: "/dashboard/add",      icon: Plus },
   { id: "messages", label: "Pings",     href: "/dashboard/pings",    icon: MessageSquare },
-  { id: "profile",  label: "Node",      href: "/dashboard/profile",  icon: User },
+  { id: "profile",  label: "My Profile", href: "/dashboard/profile",  icon: User },
 ] as const;
 
 export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
