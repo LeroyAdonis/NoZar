@@ -1,0 +1,1 @@
+ALTER TABLE "trades" ADD COLUMN "fulfillment_type" text DEFAULT 'meetup' NOT NULL;
