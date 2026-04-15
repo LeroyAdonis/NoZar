@@ -49,6 +49,9 @@ export default function TradePage({ loaderData }: Route.ComponentProps) {
           <p>{proposal.offered.title}</p>
         </div>
       </div>
+      <div className="mt-4 p-2 bg-yellow-50 text-yellow-800 rounded text-sm">
+        Reputation Score: ⭐⭐⭐⭐
+      </div>
       <div className="mt-4 flex gap-2">
         <Form method="post">
           <input type="hidden" name="intent" value="accept" />
@@ -57,6 +60,11 @@ export default function TradePage({ loaderData }: Route.ComponentProps) {
         <Form method="post">
           <input type="hidden" name="intent" value="decline" />
           <button type="submit" className="px-4 py-2 bg-red-500 text-white rounded">Decline</button>
+        </Form>
+        <Form method="post">
+          <input type="hidden" name="intent" value="counter" />
+          <input type="hidden" name="counterMsg" value="Can you add another item?" />
+          <button type="submit" className="px-4 py-2 bg-blue-100 text-blue-800 rounded">Can you add another item?</button>
         </Form>
       </div>
     </div>
