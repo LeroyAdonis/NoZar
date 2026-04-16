@@ -141,6 +141,7 @@ export const trades = pgTable("trades", {
     .notNull()
     .references(() => listings.id),
   status: text("status").notNull().default("proposed"),
+  archived: boolean("archived").notNull().default(false),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

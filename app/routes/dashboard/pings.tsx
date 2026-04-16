@@ -77,7 +77,10 @@ export async function loader({ request }: Route.LoaderArgs) {
       ),
     )
     .where(
-      or(eq(trades.initiatorId, user.id), eq(trades.responderId, user.id)),
+      and(
+        or(eq(trades.initiatorId, user.id), eq(trades.responderId, user.id)),
+        eq(trades.archived, false),
+      ),
     )
     .orderBy(desc(trades.updatedAt));
 

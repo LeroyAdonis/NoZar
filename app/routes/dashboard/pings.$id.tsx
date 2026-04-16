@@ -305,13 +305,20 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
 
     case "counterOffer": {
-      const offerText = formData.get("text") as string;
       await db.insert(messages).values({
         tradeId,
         senderId: user.id,
         text: `Counter-offer: ${offerText}`,
         type: "system",
       });
+      return { ok: true };
+    }
+
+    case "archive": {
+      await db
+        .update(trades)
+        .set({ archived: true, updatedAt: new Date() })
+        .where(eq(trades.id, tradeId));
       return { ok: true };
     }
 
@@ -1295,6 +1302,12 @@ export default function PingDetail({
                 using NoZar!
               </p>
             </div>
+            <Form method="post" className="mt-4">
+              <input type="hidden" name="intent" value="archive" />
+              <button type="submit" className="w-full p-3 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors text-xs font-bold uppercase tracking-wide">
+                Archive Trade
+              </button>
+            </Form>
             {disclosures.length > 0 && (
               <div className="mt-4">
                 <DisclosedContactsCard

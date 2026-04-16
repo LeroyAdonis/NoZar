@@ -1,0 +1,1 @@
+ALTER TABLE "trades" ADD COLUMN "archived" boolean DEFAULT false NOT NULL;
