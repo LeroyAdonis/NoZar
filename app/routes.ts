@@ -20,6 +20,7 @@ export default [
   route("api/upload", "routes/api.upload.ts"),
   route("dashboard", "routes/dashboard.tsx", [
     index("routes/dashboard/home.tsx"),
+    route("browse", "routes/dashboard/browse.tsx"),
     route("asset/:id", "routes/dashboard/asset.$id.tsx"),
     route("pings", "routes/dashboard/pings.tsx"),
     route("pings/:id", "routes/dashboard/pings.$id.tsx"),

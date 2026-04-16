@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, Outlet, useLocation, useNavigation } from "react-router";
 import {
   Bell,
@@ -9,6 +9,8 @@ import {
   MessageSquare,
   User,
   Radar,
+  CheckCircle2,
+  Circle,
 } from "lucide-react";
 import type { Route } from "./+types/dashboard";
 import { requireAuth } from "~/lib/auth.server";
@@ -21,6 +23,17 @@ import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 import { LocationPromptModal } from "~/components/ui/location-prompt-modal";
 import { provinceToSlug, getClosestRegion, MVP_REGIONS } from "~/lib/regions";
 
+/**
+ * Profile completion steps for onboarding progress.
+ * Used to show users how complete their profile is.
+ */
+const PROFILE_COMPLETION_STEPS = [
+  { id: "avatar", label: "Avatar", description: "Add a profile photo" },
+  { id: "location", label: "Location", description: "Enable location services" },
+  { id: "phone", label: "Phone", description: "Verify your phone number" },
+  { id: "listing", label: "Listing", description: "List your first item" },
+] as const;
+
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
   const unreadCount = await getUnreadCount(db, user.id);
@@ -32,12 +45,26 @@ export async function loader({ request }: Route.LoaderArgs) {
       province: profiles.province,
       lat: profiles.lat,
       lng: profiles.lng,
+      phoneVerified: profiles.phoneVerified,
     })
     .from(profiles)
     .where(eq(profiles.userId, user.id))
     .limit(1);
 
-  return { user, unreadCount, profile: profile ?? null };
+  // Check if user has any listings for completion tracking
+  const { listings } = await import("~/lib/schema");
+  const [userListing] = await db
+    .select({ id: listings.id })
+    .from(listings)
+    .where(eq(listings.userId, user.id))
+    .limit(1);
+
+  return {
+    user,
+    unreadCount,
+    profile: profile ?? null,
+    hasListing: !!userListing,
+  };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -112,7 +139,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const location = useLocation();
   const navigation = useNavigation();
   const activeTab = getActiveTab(location.pathname);
-  const { user, unreadCount, profile } = loaderData;
+  const { user, unreadCount, profile, hasListing } = loaderData;
   const needsLocation = !profile?.lat || !profile?.lng;
   const [isLocationDismissed, setIsLocationDismissed] = useState(false);
 
@@ -122,6 +149,23 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
 
   // Get display name from user data
   const displayName = user.name ?? "User";
+
+  // Calculate profile completion progress
+  const completionState = useMemo(() => {
+    const steps = [
+      { id: "avatar" as const, complete: !!profile?.avatarUrl },
+      { id: "location" as const, complete: !!profile?.lat && !!profile?.lng },
+      { id: "phone" as const, complete: !!profile?.phoneVerified },
+      { id: "listing" as const, complete: hasListing },
+    ];
+    const completed = steps.filter((s) => s.complete).length;
+    const total = steps.length;
+    const percentage = Math.round((completed / total) * 100);
+    return { steps, completed, total, percentage };
+  }, [profile, hasListing]);
+
+  // Only show progress bar if not 100% complete
+  const showProgressBar = completionState.percentage < 100;
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-50 font-sans pb-24 sm:pb-28 md:pb-0 md:pl-60 selection:bg-emerald-500/30">
@@ -229,6 +273,49 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
 
         {/* User info + notifications at bottom */}
         <div className="p-4 border-t border-white/5 shrink-0 space-y-3">
+          {/* Profile completion progress - only show if incomplete */}
+          {showProgressBar && (
+            <div className="mb-2">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[9px] font-mono uppercase tracking-widest text-slate-500">
+                  Profile Completion
+                </span>
+                <span className="text-[9px] font-mono text-emerald-400">
+                  {completionState.percentage}%
+                </span>
+              </div>
+              {/* Progress bar */}
+              <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-500"
+                  style={{ width: `${completionState.percentage}%` }}
+                />
+              </div>
+              {/* Step indicators */}
+              <div className="flex justify-between mt-2">
+                {completionState.steps.map((step) => {
+                  const Icon = step.complete ? CheckCircle2 : Circle;
+                  return (
+                    <div
+                      key={step.id}
+                      className="flex flex-col items-center"
+                      title={PROFILE_COMPLETION_STEPS.find((s) => s.id === step.id)?.description}
+                    >
+                      <Icon
+                        className={`w-3 h-3 ${
+                          step.complete ? "text-emerald-400" : "text-slate-600"
+                        }`}
+                      />
+                      <span className="text-[7px] mt-0.5 font-mono uppercase tracking-wider text-slate-500">
+                        {step.id}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex items-center justify-center shrink-0">
               {profile?.avatarUrl ? (
@@ -403,8 +490,14 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
         onClose={() => setIsLocationDismissed(true)} 
       />
 
-      {/* Bottom navigation — mobile only (BottomNav itself adds md:hidden) */}
-      <BottomNav activeTab={activeTab} isPending={isNavigating} />
+        {/* Bottom navigation — mobile only (BottomNav itself adds md:hidden) */}
+        <BottomNav
+          activeTab={activeTab}
+          isPending={isNavigating}
+          unreadCount={unreadCount}
+          avatarUrl={profile?.avatarUrl}
+          displayName={displayName}
+        />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Form, redirect, useFetcher, useNavigation } from "react-router";
+import { Form, redirect, useFetcher, useNavigation, useNavigate } from "react-router";
 import {
   Camera,
   Check,
@@ -12,10 +12,11 @@ import {
   Trash2,
   Upload,
   X,
+  ShieldCheck,
 } from "lucide-react";
 import { generateContent } from "~/lib/ai.server";
 import type { Route } from "./+types/add";
-import { requireAuth } from "~/lib/auth.server";
+import { requireAuth, getOptionalSession } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import { listings, listingImages, subscriptions } from "~/lib/schema";
 import { count, eq } from "drizzle-orm";
@@ -26,19 +27,21 @@ import {
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
+import { AuthPromptModal } from "~/components/ui/auth-prompt-modal";
+import { VisualCategorySelector } from "~/components/ui/visual-category-selector";
+import { type Category } from "~/lib/category-config";
+import {
+  CATEGORY_DESCRIPTION_PLACEHOLDERS,
+  CATEGORY_SEEKING_PLACEHOLDERS,
+  DEFAULT_DESCRIPTION_PLACEHOLDER,
+} from "~/lib/category-placeholders";
+import {
+  QuickSnapWithFallback,
+  type CapturedPhoto,
+} from "~/components/ui/quick-snap-camera";
+import { compressImage, formatFileSize } from "~/lib/image-compression";
 
 // ─── Constants ─────────────────────────────────────────────────
-
-const CATEGORIES = [
-  "Electronics",
-  "Home & Garden",
-  "Fashion",
-  "Skills",
-  "Vehicles",
-  "Sports",
-  "Books",
-  "Services",
-] as const;
 
 const CONDITIONS = ["New", "Like New", "Good", "Fair", "Poor"] as const;
 
@@ -57,6 +60,22 @@ export function meta({}: Route.MetaArgs) {
     { title: "Add Asset — Nozar" },
     { name: "description", content: "List a new item or service for barter" },
   ];
+}
+
+// ─── Loader (Guest Detection) ───────────────────────────────────────
+
+export async function loader({ request }: Route.LoaderArgs) {
+  // Use optional session to allow guest detection
+  const session = await getOptionalSession(request);
+
+  // If not authenticated, redirect to browse with auth prompt hint
+  // The browse page will show the auth modal based on URL params
+  if (!session) {
+    const url = new URL(request.url);
+    throw redirect(`/dashboard/browse?promptAuth=Add Asset`);
+  }
+
+  return { isLoggedIn: true };
 }
 
 // ─── Action ────────────────────────────────────────────────────
@@ -235,6 +254,7 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function AddAsset({ actionData }: Route.ComponentProps) {
   const [type, setType] = useState<"item" | "service">("item");
+  const [selectedCategory, setSelectedCategory] = useState<Category | "">("");
   const [aiDismissed, setAiDismissed] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([""]);
   const [uploadingFiles, setUploadingFiles] = useState<
@@ -324,6 +344,51 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
     if (e.target.files) handleFiles(e.target.files);
   }
 
+  // ── QuickSnap camera handler ────────────────────────────────
+  async function handleQuickSnapPhotos(photos: CapturedPhoto[]) {
+    const remaining = 5 - imageUrls.filter(u => u).length;
+    const toUpload = photos.slice(0, remaining);
+    if (toUpload.length === 0) return;
+
+    // Mark all as uploading
+    const starts = toUpload.map((p) => ({
+      name: p.compressedFile.name,
+      status: "uploading" as const,
+    }));
+    setUploadingFiles((prev) => [...prev, ...starts]);
+
+    const { upload } = await import("@vercel/blob/client");
+
+    for (const photo of toUpload) {
+      try {
+        const blob = await upload(`listings/${photo.compressedFile.name}`, photo.compressedFile, {
+          access: "public",
+          handleUploadUrl: "/api/upload",
+        });
+
+        setImageUrls((prev) => [...prev, blob.url]);
+        setUploadingFiles((prev) => {
+          const next = [...prev];
+          const idx = next.findIndex(
+            (f) => f.name === photo.compressedFile.name && f.status === "uploading",
+          );
+          if (idx >= 0) next[idx] = { name: photo.compressedFile.name, status: "done", url: blob.url };
+          return next;
+        });
+      } catch (err) {
+        console.error("[add-asset] QuickSnap upload failed:", err);
+        setUploadingFiles((prev) => {
+          const next = [...prev];
+          const idx = next.findIndex(
+            (f) => f.name === photo.compressedFile.name && f.status === "uploading",
+          );
+          if (idx >= 0) next[idx] = { name: photo.compressedFile.name, status: "error" };
+          return next;
+        });
+      }
+    }
+  }
+
   // Reset dismissed state when a new AI request starts
   useEffect(() => {
     if (isAiLoading) setAiDismissed(false);
@@ -338,15 +403,12 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
     const titleEl = formRef.current.elements.namedItem(
       "title",
     ) as HTMLInputElement | null;
-    const categoryEl = formRef.current.elements.namedItem(
-      "category",
-    ) as HTMLSelectElement | null;
 
     aiFetcher.submit(
       {
         intent: "aiDescription",
         title: titleEl?.value ?? "",
-        category: categoryEl?.value ?? "",
+        category: selectedCategory || "General",
       },
       { method: "post" },
     );
@@ -455,20 +517,20 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
               )}
               {isAiLoading ? "Generating…" : "AI Assist"}
             </button>
-          </div>
-          <textarea
-            ref={descriptionRef}
-            id="description"
-            name="description"
-            rows={4}
-            required
-            placeholder={
-              type === "item"
-                ? "Describe the item — brand, model, age, included accessories…"
-                : "Describe the service you offer — scope, duration, experience…"
-            }
-            className={textareaStyles}
-          />
+</div>
+      <textarea
+        ref={descriptionRef}
+        id="description"
+        name="description"
+        rows={4}
+        required
+        placeholder={
+          selectedCategory
+            ? CATEGORY_DESCRIPTION_PLACEHOLDERS[selectedCategory]
+            : DEFAULT_DESCRIPTION_PLACEHOLDER
+        }
+        className={textareaStyles}
+      />
           {errors?.description && (
             <p className="mt-1 text-xs text-red-400">{errors.description}</p>
           )}
@@ -509,34 +571,20 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
           )}
         </div>
 
-        {/* Category */}
-        <div>
-          <label
-            htmlFor="category"
-            className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
-          >
-            Category
-          </label>
-          <select
-            id="category"
-            name="category"
-            required
-            defaultValue=""
-            className={selectStyles}
-          >
-            <option value="" disabled>
-              Select a category
-            </option>
-            {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-          {errors?.category && (
-            <p className="mt-1 text-xs text-red-400">{errors.category}</p>
-          )}
-        </div>
+{/* Category - Visual Selector */}
+      <div>
+        <label className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block">
+          Category
+        </label>
+        <VisualCategorySelector
+          value={selectedCategory}
+          onChange={(cat) => setSelectedCategory(cat)}
+          error={!!errors?.category}
+        />
+        {errors?.category && (
+          <p className="mt-1 text-xs text-red-400">{errors.category}</p>
+        )}
+      </div>
 
         {/* Estimated Value */}
         <Input
@@ -547,20 +595,37 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
           placeholder="e.g. 5000"
         />
 
-        {/* Images */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-              <ImagePlus className="w-3.5 h-3.5" />
-              Image URLs
-              <span className="text-slate-600">
-                ({imageUrls.length}/5)
-              </span>
+{/* Images */}
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+            <Camera className="w-3.5 h-3.5" />
+            Photos
+            <span className="text-slate-600">
+              ({imageUrls.filter(u => u).length}/5)
             </span>
-          </div>
+          </span>
+        </div>
 
-          {/* ── File upload zone ──────────────────────────────── */}
-          {imageUrls.length < 5 && (
+        {/* ── QuickSnap Camera (Primary Method) ────────────────────── */}
+        {imageUrls.filter(u => u).length < 5 && (
+          <div className="space-y-3">
+            <QuickSnapWithFallback
+              onPhotosReady={handleQuickSnapPhotos}
+              maxPhotos={5 - imageUrls.filter(u => u).length}
+              onError={(err) => console.error("[QuickSnap]", err)}
+            />
+          </div>
+        )}
+
+        {/* ── Alternative: File upload zone ─────────────────────────── */}
+        {imageUrls.filter(u => u).length < 5 && (
+          <>
+            <div className="flex items-center gap-3 my-3">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-[10px] text-slate-600 uppercase tracking-wider">or</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
             <div
               className={`rounded-xl border-2 border-dashed transition-all px-4 py-4 text-center ${
                 dragActive
@@ -584,137 +649,148 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
                   </button>
                 </p>
                 <p className="text-[10px] text-slate-600">
-                  JPG, PNG, WebP — max 5 MB each
+                  JPG, PNG, WebP — auto-compressed for mobile
                 </p>
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
+                  capture="environment"
                   multiple
                   onChange={handleFileSelect}
                   className="hidden"
                 />
               </div>
-
-              {/* Upload progress badges */}
-              {uploadingFiles.some((f) => f.status === "uploading") && (
-                <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-                  {uploadingFiles.map((f, i) => (
-                    <span
-                      key={`${f.name}-${i}`}
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-mono ${
-                        f.status === "uploading"
-                          ? "bg-amber-500/15 text-amber-300 border border-amber-500/20"
-                          : f.status === "done"
-                          ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/20"
-                          : "bg-red-500/15 text-red-300 border border-red-500/20"
-                      }`}
-                    >
-                      {f.status === "uploading" && (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      )}
-                      {f.status === "done" && <Check className="w-3 h-3" />}
-                      {f.status === "error" && <X className="w-3 h-3" />}
-                      {f.name.length > 18 ? f.name.slice(0, 16) + "…" : f.name}
-                      {f.status === "error" && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setUploadingFiles((prev) => prev.filter((_, j) => j !== i))
-                          }
-                          className="ml-0.5 text-red-300 hover:text-red-100"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      )}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Preview thumbnails */}
-              {uploadingFiles.filter((f) => f.status === "done").length > 0 && (
-                <div className="mt-3 flex flex-wrap justify-center gap-2">
-                  {uploadingFiles
-                    .filter((f) => f.status === "done")
-                    .map((f, i) => (
-                      <img
-                        key={`thumb-${i}`}
-                        src={f.url}
-                        alt={f.name}
-                        className="w-12 h-12 rounded-lg object-cover border border-white/10"
-                      />
-                    ))}
-                </div>
-              )}
             </div>
-          )}
+          </>
+        )}
 
-          {/* ── URL text inputs ───────────────────────────── */}
-          <div className="space-y-3">
-            {imageUrls.map((url, index) => (
-              <div key={index}>
-                <div className="flex gap-2">
-                  <input
-                    name={`imageUrl_${index}`}
-                    type="url"
-                    value={url}
-                    onChange={(e) => {
-                      const next = [...imageUrls];
-                      next[index] = e.target.value;
-                      setImageUrls(next);
-                    }}
-                    placeholder={
-                      index === 0
-                        ? "https://i.imgur.com/example.jpg"
-                        : `Image URL ${index + 1}`
+        {/* Upload progress badges */}
+        {uploadingFiles.some((f) => f.status === "uploading") && (
+          <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+            {uploadingFiles.map((f, i) => (
+              <span
+                key={`${f.name}-${i}`}
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-mono ${
+                  f.status === "uploading"
+                    ? "bg-amber-500/15 text-amber-300 border border-amber-500/20"
+                    : f.status === "done"
+                    ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/20"
+                    : "bg-red-500/15 text-red-300 border border-red-500/20"
+                }`}
+              >
+                {f.status === "uploading" && (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                )}
+                {f.status === "done" && <Check className="w-3 h-3" />}
+                {f.status === "error" && <X className="w-3 h-3" />}
+                {f.name.length > 18 ? f.name.slice(0, 16) + "…" : f.name}
+                {f.status === "error" && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setUploadingFiles((prev) => prev.filter((_, j) => j !== i))
                     }
-                    className="flex-1 rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 text-sm"
-                  />
-                  {imageUrls.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setImageUrls(imageUrls.filter((_, i) => i !== index))
-                      }
-                      className="shrink-0 w-10 h-10 rounded-xl border border-white/10 bg-[#0F172A] flex items-center justify-center text-slate-500 hover:text-red-400 hover:border-red-500/30 transition-colors"
-                      aria-label={`Remove image ${index + 1}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-                {errors?.[`imageUrl_${index}`] && (
-                  <p className="mt-1 text-xs text-red-400">
-                    {errors[`imageUrl_${index}`]}
-                  </p>
+                    className="ml-0.5 text-red-300 hover:text-red-100"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
                 )}
-                {/* Inline preview hint for non-empty valid-looking URLs */}
-                {url.trim().startsWith("https://") && url.trim().length > 12 && (
-                  <p className="mt-1 text-[11px] text-slate-600 truncate">
-                    {url.trim()}
-                  </p>
-                )}
-              </div>
+              </span>
             ))}
           </div>
+        )}
 
-          {imageUrls.length < 5 && (
-            <button
-              type="button"
-              onClick={() => setImageUrls([...imageUrls, ""])}
-              className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              Add another image
-            </button>
-          )}
+        {/* Preview thumbnails */}
+        {uploadingFiles.filter((f) => f.status === "done").length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {uploadingFiles
+              .filter((f) => f.status === "done")
+              .map((f, i) => (
+                <div key={`thumb-${i}`} className="relative group">
+                  <img
+                    src={f.url}
+                    alt={f.name}
+                    className="w-20 h-20 rounded-xl object-cover border-2 border-emerald-500/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadingFiles((prev) => prev.filter((_, j) => j !== i));
+                      setImageUrls((prev) => prev.filter(u => u !== f.url));
+                    }}
+                    className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Remove photo"
+                  >
+                    <X className="w-3 h-3 text-white" />
+                  </button>
+                </div>
+              ))}
+          </div>
+        )}
 
-          <p className="mt-2 text-[11px] text-slate-600">
-            Or paste HTTPS image URLs from Imgur, Unsplash, Cloudinary, or any
-            direct image link.
-          </p>
-        </div>
+        {/* ── URL text inputs (for advanced users) ─────────────────── */}
+        {imageUrls.filter(u => u).length < 5 && (
+          <>
+            <div className="flex items-center gap-3 my-3">
+              <div className="flex-1 h-px bg-white/10" />
+              <span className="text-[10px] text-slate-600 uppercase tracking-wider">paste URL</span>
+              <div className="flex-1 h-px bg-white/10" />
+            </div>
+            <div className="space-y-3">
+              {imageUrls.map((url, index) => (
+                <div key={index}>
+                  <div className="flex gap-2">
+                    <input
+                      name={`imageUrl_${index}`}
+                      type="url"
+                      value={url}
+                      onChange={(e) => {
+                        const next = [...imageUrls];
+                        next[index] = e.target.value;
+                        setImageUrls(next);
+                      }}
+                      placeholder={
+                        index === 0
+                          ? "https://i.imgur.com/example.jpg"
+                          : `Image URL ${index + 1}`
+                      }
+                      className="flex-1 rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 text-sm"
+                    />
+                    {imageUrls.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setImageUrls(imageUrls.filter((_, i) => i !== index))
+                        }
+                        className="shrink-0 w-10 h-10 rounded-xl border border-white/10 bg-[#0F172A] flex items-center justify-center text-slate-500 hover:text-red-400 hover:border-red-500/30 transition-colors"
+                        aria-label={`Remove image ${index + 1}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  {errors?.[`imageUrl_${index}`] && (
+                    <p className="mt-1 text-xs text-red-400">
+                      {errors[`imageUrl_${index}`]}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+            {imageUrls.filter(u => !u).length > 0 && (
+              <button
+                type="button"
+                onClick={() => setImageUrls([...imageUrls, ""])}
+                className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add another image URL
+              </button>
+            )}
+          </>
+        )}
+      </div>
 
         {/* Condition — hidden for services */}
         {type === "item" && (
@@ -785,22 +861,26 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
           />
         </div>
 
-        {/* Seeking Description */}
-        <div>
-          <label
-            htmlFor="seekingDescription"
-            className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
-          >
-            What are you looking for in exchange?
-          </label>
-          <textarea
-            id="seekingDescription"
-            name="seekingDescription"
-            rows={3}
-            placeholder="e.g. Looking for a laptop, guitar lessons, or home repair services…"
-            className={textareaStyles}
-          />
-        </div>
+{/* Seeking Description */}
+      <div>
+        <label
+          htmlFor="seekingDescription"
+          className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
+        >
+          What are you looking for in exchange?
+        </label>
+        <textarea
+          id="seekingDescription"
+          name="seekingDescription"
+          rows={3}
+          placeholder={
+            selectedCategory
+              ? CATEGORY_SEEKING_PLACEHOLDERS[selectedCategory]
+              : "e.g. Looking for a laptop, guitar lessons, or home repair services…"
+          }
+          className={textareaStyles}
+        />
+      </div>
 
         {/* Submit */}
         <Button type="submit" size="lg" className="w-full" disabled={isListingSubmitting}>
