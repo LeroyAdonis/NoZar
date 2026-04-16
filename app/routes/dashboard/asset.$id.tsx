@@ -72,6 +72,13 @@ export async function loader({ request, params }: Route.LoaderArgs) {
         .limit(1)
     : [null];
 
+  const userInventory = currentUserId
+    ? await db
+        .select()
+        .from(listings)
+        .where(and(eq(listings.userId, currentUserId), eq(listings.status, "active")))
+    : [];
+
   let distance: number | null = null;
   if (userProfile?.lat && userProfile?.lng && listing.lat && listing.lng) {
     distance = haversineKm(userProfile.lat, userProfile.lng, listing.lat, listing.lng);
@@ -84,6 +91,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     isOwner: listing.userId === currentUserId,
     distance,
     searchRadiusKm: userProfile?.searchRadiusKm ?? 25,
+    userInventory,
   };
 }
 
@@ -93,8 +101,14 @@ export async function action({ request, params }: Route.ActionArgs) {
   const formData = await request.formData();
   const intent = formData.get("intent") as string | null;
 
-  // Ping is initiated by non-owners — query without ownership filter
-  if (intent === "ping") {
+  // Propose Trade is initiated by non-owners
+  if (intent === "propose_trade") {
+    const offerItemId = Number(formData.get("offerItemId"));
+    
+    if (Number.isNaN(offerItemId)) {
+       return { error: "Invalid offer item" };
+    }
+
     const [listing] = await db
       .select()
       .from(listings)
@@ -105,27 +119,17 @@ export async function action({ request, params }: Route.ActionArgs) {
       throw data(null, { status: 404 });
     }
 
-    // Prevent self-ping
     if (listing.userId === user.id) {
-      return { error: "You cannot ping your own listing" };
+      return { error: "You cannot trade with your own listing" };
     }
 
-    const [trade] = await db
-      .insert(trades)
-      .values({
-        initiatorId: user.id,
-        responderId: listing.userId,
-        listingId,
-        status: "proposed",
-      })
-      .returning();
-
-    await db.insert(messages).values({
-      tradeId: trade.id,
-      senderId: user.id,
-      text: `Trade initiated by ${user.name}`,
-      type: "system",
-    });
+    const [trade] = await db.insert(trades).values({
+      proposerId: user.id,
+      responderId: listing.userId,
+      listingId: listingId,
+      offerListingId: offerItemId,
+      status: "pending",
+    }).returning();
 
     throw redirect(`/dashboard/pings/${trade.id}`);
   }

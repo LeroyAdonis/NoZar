@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Form, redirect, useFetcher, useNavigation } from "react-router";
+import { CameraCapture } from "~/components/ui/camera-capture";
 import {
   Monitor,
   Home,
@@ -32,6 +33,7 @@ import {
   sanitizeImageUrl,
 } from "~/lib/media-validation.server";
 import { Input } from "~/components/ui/input";
+import { Textarea } from "~/components/ui/textarea";
 import { Button } from "~/components/ui/button";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
@@ -120,7 +122,6 @@ export async function action({ request }: Route.ActionArgs) {
     return await generateContent(prompt);
   }
 
-  await requireAuth(request);
   const formData = await request.formData();
   const intent = formData.get("intent") as string | null;
 
@@ -251,7 +252,6 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
   >([]);
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
   const errors = actionData?.errors as Record<string, string> | undefined;
 
   const formRef = useRef<HTMLFormElement>(null);
@@ -450,7 +450,6 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
               htmlFor="description"
               className="text-[10px] font-mono uppercase tracking-widest text-slate-400"
             >
-              Description
             </label>
             <button
               type="button"
@@ -466,10 +465,11 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
               {isAiLoading ? "Generating…" : "AI Assist"}
             </button>
           </div>
-          <textarea
+          <Textarea
             ref={descriptionRef}
             id="description"
             name="description"
+            label="Description"
             rows={4}
             required
             placeholder={
@@ -493,11 +493,8 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
                 ? "Service scope, availability, what to expect..."
                 : "Describe the item — brand, model, age, included accessories…"
             }
-            className={textareaStyles}
+            error={errors?.description}
           />
-          {errors?.description && (
-            <p className="mt-1 text-xs text-red-400">{errors.description}</p>
-          )}
 
           {/* AI suggestion panel */}
           {aiSuggestion && !aiDismissed && (
@@ -608,13 +605,7 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
                     browse
                   </button>
                   {" "}or{" "}
-                  <button
-                    type="button"
-                    onClick={() => cameraInputRef.current?.click()}
-                    className="text-emerald-400 hover:text-emerald-300 font-semibold underline underline-offset-2"
-                  >
-                    take a photo
-                  </button>
+                  <CameraCapture onCapture={(url) => setImageUrls([...imageUrls, url])} />
                 </p>
                 <p className="text-[10px] text-slate-600">
                   JPG, PNG, WebP — max 5 MB each
@@ -624,14 +615,6 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   multiple
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-                <input
-                  ref={cameraInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
                   onChange={handleFileSelect}
                   className="hidden"
                 />

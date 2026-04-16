@@ -304,6 +304,17 @@ export async function action({ request, params }: Route.ActionArgs) {
       return { ok: true };
     }
 
+    case "counterOffer": {
+      const offerText = formData.get("text") as string;
+      await db.insert(messages).values({
+        tradeId,
+        senderId: user.id,
+        text: `Counter-offer: ${offerText}`,
+        type: "system",
+      });
+      return { ok: true };
+    }
+
     case "proposeHandshake": {
       if (trade.status !== "proposed") {
         return { error: "Handshake can only be proposed from initial state" };
@@ -1907,6 +1918,31 @@ function MessageInput({
           <Scale className="w-5 h-5" />
         </button>
       )}
+
+      {/* Counter-offer quick replies */}
+      <div className="flex flex-wrap gap-2 mb-2">
+        <Form method="post">
+          <input type="hidden" name="intent" value="counterOffer" />
+          <input type="hidden" name="text" value="Can you add another item?" />
+          <button type="submit" className="px-3 py-1.5 rounded-full bg-[#1E293B] border border-white/10 text-xs text-slate-300 hover:border-emerald-500/50 transition-colors">
+            Can you add another item?
+          </button>
+        </Form>
+        <Form method="post">
+          <input type="hidden" name="intent" value="counterOffer" />
+          <input type="hidden" name="text" value="No thanks." />
+          <button type="submit" className="px-3 py-1.5 rounded-full bg-[#1E293B] border border-white/10 text-xs text-slate-300 hover:border-emerald-500/50 transition-colors">
+            No thanks.
+          </button>
+        </Form>
+        <Form method="post">
+          <input type="hidden" name="intent" value="counterOffer" />
+          <input type="hidden" name="text" value="What else do you have?" />
+          <button type="submit" className="px-3 py-1.5 rounded-full bg-[#1E293B] border border-white/10 text-xs text-slate-300 hover:border-emerald-500/50 transition-colors">
+            What else do you have?
+          </button>
+        </Form>
+      </div>
 
       {/* Message text input */}
       <Form ref={formRef} method="post" className="flex flex-1 gap-2">

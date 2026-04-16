@@ -1,0 +1,10 @@
+{
+  "terminology": {
+    "node": "Trader",
+    "protocol": "Safety Rules",
+    "exchange": "Swap",
+    "bypass_inflation": "Keep your Rands in your pocket",
+    "assets": "My Stuff",
+    "bids": "Offers"
+  }
+}
