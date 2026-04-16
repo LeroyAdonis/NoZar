@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, unique, boolean, foreignKey, serial, integer, jsonb, real } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, foreignKey, serial, integer, unique, boolean, jsonb, real } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 
 
@@ -11,18 +11,6 @@ export const verifications = pgTable("verifications", {
 	createdAt: timestamp("created_at", { mode: 'string' }),
 	updatedAt: timestamp("updated_at", { mode: 'string' }),
 });
-
-export const users = pgTable("users", {
-	id: text().primaryKey().notNull(),
-	name: text().notNull(),
-	email: text().notNull(),
-	emailVerified: boolean("email_verified").default(false).notNull(),
-	image: text(),
-	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
-}, (table) => [
-	unique("users_email_unique").on(table.email),
-]);
 
 export const listingImages = pgTable("listing_images", {
 	id: serial().primaryKey().notNull(),
@@ -105,6 +93,7 @@ export const meetupVotes = pgTable("meetup_votes", {
 			foreignColumns: [meetupSpots.id],
 			name: "meetup_votes_spot_id_meetup_spots_id_fk"
 		}),
+	unique("meetup_votes_trade_user_uq").on(table.tradeId, table.userId),
 ]);
 
 export const readinessFlags = pgTable("readiness_flags", {
@@ -124,6 +113,21 @@ export const readinessFlags = pgTable("readiness_flags", {
 			foreignColumns: [users.id],
 			name: "readiness_flags_user_id_users_id_fk"
 		}),
+	unique("readiness_flags_trade_user_uq").on(table.tradeId, table.userId),
+]);
+
+export const users = pgTable("users", {
+	id: text().primaryKey().notNull(),
+	name: text().notNull(),
+	email: text().notNull(),
+	emailVerified: boolean("email_verified").default(false).notNull(),
+	image: text(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+	referralCode: text("referral_code"),
+}, (table) => [
+	unique("users_email_unique").on(table.email),
+	unique("users_referral_code_unique").on(table.referralCode),
 ]);
 
 export const meetupSpots = pgTable("meetup_spots", {
@@ -161,30 +165,6 @@ export const contactDisclosures = pgTable("contact_disclosures", {
 		}),
 ]);
 
-export const listings = pgTable("listings", {
-	id: serial().primaryKey().notNull(),
-	userId: text("user_id").notNull(),
-	title: text().notNull(),
-	description: text().notNull(),
-	category: text().notNull(),
-	estimatedValueZar: integer("estimated_value_zar"),
-	condition: text(),
-	deliveryMethod: text("delivery_method"),
-	seekingDescription: text("seeking_description"),
-	type: text().default('item').notNull(),
-	status: text().default('active').notNull(),
-	lat: real(),
-	lng: real(),
-	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
-}, (table) => [
-	foreignKey({
-			columns: [table.userId],
-			foreignColumns: [users.id],
-			name: "listings_user_id_users_id_fk"
-		}).onDelete("cascade"),
-]);
-
 export const messages = pgTable("messages", {
 	id: serial().primaryKey().notNull(),
 	tradeId: integer("trade_id").notNull(),
@@ -219,6 +199,8 @@ export const profiles = pgTable("profiles", {
 	avatarUrl: text("avatar_url"),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+	phone: text(),
+	phoneVerified: boolean("phone_verified").default(false).notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.userId],
@@ -226,6 +208,31 @@ export const profiles = pgTable("profiles", {
 			name: "profiles_user_id_users_id_fk"
 		}).onDelete("cascade"),
 	unique("profiles_user_id_unique").on(table.userId),
+]);
+
+export const listings = pgTable("listings", {
+	id: serial().primaryKey().notNull(),
+	userId: text("user_id").notNull(),
+	title: text().notNull(),
+	description: text().notNull(),
+	category: text().notNull(),
+	estimatedValueZar: integer("estimated_value_zar"),
+	condition: text(),
+	deliveryMethod: text("delivery_method"),
+	seekingDescription: text("seeking_description"),
+	type: text().default('item').notNull(),
+	status: text().default('active').notNull(),
+	lat: real(),
+	lng: real(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+	isDigital: boolean("is_digital").default(false).notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "listings_user_id_users_id_fk"
+		}).onDelete("cascade"),
 ]);
 
 export const accounts = pgTable("accounts", {
@@ -250,24 +257,6 @@ export const accounts = pgTable("accounts", {
 		}).onDelete("cascade"),
 ]);
 
-export const sessions = pgTable("sessions", {
-	id: text().primaryKey().notNull(),
-	expiresAt: timestamp("expires_at", { mode: 'string' }).notNull(),
-	token: text().notNull(),
-	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
-	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
-	ipAddress: text("ip_address"),
-	userAgent: text("user_agent"),
-	userId: text("user_id").notNull(),
-}, (table) => [
-	foreignKey({
-			columns: [table.userId],
-			foreignColumns: [users.id],
-			name: "sessions_user_id_users_id_fk"
-		}).onDelete("cascade"),
-	unique("sessions_token_unique").on(table.token),
-]);
-
 export const trades = pgTable("trades", {
 	id: serial().primaryKey().notNull(),
 	initiatorId: text("initiator_id").notNull(),
@@ -276,6 +265,7 @@ export const trades = pgTable("trades", {
 	status: text().default('proposed').notNull(),
 	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
 	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+	fulfillmentType: text("fulfillment_type").default('meetup').notNull(),
 }, (table) => [
 	foreignKey({
 			columns: [table.initiatorId],
@@ -292,6 +282,24 @@ export const trades = pgTable("trades", {
 			foreignColumns: [listings.id],
 			name: "trades_listing_id_listings_id_fk"
 		}),
+]);
+
+export const sessions = pgTable("sessions", {
+	id: text().primaryKey().notNull(),
+	expiresAt: timestamp("expires_at", { mode: 'string' }).notNull(),
+	token: text().notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+	ipAddress: text("ip_address"),
+	userAgent: text("user_agent"),
+	userId: text("user_id").notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "sessions_user_id_users_id_fk"
+		}).onDelete("cascade"),
+	unique("sessions_token_unique").on(table.token),
 ]);
 
 export const tradeItems = pgTable("trade_items", {
@@ -365,4 +373,172 @@ export const trustProfiles = pgTable("trust_profiles", {
 			name: "trust_profiles_user_id_users_id_fk"
 		}).onDelete("cascade"),
 	unique("trust_profiles_user_id_unique").on(table.userId),
+]);
+
+export const chatSessions = pgTable("chat_sessions", {
+	id: serial().primaryKey().notNull(),
+	tradeId: integer("trade_id"),
+	userId: text("user_id").notNull(),
+	context: jsonb().default({}).notNull(),
+	model: text().default('nvidia').notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.tradeId],
+			foreignColumns: [trades.id],
+			name: "chat_sessions_trade_id_trades_id_fk"
+		}),
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "chat_sessions_user_id_users_id_fk"
+		}),
+]);
+
+export const subscriptions = pgTable("subscriptions", {
+	id: serial().primaryKey().notNull(),
+	userId: text("user_id").notNull(),
+	planCode: text("plan_code").notNull(),
+	status: text().notNull(),
+	subscriptionCode: text("subscription_code"),
+	email: text(),
+	nextPaymentDate: timestamp("next_payment_date", { mode: 'string' }),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "subscriptions_user_id_users_id_fk"
+		}).onDelete("cascade"),
+	unique("subscriptions_user_id_unique").on(table.userId),
+]);
+
+export const transactions = pgTable("transactions", {
+	id: serial().primaryKey().notNull(),
+	userId: text("user_id").notNull(),
+	listingId: integer("listing_id").notNull(),
+	amount: integer().notNull(),
+	currency: text().default('ZAR').notNull(),
+	status: text().default('pending').notNull(),
+	providerReference: text("provider_reference"),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "transactions_user_id_users_id_fk"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.listingId],
+			foreignColumns: [listings.id],
+			name: "transactions_listing_id_listings_id_fk"
+		}).onDelete("cascade"),
+]);
+
+export const boostTokens = pgTable("boost_tokens", {
+	userId: text("user_id").notNull(),
+	balance: integer().default(0).notNull(),
+	lastRefillAt: timestamp("last_refill_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "boost_tokens_user_id_users_id_fk"
+		}).onDelete("cascade"),
+	unique("boost_tokens_user_id_unique").on(table.userId),
+]);
+
+export const chatMessages = pgTable("chat_messages", {
+	id: serial().primaryKey().notNull(),
+	sessionId: integer("session_id").notNull(),
+	sender: text().default('user').notNull(),
+	senderId: text("sender_id"),
+	text: text().notNull(),
+	metadata: jsonb(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.sessionId],
+			foreignColumns: [chatSessions.id],
+			name: "chat_messages_session_id_chat_sessions_id_fk"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.senderId],
+			foreignColumns: [users.id],
+			name: "chat_messages_sender_id_users_id_fk"
+		}),
+]);
+
+export const referrals = pgTable("referrals", {
+	id: serial().primaryKey().notNull(),
+	referrerId: text("referrer_id").notNull(),
+	refereeId: text("referee_id").notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.referrerId],
+			foreignColumns: [users.id],
+			name: "referrals_referrer_id_users_id_fk"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.refereeId],
+			foreignColumns: [users.id],
+			name: "referrals_referee_id_users_id_fk"
+		}).onDelete("cascade"),
+	unique("referrals_referee_id_unique").on(table.refereeId),
+]);
+
+export const reputation = pgTable("reputation", {
+	id: serial().primaryKey().notNull(),
+	userId: text("user_id").notNull(),
+	reviewerId: text("reviewer_id").notNull(),
+	rating: integer().notNull(),
+	comment: text(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.userId],
+			foreignColumns: [users.id],
+			name: "reputation_user_id_users_id_fk"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.reviewerId],
+			foreignColumns: [users.id],
+			name: "reputation_reviewer_id_users_id_fk"
+		}).onDelete("cascade"),
+]);
+
+export const tradeProposals = pgTable("trade_proposals", {
+	id: serial().primaryKey().notNull(),
+	requesterId: text("requester_id").notNull(),
+	receiverId: text("receiver_id").notNull(),
+	targetItemId: integer("target_item_id").notNull(),
+	offeredItemId: integer("offered_item_id").notNull(),
+	status: text().default('pending').notNull(),
+	createdAt: timestamp("created_at", { mode: 'string' }).defaultNow().notNull(),
+	updatedAt: timestamp("updated_at", { mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+	foreignKey({
+			columns: [table.requesterId],
+			foreignColumns: [users.id],
+			name: "trade_proposals_requester_id_users_id_fk"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.receiverId],
+			foreignColumns: [users.id],
+			name: "trade_proposals_receiver_id_users_id_fk"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.targetItemId],
+			foreignColumns: [listings.id],
+			name: "trade_proposals_target_item_id_listings_id_fk"
+		}).onDelete("cascade"),
+	foreignKey({
+			columns: [table.offeredItemId],
+			foreignColumns: [listings.id],
+			name: "trade_proposals_offered_item_id_listings_id_fk"
+		}).onDelete("cascade"),
 ]);

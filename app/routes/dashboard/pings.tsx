@@ -21,17 +21,30 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
 
   // Subquery: latest message per trade
+  // Note: We use a LATERAL join to get the latest message per trade effectively
+  // or just use a correlated subquery if supported.
+  // The previous implementation had an issue with the subquery references.
+
+  // Let's try to fetch all messages and filter in JS if the volume is low,
+  // OR, better, let's fix the SQL query to use proper qualification.
+  
+  // Actually, a lateral join is cleaner.
+  // Since we are using Drizzle, maybe we can use it, but Drizzle's lateral support is experimental or limited depending on version.
+  
+  // Let's try fixing the correlated subquery by using raw SQL for the correlated reference
+  // correctly.
+  
   const latestMessage = db
     .select({
       tradeId: messages.tradeId,
       text: sql<string>`(
-        SELECT ${messages.text} FROM ${messages} m2
-        WHERE m2.trade_id = ${messages.tradeId}
+        SELECT m2.text FROM messages m2
+        WHERE m2.trade_id = messages.trade_id
         ORDER BY m2.created_at DESC LIMIT 1
       )`.as("latest_text"),
       createdAt: sql<Date>`(
-        SELECT m3.created_at FROM ${messages} m3
-        WHERE m3.trade_id = ${messages.tradeId}
+        SELECT m3.created_at FROM messages m3
+        WHERE m3.trade_id = messages.trade_id
         ORDER BY m3.created_at DESC LIMIT 1
       )`.as("latest_created_at"),
     })
@@ -77,47 +90,45 @@ export async function loader({ request }: Route.LoaderArgs) {
       ),
     )
     .where(
-      and(
-        or(eq(trades.initiatorId, user.id), eq(trades.responderId, user.id)),
-        eq(trades.archived, false),
-      ),
+      or(eq(trades.initiatorId, user.id), eq(trades.responderId, user.id)),
     )
     .orderBy(desc(trades.updatedAt));
 
-  const threads: TradeThread[] = rows.map((row) => {
-    // The counterparty is the OTHER user in the trade
-    const counterpartyName =
-      row.initiatorId === user.id ? row.responderName : row.initiatorName;
+  const threads: TradeThread[] = rows
+    .map((row) => {
+      // The counterparty is the OTHER user in the trade
+      const counterpartyName =
+        row.initiatorId === user.id ? row.responderName : row.initiatorName;
 
-    const activityDate = row.lastMessageTime
-      ? new Date(row.lastMessageTime)
-      : new Date(row.tradeUpdatedAt);
+      const activityDate = row.lastMessageTime
+        ? new Date(row.lastMessageTime)
+        : new Date(row.tradeUpdatedAt);
 
-    // Unread = has messages AND (no cursor OR latest message is newer than cursor)
-    const lastMsgDate = row.lastMessageTime
-      ? new Date(row.lastMessageTime)
-      : null;
-    const unread =
-      lastMsgDate !== null &&
-      (row.lastReadAt === null ||
-        lastMsgDate > new Date(row.lastReadAt));
+      // Unread = has messages AND (no cursor OR latest message is newer than cursor)
+      const lastMsgDate = row.lastMessageTime
+        ? new Date(row.lastMessageTime)
+        : null;
+      const unread =
+        lastMsgDate !== null &&
+        (row.lastReadAt === null ||
+          lastMsgDate > new Date(row.lastReadAt));
 
-    return {
-      id: row.id,
-      counterpartyName,
-      listingTitle: row.listingTitle,
-      status: row.status,
-      unread,
-      lastMessage: row.lastMessage ?? null,
-      lastMessageTime: row.lastMessageTime
-        ? new Date(row.lastMessageTime).toLocaleTimeString("en-ZA", {
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-        : null,
-      timeAgo: timeAgo(activityDate),
-    };
-  });
+      return {
+        id: row.id,
+        counterpartyName,
+        listingTitle: row.listingTitle,
+        status: row.status,
+        unread,
+        lastMessage: row.lastMessage ?? null,
+        lastMessageTime: row.lastMessageTime
+          ? new Date(row.lastMessageTime).toLocaleTimeString("en-ZA", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : null,
+        timeAgo: timeAgo(activityDate),
+      };
+    });
 
   return { threads };
 }
