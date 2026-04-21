@@ -11,7 +11,7 @@ import {
   Radar,
 } from "lucide-react";
 import type { Route } from "./+types/dashboard";
-import { requireAuth } from "~/lib/auth.server";
+import { getOptionalSession, requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import { profiles } from "~/lib/schema";
 import { eq } from "drizzle-orm";
@@ -22,10 +22,11 @@ import { LocationPromptModal } from "~/components/ui/location-prompt-modal";
 import { provinceToSlug, getClosestRegion, MVP_REGIONS } from "~/lib/regions";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { user } = await requireAuth(request);
-  const unreadCount = await getUnreadCount(db, user.id);
+  const session = await getOptionalSession(request);
+  const user = session?.user ?? null;
+  const unreadCount = user ? await getUnreadCount(db, user.id) : 0;
 
-  const [profile] = await db
+  const profile = user ? (await db
     .select({
       avatarUrl: profiles.avatarUrl,
       displayName: profiles.displayName,
@@ -35,7 +36,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     })
     .from(profiles)
     .where(eq(profiles.userId, user.id))
-    .limit(1);
+    .limit(1))[0] : null;
 
   return { user, unreadCount, profile: profile ?? null };
 }
@@ -103,9 +104,9 @@ function getActiveTab(pathname: string): string {
 const SIDEBAR_LINKS = [
   { id: "home",     label: "Index",     href: "/dashboard",          icon: Home },
   { id: "map",      label: "Radar",     href: "/dashboard/map",      icon: MapIcon },
-  { id: "add",      label: "Add Asset", href: "/dashboard/add",      icon: Plus },
+  { id: "add",      label: "Add Item",  href: "/dashboard/add",      icon: Plus },
   { id: "messages", label: "Pings",     href: "/dashboard/pings",    icon: MessageSquare },
-  { id: "profile",  label: "Node",      href: "/dashboard/profile",  icon: User },
+  { id: "profile",  label: "My Profile", href: "/dashboard/profile",  icon: User },
 ] as const;
 
 export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
@@ -113,15 +114,15 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const navigation = useNavigation();
   const activeTab = getActiveTab(location.pathname);
   const { user, unreadCount, profile } = loaderData;
-  const needsLocation = !profile?.lat || !profile?.lng;
+  const needsLocation = !!user && (!profile?.lat || !profile?.lng);
   const [isLocationDismissed, setIsLocationDismissed] = useState(false);
 
-  const showLocationModal = needsLocation && !isLocationDismissed;
+  const showLocationModal = !!user && needsLocation && !isLocationDismissed;
 
   const isNavigating = navigation.state !== "idle";
 
   // Get display name from user data
-  const displayName = user.name ?? "User";
+  const displayName = user?.name ?? "Guest";
 
   return (
     <div className="min-h-screen bg-[#030712] text-slate-50 font-sans pb-24 sm:pb-28 md:pb-0 md:pl-60 selection:bg-emerald-500/30">
@@ -228,48 +229,59 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
         </nav>
 
         {/* User info + notifications at bottom */}
-        <div className="p-4 border-t border-white/5 shrink-0 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex items-center justify-center shrink-0">
-              {profile?.avatarUrl ? (
-                <img
-                  src={profile.avatarUrl}
-                  alt={displayName}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <span className="bg-slate-700 w-full h-full flex items-center justify-center text-emerald-400 font-bold text-xs">
-                  {displayName.charAt(0).toUpperCase()}
-                </span>
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-bold text-xs text-white truncate">{displayName}</p>
-              <div className="flex items-center gap-1 text-emerald-400 font-mono text-[9px] uppercase tracking-widest mt-0.5">
-                <ShieldCheck className="w-2.5 h-2.5 shrink-0" />
-                <span>{user.emailVerified ? "Verified" : "Unverified"}</span>
-              </div>
-            </div>
-            <Link
-              to="/dashboard/notifications"
-              aria-label={
-                unreadCount > 0
-                  ? `${unreadCount} unread notifications`
-                  : "Notifications"
-              }
-              className="relative shrink-0 w-7 h-7 rounded-lg bg-[#030712] border border-white/10 flex items-center justify-center hover:border-white/20 transition-colors"
-            >
-              <Bell className="w-3.5 h-3.5 text-slate-400" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] rounded-full bg-emerald-500 border border-[#030712] flex items-center justify-center px-0.5">
-                  <span className="text-[8px] font-bold text-white">
-                    {unreadCount > 9 ? "9+" : unreadCount}
+        {user ? (
+          <div className="p-4 border-t border-white/5 shrink-0 space-y-3">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full overflow-hidden border border-white/10 flex items-center justify-center shrink-0">
+                {profile?.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt={displayName}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="bg-slate-700 w-full h-full flex items-center justify-center text-emerald-400 font-bold text-xs">
+                    {displayName.charAt(0).toUpperCase()}
                   </span>
-                </span>
-              )}
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-xs text-white truncate">{displayName}</p>
+                <div className="flex items-center gap-1 text-emerald-400 font-mono text-[9px] uppercase tracking-widest mt-0.5">
+                  <ShieldCheck className="w-2.5 h-2.5 shrink-0" />
+                  <span>{user.emailVerified ? "Verified" : "Unverified"}</span>
+                </div>
+              </div>
+              <Link
+                to="/dashboard/notifications"
+                aria-label={
+                  unreadCount > 0
+                    ? `${unreadCount} unread notifications`
+                    : "Notifications"
+                }
+                className="relative shrink-0 w-7 h-7 rounded-lg bg-[#030712] border border-white/10 flex items-center justify-center hover:border-white/20 transition-colors"
+              >
+                <Bell className="w-3.5 h-3.5 text-slate-400" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] rounded-full bg-emerald-500 border border-[#030712] flex items-center justify-center px-0.5">
+                    <span className="text-[8px] font-bold text-white">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  </span>
+                )}
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 border-t border-white/5 shrink-0">
+            <Link
+              to="/login"
+              className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-emerald-500 text-[#030712] font-black text-xs uppercase tracking-widest hover:bg-emerald-400 transition-colors"
+            >
+              Sign In / Register
             </Link>
           </div>
-        </div>
+        )}
       </aside>
 
       {/* Sticky header */}
@@ -325,17 +337,26 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
             </button>
           )}
           {/* User info — sm screens on mobile only (desktop has sidebar) */}
-          <div className="hidden sm:flex md:hidden items-center gap-3 text-right">
-            <div>
-              <h1 className="font-bold text-sm leading-tight text-white">
-                {displayName}
-              </h1>
-              <div className="flex items-center justify-end gap-1.5 text-emerald-400 font-mono text-[10px] uppercase tracking-widest mt-0.5">
-                <ShieldCheck className="w-3 h-3" />
-                <span>{user.emailVerified ? "Verified" : "Unverified"}</span>
+          {user ? (
+            <div className="hidden sm:flex md:hidden items-center gap-3 text-right">
+              <div>
+                <h1 className="font-bold text-sm leading-tight text-white">
+                  {displayName}
+                </h1>
+                <div className="flex items-center justify-end gap-1.5 text-emerald-400 font-mono text-[10px] uppercase tracking-widest mt-0.5">
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>{user.emailVerified ? "Verified" : "Unverified"}</span>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <Link
+              to="/login"
+              className="hidden sm:flex md:hidden items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-500 text-[#030712] hover:bg-emerald-400 transition-colors"
+            >
+              Sign In
+            </Link>
+          )}
 
           {/* Notifications — mobile only (desktop sidebar has it) */}
           <Link

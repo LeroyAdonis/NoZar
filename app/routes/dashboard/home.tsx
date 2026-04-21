@@ -97,6 +97,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       and(
         eq(listings.status, "active"),
         eq(profiles.province, regionConfig.province),
+        ne(listings.userId, user.id),
         searchFilter,
       ),
     )

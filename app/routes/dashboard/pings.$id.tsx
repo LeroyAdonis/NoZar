@@ -304,6 +304,24 @@ export async function action({ request, params }: Route.ActionArgs) {
       return { ok: true };
     }
 
+    case "counterOffer": {
+      await db.insert(messages).values({
+        tradeId,
+        senderId: user.id,
+        text: `Counter-offer: ${offerText}`,
+        type: "system",
+      });
+      return { ok: true };
+    }
+
+    case "archive": {
+      await db
+        .update(trades)
+        .set({ archived: true, updatedAt: new Date() })
+        .where(eq(trades.id, tradeId));
+      return { ok: true };
+    }
+
     case "proposeHandshake": {
       if (trade.status !== "proposed") {
         return { error: "Handshake can only be proposed from initial state" };
@@ -1284,6 +1302,12 @@ export default function PingDetail({
                 using NoZar!
               </p>
             </div>
+            <Form method="post" className="mt-4">
+              <input type="hidden" name="intent" value="archive" />
+              <button type="submit" className="w-full p-3 rounded-xl bg-slate-800 text-slate-300 hover:bg-slate-700 transition-colors text-xs font-bold uppercase tracking-wide">
+                Archive Trade
+              </button>
+            </Form>
             {disclosures.length > 0 && (
               <div className="mt-4">
                 <DisclosedContactsCard
@@ -1907,6 +1931,31 @@ function MessageInput({
           <Scale className="w-5 h-5" />
         </button>
       )}
+
+      {/* Counter-offer quick replies */}
+      <div className="flex flex-wrap gap-2 mb-2">
+        <Form method="post">
+          <input type="hidden" name="intent" value="counterOffer" />
+          <input type="hidden" name="text" value="Can you add another item?" />
+          <button type="submit" className="px-3 py-1.5 rounded-full bg-[#1E293B] border border-white/10 text-xs text-slate-300 hover:border-emerald-500/50 transition-colors">
+            Can you add another item?
+          </button>
+        </Form>
+        <Form method="post">
+          <input type="hidden" name="intent" value="counterOffer" />
+          <input type="hidden" name="text" value="No thanks." />
+          <button type="submit" className="px-3 py-1.5 rounded-full bg-[#1E293B] border border-white/10 text-xs text-slate-300 hover:border-emerald-500/50 transition-colors">
+            No thanks.
+          </button>
+        </Form>
+        <Form method="post">
+          <input type="hidden" name="intent" value="counterOffer" />
+          <input type="hidden" name="text" value="What else do you have?" />
+          <button type="submit" className="px-3 py-1.5 rounded-full bg-[#1E293B] border border-white/10 text-xs text-slate-300 hover:border-emerald-500/50 transition-colors">
+            What else do you have?
+          </button>
+        </Form>
+      </div>
 
       {/* Message text input */}
       <Form ref={formRef} method="post" className="flex flex-1 gap-2">

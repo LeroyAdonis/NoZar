@@ -26,6 +26,7 @@ export default [
     route("notifications", "routes/dashboard/notifications.tsx"),
     route("map", "routes/dashboard/map.tsx"),
     route("add", "routes/dashboard/add.tsx"),
+    route("trade/:id", "routes/dashboard/trade.$id.tsx"),
     route("profile", "routes/dashboard/profile.tsx"),
     route("verify-phone", "routes/dashboard/verify-phone.tsx"),
   ]),

@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Form, redirect, useFetcher, useNavigation } from "react-router";
+import { CameraCapture } from "~/components/ui/camera-capture";
 import {
+  Monitor,
+  Home,
+  Shirt,
+  Wrench,
+  Car,
+  Dumbbell,
+  Book,
+  Briefcase,
   Camera,
   Check,
   ImagePlus,
@@ -24,20 +33,21 @@ import {
   sanitizeImageUrl,
 } from "~/lib/media-validation.server";
 import { Input } from "~/components/ui/input";
+import { Textarea } from "~/components/ui/textarea";
 import { Button } from "~/components/ui/button";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
 // ─── Constants ─────────────────────────────────────────────────
 
 const CATEGORIES = [
-  "Electronics",
-  "Home & Garden",
-  "Fashion",
-  "Skills",
-  "Vehicles",
-  "Sports",
-  "Books",
-  "Services",
+  { name: "Electronics", icon: Monitor },
+  { name: "Home & Garden", icon: Home },
+  { name: "Fashion", icon: Shirt },
+  { name: "Skills", icon: Briefcase },
+  { name: "Vehicles", icon: Car },
+  { name: "Sports", icon: Dumbbell },
+  { name: "Books", icon: Book },
+  { name: "Services", icon: Wrench },
 ] as const;
 
 const CONDITIONS = ["New", "Like New", "Good", "Fair", "Poor"] as const;
@@ -112,7 +122,6 @@ export async function action({ request }: Route.ActionArgs) {
     return await generateContent(prompt);
   }
 
-  await requireAuth(request);
   const formData = await request.formData();
   const intent = formData.get("intent") as string | null;
 
@@ -235,6 +244,7 @@ export async function action({ request }: Route.ActionArgs) {
 
 export default function AddAsset({ actionData }: Route.ComponentProps) {
   const [type, setType] = useState<"item" | "service">("item");
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [aiDismissed, setAiDismissed] = useState(false);
   const [imageUrls, setImageUrls] = useState<string[]>([""]);
   const [uploadingFiles, setUploadingFiles] = useState<
@@ -440,7 +450,6 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
               htmlFor="description"
               className="text-[10px] font-mono uppercase tracking-widest text-slate-400"
             >
-              Description
             </label>
             <button
               type="button"
@@ -456,22 +465,36 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
               {isAiLoading ? "Generating…" : "AI Assist"}
             </button>
           </div>
-          <textarea
+          <Textarea
             ref={descriptionRef}
             id="description"
             name="description"
+            label="Description"
             rows={4}
             required
             placeholder={
-              type === "item"
-                ? "Describe the item — brand, model, age, included accessories…"
-                : "Describe the service you offer — scope, duration, experience…"
+              type === "service"
+                ? "Describe the service you offer — scope, duration, experience…"
+                : selectedCategory === "Electronics"
+                ? "Brand, model, condition, battery health, any faults..."
+                : selectedCategory === "Home & Garden"
+                ? "Age, dimensions, material, reason for parting with it..."
+                : selectedCategory === "Fashion"
+                ? "Size, brand, condition, material, original price..."
+                : selectedCategory === "Skills"
+                ? "Years of experience, what specific problems you solve..."
+                : selectedCategory === "Vehicles"
+                ? "Mileage, model, year, service history, condition..."
+                : selectedCategory === "Sports"
+                ? "Brand, age, wear and tear, size/spec..."
+                : selectedCategory === "Books"
+                ? "Edition, condition, highlights/notes, language..."
+                : selectedCategory === "Services"
+                ? "Service scope, availability, what to expect..."
+                : "Describe the item — brand, model, age, included accessories…"
             }
-            className={textareaStyles}
+            error={errors?.description}
           />
-          {errors?.description && (
-            <p className="mt-1 text-xs text-red-400">{errors.description}</p>
-          )}
 
           {/* AI suggestion panel */}
           {aiSuggestion && !aiDismissed && (
@@ -511,28 +534,27 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
 
         {/* Category */}
         <div>
-          <label
-            htmlFor="category"
-            className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
-          >
+          <label className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-2 block">
             Category
           </label>
-          <select
-            id="category"
-            name="category"
-            required
-            defaultValue=""
-            className={selectStyles}
-          >
-            <option value="" disabled>
-              Select a category
-            </option>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {CATEGORIES.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
+              <button
+                key={cat.name}
+                type="button"
+                onClick={() => setSelectedCategory(cat.name)}
+                className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
+                  selectedCategory === cat.name
+                    ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400"
+                    : "bg-[#0F172A] border-white/10 text-slate-400 hover:border-white/20 hover:text-white"
+                }`}
+              >
+                <cat.icon className="w-5 h-5 mb-1.5" />
+                <span className="text-[10px] font-medium">{cat.name}</span>
+              </button>
             ))}
-          </select>
+          </div>
+          <input type="hidden" name="category" value={selectedCategory} required />
           {errors?.category && (
             <p className="mt-1 text-xs text-red-400">{errors.category}</p>
           )}
@@ -582,6 +604,8 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
                   >
                     browse
                   </button>
+                  {" "}or{" "}
+                  <CameraCapture onCapture={(url) => setImageUrls([...imageUrls, url])} />
                 </p>
                 <p className="text-[10px] text-slate-600">
                   JPG, PNG, WebP — max 5 MB each
