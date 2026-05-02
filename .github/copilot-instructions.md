@@ -22,40 +22,74 @@ Nozar is a South African barter/swap platform ("No ZAR" — no cash needed). Use
 
 ## Commands
 
-- `npm run dev` — Start dev server with HMR (http://localhost:5173)
-- `npm run build` — Production build via React Router
-- `npm run start` — Serve production build
-- `npm run typecheck` — Run typegen + TypeScript compiler
+- `npm run dev` — Start the app locally (React Router dev server at `http://localhost:5173`)
+- `npm run build` — Build production server/client bundles
+- `npm run start` — Serve built app from `./build/server/index.js`
+- `npm run typecheck` — Generate route types + run TypeScript checks
 
-No test runner is configured yet.
+### Testing (Playwright E2E)
+
+- `npm run test:install` — Install Playwright browsers (first-time setup)
+- `npm test` — Run full E2E suite (`e2e/*.spec.ts`)
+- `npm run test:headed` — Run E2E tests with a visible browser
+- Single file: `npm run test:auth` (or `npm run test:landing`, `npm run test:dashboard`, `npm run test:chat`, `npm run test:profile`, `npm run test:legal`)
+- Single spec by name: `npx playwright test landing.spec.ts -g "test name"`
+- `npm run test:report` — Open Playwright HTML report
+
+### Linting
+
+- There is currently no dedicated lint script in `package.json`.
+- Use `npm run typecheck` as the required static validation command.
 
 ## Architecture
 
-- **React Router v7** with SSR enabled (`react-router.config.ts` → `ssr: true`). This is the Remix successor — routes export `loader`/`action`/`meta`/`links` functions, not classic React Router `<Route>` elements.
-- **Route configuration** lives in `app/routes.ts` using the `RouteConfig` API (not file-system routing). Add new routes there. Uses `route()` (not `layout()`) for the `/dashboard` prefix so child routes get the `/dashboard/*` URL namespace.
-- **Auto-generated route types**: Each route gets types via `./+types/<routeName>` (e.g., `import type { Route } from "./+types/home"`). Run `react-router typegen` (part of `npm run typecheck`) to regenerate.
-- **Vite** bundler with `@react-router/dev/vite` plugin, Tailwind CSS plugin, and `vite-tsconfig-paths`.
-- **Tailwind CSS v4** — uses `@import "tailwindcss"` and `@theme` directive in `app/app.css`, not a `tailwind.config` file.
-- **Path alias**: `~/` maps to `./app/` (configured in `tsconfig.json`).
-- **Icons**: `lucide-react` for iconography.
+- **App framework**: React Router v7 + SSR (`react-router.config.ts` has `ssr: true`), with route modules using loader/action/meta exports.
+- **Routing model**: Central route config in `app/routes.ts` (not file-based conventions). This defines public auth/legal routes plus nested `/dashboard/*` and `/api/*` endpoints.
+- **Data layer**: Neon PostgreSQL over `@neondatabase/serverless`, queried via Drizzle ORM (`app/lib/db.server.ts`, `app/lib/schema.ts`).
+- **Auth stack**: Better Auth with Drizzle adapter (`app/lib/auth.server.ts`), supporting Google OAuth and email/password; auth routes are under `api/auth/*`.
+- **Client/server boundary**: `.server.ts` modules hold server-only integrations (db/auth/email/payments/blob/AI). Route loaders/actions call these modules.
+- **Styling/build**: Tailwind v4 via `@tailwindcss/vite`, React Router Vite plugin, and `vite-tsconfig-paths` aliasing `~/` to `app/`.
+- **E2E test setup**: Playwright tests in `e2e/`; config auto-starts `npm run dev` through `webServer`.
 
 ### Route Structure
 
 ```
 /                     → app/routes/landing.tsx (public landing page)
+/login                → app/routes/login.tsx
+/forgot-password      → app/routes/forgot-password.tsx
+/reset-password       → app/routes/reset-password.tsx
+/register             → app/routes/register.tsx
+/refer                → app/routes/refer.tsx
+/r/:referralCode      → app/routes/r.$referralCode.tsx
+/api/auth/*           → app/routes/api.auth.$.ts
+/api/messages/:tradeId → app/routes/api.messages.$tradeId.ts
+/api/pay/upgrade      → app/routes/api.pay.upgrade.ts
+/api/pay/webhook      → app/routes/api.pay.webhook.ts
+/api/refer            → app/routes/api.refer.ts
+/api/upload           → app/routes/api.upload.ts
 /dashboard            → app/routes/dashboard.tsx (layout with header + bottom nav)
   /dashboard          → app/routes/dashboard/home.tsx (asset feed)
   /dashboard/asset/:id → app/routes/dashboard/asset.$id.tsx (asset detail)
   /dashboard/pings    → app/routes/dashboard/pings.tsx (conversation list)
   /dashboard/pings/:id → app/routes/dashboard/pings.$id.tsx (chat + handshake)
+  /dashboard/notifications → app/routes/dashboard/notifications.tsx
   /dashboard/map      → app/routes/dashboard/map.tsx (stub)
   /dashboard/add      → app/routes/dashboard/add.tsx (stub)
+  /dashboard/trade/:id → app/routes/dashboard/trade.$id.tsx
   /dashboard/profile  → app/routes/dashboard/profile.tsx (stub)
+  /dashboard/verify-phone → app/routes/dashboard/verify-phone.tsx
+/legal                → app/routes/legal.tsx
+  /legal/terms        → app/routes/legal/terms.tsx
+  /legal/privacy      → app/routes/legal/privacy.tsx
+  /legal/community-guidelines → app/routes/legal/community-guidelines.tsx
+  /legal/complaints   → app/routes/legal/complaints.tsx
+/*                    → app/routes/$.tsx (404 catch-all)
 ```
 
 ### Key Directories
 
 - `app/lib/` — Shared types (`types.ts`) and mock data (`mock-data.ts`)
+- `app/lib/*.server.ts` — Server-only modules (auth, db, email, payments, blob, AI, OTP, notifications)
 - `app/components/ui/` — Reusable UI components (AssetCard, BottomNav, TierBadge, VerificationBadge, PingThread)
 - `app/routes/` — Route modules
 - `prototype.jsx` — Full UI prototype with mock data (reference only, not imported by the app)
@@ -63,8 +97,10 @@ No test runner is configured yet.
 ## Conventions
 
 - TypeScript strict mode. Use `type` imports (`import type { ... }`) — `verbatimModuleSyntax` is enabled.
-- Route modules follow React Router v7 conventions: named exports for `meta`, `loader`, `action`, `links`, `ErrorBoundary`, and a default export for the component.
-- Client-side routes (with hooks like `useState`, `useNavigate`) use `"use client"` directive at the top.
+- Route modules follow React Router v7 conventions: named exports for `meta`, `loader`, `action`, `links`, `ErrorBoundary`, and a default component export.
+- Route type safety is generated per route under `./+types/*`; keep `npm run typecheck` green after route changes.
+- Use `requireAuth(request)` for protected loaders/actions and `getOptionalSession(request)` when rendering should work for guests and logged-in users.
+- Keep DB schema changes in `app/lib/schema.ts`, then generate/apply migrations via Drizzle (`drizzle/*.sql` is migration history).
 - Always-dark theme: `#030712` base, `#0F172A` card backgrounds, emerald-500 primary accent, slate text. No light mode.
 - Brutalist typography: `font-mono uppercase tracking-widest text-[10px]` for labels, `font-black uppercase tracking-tighter` for headings.
-- Inter font loaded via Google Fonts CDN in `root.tsx`.
+- Inter font is loaded from Google Fonts in `app/root.tsx`.
