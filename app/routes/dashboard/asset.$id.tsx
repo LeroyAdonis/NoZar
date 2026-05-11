@@ -1,10 +1,10 @@
 import { data, redirect, useFetcher, Form, Link } from "react-router";
 import type { Route } from "./+types/asset.$id";
-import { ChevronLeft, MessageSquare, Repeat, ShieldCheck, Pencil, Trash2, RotateCcw, ChevronRight, X, Maximize2 } from "lucide-react";
+import { ChevronLeft, MessageSquare, Repeat, ShieldCheck, Pencil, Trash2, RotateCcw, ChevronRight, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { eq, and, ne } from "drizzle-orm";
 import { motion, AnimatePresence } from "motion/react";
-import { requireAuth, getOptionalSession } from "~/lib/auth.server";
+import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import {
   listings,
@@ -33,8 +33,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw data(null, { status: 404 });
   }
 
-  const auth = await getOptionalSession(request);
-  const currentUserId = auth?.user?.id ?? null;
+  const { user } = await requireAuth(request);
+  const currentUserId = user.id;
 
   const result = await db
     .select({
@@ -65,19 +65,20 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const listing = result[0].listing;
 
   // Fetch current user's location for distance calculation
-  const [userProfile] = currentUserId 
-    ? await db.select({ lat: profiles.lat, lng: profiles.lng, searchRadiusKm: profiles.searchRadiusKm })
-        .from(profiles)
-        .where(eq(profiles.userId, currentUserId))
-        .limit(1)
-    : [null];
+  const [userProfile] = await db
+    .select({
+      lat: profiles.lat,
+      lng: profiles.lng,
+      searchRadiusKm: profiles.searchRadiusKm,
+    })
+    .from(profiles)
+    .where(eq(profiles.userId, currentUserId))
+    .limit(1);
 
-  const userInventory = currentUserId
-    ? await db
-        .select()
-        .from(listings)
-        .where(and(eq(listings.userId, currentUserId), eq(listings.status, "active")))
-    : [];
+  const userInventory = await db
+    .select()
+    .from(listings)
+    .where(and(eq(listings.userId, currentUserId), eq(listings.status, "active")));
 
   let distance: number | null = null;
   if (userProfile?.lat && userProfile?.lng && listing.lat && listing.lng) {
@@ -124,11 +125,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
 
     const [trade] = await db.insert(trades).values({
-      proposerId: user.id,
+      initiatorId: user.id,
       responderId: listing.userId,
       listingId: listingId,
-      offerListingId: offerItemId,
-      status: "pending",
+      status: "proposed",
     }).returning();
 
     throw redirect(`/dashboard/pings/${trade.id}`);
@@ -166,11 +166,14 @@ export async function action({ request, params }: Route.ActionArgs) {
 
 export default function AssetDetail({ loaderData }: Route.ComponentProps) {
   const archiveFetcher = useFetcher();
-  const { listing, owner, images, isOwner, distance, searchRadiusKm } = loaderData;
+  const { listing, owner, images, isOwner, distance, searchRadiusKm, userInventory } = loaderData;
   const isManaging = archiveFetcher.state !== "idle";
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [selectedOfferItemId, setSelectedOfferItemId] = useState<number | null>(
+    userInventory?.length === 1 ? userInventory[0].id : null
+  );
 
   useEffect(() => {
     if (!isLightboxOpen) return;
@@ -510,17 +513,62 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
               </div>
             )}
             
-            <Form method="post">
-              <input type="hidden" name="intent" value="ping" />
-              <button
-                type="submit"
-                disabled={isOutOfRange}
-                className="w-full py-4 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-sm hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed disabled:hover:shadow-none"
-              >
-                <MessageSquare className="w-4 h-4 fill-[#030712]" /> 
-                {isOutOfRange ? "Out of Range" : "Initialize Ping"}
-              </button>
-            </Form>
+            {userInventory && userInventory.length === 0 ? (
+              <div className="flex items-start gap-3 p-4 rounded-2xl border border-slate-500/20 bg-slate-500/5 text-slate-300">
+                <AlertCircle className="w-5 h-5 shrink-0 text-slate-400 mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-xs font-bold uppercase tracking-wider">No Listings to Offer</p>
+                  <p className="text-xs leading-relaxed opacity-80">
+                    You need at least one active listing to initialize a ping. Add an item or service first.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <Form method="post">
+                <input type="hidden" name="intent" value="propose_trade" />
+                {userInventory && userInventory.length > 1 && (
+                  <div className="mb-4">
+                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block mb-2">
+                      Select what you're offering
+                    </span>
+                    <div className="space-y-2">
+                      {userInventory.map((item) => (
+                        <label
+                          key={item.id}
+                          className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                            selectedOfferItemId === item.id
+                              ? "border-emerald-500/40 bg-emerald-500/10"
+                              : "border-white/10 bg-white/5 hover:border-white/20"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="offerItemId"
+                            value={item.id}
+                            checked={selectedOfferItemId === item.id}
+                            onChange={() => setSelectedOfferItemId(item.id)}
+                            className="accent-emerald-500"
+                          />
+                          <span className="text-sm text-white font-medium">{item.title}</span>
+                          <span className="ml-auto text-[10px] font-mono text-slate-500 uppercase">{item.category}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {userInventory && userInventory.length === 1 && (
+                  <input type="hidden" name="offerItemId" value={userInventory[0].id} />
+                )}
+                <button
+                  type="submit"
+                  disabled={isOutOfRange || !selectedOfferItemId}
+                  className="w-full py-4 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-sm hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed disabled:hover:shadow-none"
+                >
+                  <MessageSquare className="w-4 h-4 fill-[#030712]" />
+                  {isOutOfRange ? "Out of Range" : "Initialize Ping"}
+                </button>
+              </Form>
+            )}
           </div>
         )}
       </div>

@@ -388,7 +388,7 @@ export function NozarMap({
       {onRadiusChange !== undefined && radarRadiusKm !== undefined && (
         <div className="absolute bottom-6 left-6 z-10 rounded-xl border border-white/10 bg-[#0F172A]/90 p-2 shadow-lg backdrop-blur">
           <p className="mb-1.5 px-1 font-mono text-[10px] uppercase tracking-widest text-slate-500">
-            Radius
+            Local radius
           </p>
           <div className="flex gap-1">
             {RADIUS_OPTIONS.map((km) => (

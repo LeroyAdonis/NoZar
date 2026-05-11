@@ -1,23 +1,52 @@
-import { eq, and, isNotNull, sql } from "drizzle-orm";
-import { useCallback, useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { and, eq, isNotNull, sql } from "drizzle-orm";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { NozarMap } from "~/components/map/nozar-map";
 import { LocationPromptModal } from "~/components/ui/location-prompt-modal";
 import { RegionToggle } from "~/components/ui/region-toggle";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
-import { resolveRegion, MVP_REGIONS } from "~/lib/regions";
+import { isWithinMapScope, type MapCoordinates, resolveMapScope } from "~/lib/map-scope";
+import { MVP_REGIONS } from "~/lib/regions";
 import type { RegionSlug } from "~/lib/regions";
-import { listings, profiles, listingImages } from "~/lib/schema";
+import { listingImages, listings, profiles } from "~/lib/schema";
 import { haversineKm } from "~/lib/utils";
 
 import type { Route } from "./+types/map";
 
+type SavedLocation = {
+  suburb: string | null;
+  city: string | null;
+  province: string | null;
+  lat: number;
+  lng: number;
+};
+
+function formatLatitude(lat: number): string {
+  return `${Math.abs(lat).toFixed(4)}°${lat < 0 ? "S" : "N"}`;
+}
+
+function formatLongitude(lng: number): string {
+  return `${Math.abs(lng).toFixed(4)}°${lng < 0 ? "W" : "E"}`;
+}
+
+function getSavedLocationLabel(savedLocation: SavedLocation, currentRegion: RegionSlug): string {
+  const locationParts = [savedLocation.suburb, savedLocation.city, savedLocation.province].filter(
+    Boolean,
+  );
+
+  if (locationParts.length > 0) {
+    return locationParts.join(", ");
+  }
+
+  return `Near ${MVP_REGIONS[currentRegion].label}`;
+}
+
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Map — Nozar" },
-    { name: "description", content: "Find swaps near you on the map" },
+    { name: "description", content: "Find swaps near your saved radar location" },
   ];
 }
 
@@ -27,7 +56,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   const regionParam = url.searchParams.get("region");
 
   const [userProfile] = await db
-    .select({ 
+    .select({
+      suburb: profiles.suburb,
+      city: profiles.city,
       province: profiles.province,
       lat: profiles.lat,
       lng: profiles.lng,
@@ -37,13 +68,24 @@ export async function loader({ request }: Route.LoaderArgs) {
     .where(eq(profiles.userId, user.id))
     .limit(1);
 
-  const currentRegion = resolveRegion(regionParam, userProfile?.province);
-  const regionConfig = MVP_REGIONS[currentRegion];
+  const mapScope = resolveMapScope({
+    regionParam,
+    profileLat: userProfile?.lat,
+    profileLng: userProfile?.lng,
+    profileProvince: userProfile?.province,
+    profileSearchRadiusKm: userProfile?.searchRadiusKm,
+  });
 
-  // Use profile coordinates if available, otherwise fall back to region center
-  const userCenter = (userProfile?.lat != null && userProfile?.lng != null) 
-    ? { lat: Number(userProfile.lat), lng: Number(userProfile.lng) }
-    : regionConfig.center;
+  const savedLocation =
+    userProfile?.lat != null && userProfile?.lng != null
+      ? {
+          suburb: userProfile.suburb,
+          city: userProfile.city,
+          province: userProfile.province,
+          lat: userProfile.lat,
+          lng: userProfile.lng,
+        }
+      : null;
 
   const activeListings = await db
     .select({
@@ -70,53 +112,77 @@ export async function loader({ request }: Route.LoaderArgs) {
 
   const pins = activeListings
     .filter(
-      (l): l is typeof l & { lat: number; lng: number } =>
-        l.lat !== null && l.lng !== null,
+      (listing): listing is typeof listing & { lat: number; lng: number } =>
+        listing.lat !== null && listing.lng !== null,
     )
-    .map((l) => ({
-      id: l.id,
-      lat: l.lat,
-      lng: l.lng,
-      title: l.title,
-      type: l.type as "item" | "service",
-      description: l.description,
-      imageUrl: l.imageUrl,
+    .filter((listing) =>
+      isWithinMapScope(
+        { lat: listing.lat, lng: listing.lng },
+        mapScope.center,
+        mapScope.searchRadiusKm,
+      ),
+    )
+    .map((listing) => ({
+      id: listing.id,
+      lat: listing.lat,
+      lng: listing.lng,
+      title: listing.title,
+      type: listing.type as "item" | "service",
+      description: listing.description,
+      imageUrl: listing.imageUrl,
       user: {
-        id: l.userId,
-        name: l.userName,
-        avatarUrl: l.userAvatar,
+        id: listing.userId,
+        name: listing.userName,
+        avatarUrl: listing.userAvatar,
       },
     }));
 
   return {
-    listings: pins,
     apiKey: process.env.GOOGLE_MAPS_API_KEY ?? "",
-    regionCenter: userCenter,
-    searchRadiusKm: userProfile?.searchRadiusKm ?? 25,
-    currentRegion,
+    currentRegion: mapScope.currentRegion,
+    listings: pins,
+    mapCenter: mapScope.center,
+    savedLocation,
+    searchRadiusKm: mapScope.searchRadiusKm,
+    usesFallbackLocation: mapScope.usesFallbackLocation,
   };
 }
 
 export default function Map({ loaderData }: Route.ComponentProps) {
-  const { listings: pins, apiKey, regionCenter, searchRadiusKm, currentRegion } = loaderData;
+  const {
+    apiKey,
+    currentRegion,
+    listings: pins,
+    mapCenter,
+    savedLocation,
+    searchRadiusKm,
+    usesFallbackLocation,
+  } = loaderData;
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [center, setCenter] = useState<{ lat: number; lng: number }>(regionCenter);
-  const [radarCenter, setRadarCenter] = useState<{ lat: number; lng: number }>(regionCenter);
-  // Default radius from profile
+  const [displayCenter, setDisplayCenter] = useState<MapCoordinates>(mapCenter);
   const [radiusKm, setRadiusKm] = useState(searchRadiusKm);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const regionParam = searchParams.get("region");
 
-  // Keep map state in sync with profile updates from the modal
   useEffect(() => {
-    setCenter(regionCenter);
-    setRadarCenter(regionCenter);
+    setDisplayCenter(mapCenter);
     setRadiusKm(searchRadiusKm);
-  }, [regionCenter, searchRadiusKm]);
+  }, [mapCenter, searchRadiusKm]);
 
-  // Filter pins to those within the active radar radius of the radar centre.
-  const filteredPins = pins.filter(
-    (pin) => haversineKm(radarCenter.lat, radarCenter.lng, pin.lat, pin.lng) <= radiusKm,
+  useEffect(() => {
+    if (!usesFallbackLocation && regionParam) {
+      setSearchParams({}, { preventScrollReset: true, replace: true });
+    }
+  }, [regionParam, setSearchParams, usesFallbackLocation]);
+
+  const radarCenter = usesFallbackLocation ? displayCenter : mapCenter;
+  const filteredPins = useMemo(
+    () =>
+      pins.filter(
+        (pin) => haversineKm(radarCenter.lat, radarCenter.lng, pin.lat, pin.lng) <= radiusKm,
+      ),
+    [pins, radarCenter.lat, radarCenter.lng, radiusKm],
   );
 
   const handlePinClick = useCallback(
@@ -126,15 +192,18 @@ export default function Map({ loaderData }: Route.ComponentProps) {
     [navigate],
   );
 
-  const handleRadarClick = useCallback(() => {
+  const handleMapLocationClick = useCallback(() => {
     setShowLocationPrompt(true);
   }, []);
 
   function handleRegionChange(slug: RegionSlug) {
+    if (!usesFallbackLocation) {
+      return;
+    }
+
     const newRegion = MVP_REGIONS[slug];
     setSearchParams({ region: slug }, { preventScrollReset: true });
-    setCenter(newRegion.center);
-    setRadarCenter(newRegion.center);
+    setDisplayCenter(newRegion.center);
   }
 
   if (!apiKey) {
@@ -142,9 +211,7 @@ export default function Map({ loaderData }: Route.ComponentProps) {
       <div className="flex min-h-[24rem] items-center justify-center">
         <div className="rounded-lg border border-slate-700 bg-slate-800/60 p-8 text-center">
           <div className="mb-3 text-4xl">🗺️</div>
-          <h2 className="text-lg font-semibold text-slate-100">
-            Map unavailable
-          </h2>
+          <h2 className="text-lg font-semibold text-slate-100">Map unavailable</h2>
           <p className="mt-1 text-sm text-slate-400">
             Google Maps API key is not configured. Contact an administrator.
           </p>
@@ -153,77 +220,195 @@ export default function Map({ loaderData }: Route.ComponentProps) {
     );
   }
 
+  const savedLocationLabel = savedLocation
+    ? getSavedLocationLabel(savedLocation, currentRegion)
+    : `${MVP_REGIONS[currentRegion].label} preview`;
+  const coordinateLabel = savedLocation
+    ? `${formatLatitude(savedLocation.lat)} · ${formatLongitude(savedLocation.lng)}`
+    : null;
+  const localRadiusDescription = usesFallbackLocation
+    ? "Adjust the preview radius for this page only. Save your location to lock the map to your real area."
+    : "Adjusting radius here only changes this map view. Your saved centre stays fixed until you update your profile or save a new device location.";
+
   return (
-    <div className="relative -m-4 h-[65dvh] min-h-[24rem] md:-m-6 md:h-[70dvh]">
-      {/* Region toggle */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10">
-        <RegionToggle activeRegion={currentRegion} onChange={handleRegionChange} />
+    <div className="space-y-4">
+      <div className="pt-2">
+        <span className="mb-1 block font-mono text-[10px] uppercase tracking-widest text-emerald-500">
+          // Local Radar
+        </span>
+        <h2 className="text-xl font-bold uppercase tracking-tight text-white">Map</h2>
+        <p className="mt-2 max-w-2xl text-sm text-slate-400">
+          Nozar stays hyper-local. Nearby listings are scoped from your saved radar centre, and
+          only the radius changes locally on this page.
+        </p>
       </div>
 
-      <NozarMap
-        apiKey={apiKey}
-        pins={filteredPins}
-        center={center}
-        zoom={12}
-        onPinClick={handlePinClick}
-        radarCenter={radarCenter}
-        radarRadiusKm={radiusKm}
-        onRadiusChange={setRadiusKm}
-      />
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+        <section className="rounded-3xl border border-white/10 bg-[#0F172A] p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-2">
+              <span className="block font-mono text-[10px] uppercase tracking-widest text-slate-400">
+                {usesFallbackLocation ? "// Region preview" : "// Saved radar centre"}
+              </span>
+              <h3 className="text-lg font-bold text-white">{savedLocationLabel}</h3>
+              <p className="max-w-2xl text-sm leading-relaxed text-slate-400">
+                {usesFallbackLocation
+                  ? "You have not saved coordinates yet, so the map stays in MVP preview mode. Pick a region to browse nearby listings, then save your current location to anchor the radar."
+                  : "Your search centre is anchored to the coordinates saved on your profile. Pan and zoom freely, but only a persisted profile/location update can move the actual radar centre."}
+              </p>
+            </div>
+            <span
+              className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${
+                usesFallbackLocation
+                  ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                  : "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
+              }`}
+            >
+              {usesFallbackLocation ? "Preview only" : "Profile anchored"}
+            </span>
+          </div>
 
-      {/* Floating radar button */}
-      <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-3">
-        <button
-          type="button"
-          onClick={handleRadarClick}
-          className="flex items-center gap-2 rounded-full bg-slate-800/90 px-5 py-3 text-sm font-bold text-emerald-400 shadow-xl ring-1 ring-emerald-500/50 backdrop-blur transition-all hover:bg-slate-700/90 hover:scale-105 active:scale-95 disabled:opacity-50"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-5 w-5"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <circle cx="12" cy="12" r="7" />
-            <circle cx="12" cy="12" r="4" />
-            <path d="M12 2v2" />
-            <path d="M12 20v2" />
-            <path d="M2 12h2" />
-            <path d="M20 12h2" />
-          </svg>
-          START RADAR
-        </button>
+          {usesFallbackLocation ? (
+            <div className="mt-4 w-fit">
+              <RegionToggle activeRegion={currentRegion} onChange={handleRegionChange} />
+            </div>
+          ) : (
+            <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-300">
+              {coordinateLabel ? (
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+                  {coordinateLabel}
+                </span>
+              ) : null}
+              {savedLocation?.province ? (
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+                  {savedLocation.province}
+                </span>
+              ) : null}
+            </div>
+          )}
+
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={handleMapLocationClick}
+              className="rounded-2xl bg-emerald-500 px-4 py-2.5 text-xs font-black uppercase tracking-widest text-[#030712] transition-colors hover:bg-emerald-400"
+            >
+              {usesFallbackLocation ? "Save current location" : "Refresh saved location"}
+            </button>
+            {!usesFallbackLocation ? (
+              <Link
+                to="/dashboard/profile"
+                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                Update in profile
+              </Link>
+            ) : null}
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-white/10 bg-[#0F172A] p-5">
+          <span className="block font-mono text-[10px] uppercase tracking-widest text-slate-400">
+            // Active radius
+          </span>
+          <div className="mt-3 flex items-end gap-2">
+            <span className="text-4xl font-black tracking-tight text-white">{radiusKm}</span>
+            <span className="pb-1 text-sm font-semibold uppercase tracking-widest text-emerald-300">
+              km
+            </span>
+          </div>
+          <p className="mt-3 text-sm leading-relaxed text-slate-400">{localRadiusDescription}</p>
+
+          <div className="mt-5 space-y-2">
+            <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/5 px-4 py-3">
+              <span className="text-xs font-medium text-slate-400">Listings in range</span>
+              <span className="text-sm font-bold text-white">{filteredPins.length}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-2xl border border-white/5 bg-white/5 px-4 py-3">
+              <span className="text-xs font-medium text-slate-400">Discovery mode</span>
+              <span className="text-sm font-bold text-emerald-300">Hyper-local only</span>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div className="relative -mx-1 overflow-hidden rounded-3xl border border-white/10 bg-[#020617] md:mx-0">
+        <div className="relative h-[65dvh] min-h-[26rem]">
+          <NozarMap
+            apiKey={apiKey}
+            center={radarCenter}
+            onPinClick={handlePinClick}
+            onRadiusChange={setRadiusKm}
+            pins={filteredPins}
+            radarCenter={radarCenter}
+            radarRadiusKm={radiusKm}
+            zoom={12}
+          />
+
+          <div className="absolute left-6 top-6 z-10 max-w-xs rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 shadow-lg backdrop-blur">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-slate-400">
+              {usesFallbackLocation ? "Region preview" : "Locked to saved centre"}
+            </p>
+            <p className="mt-1 text-sm font-semibold text-slate-100">
+              {usesFallbackLocation
+                ? `Exploring ${MVP_REGIONS[currentRegion].label} within ${radiusKm}km`
+                : `Searching within ${radiusKm}km of your saved radar location`}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed text-slate-400">
+              {usesFallbackLocation
+                ? "Save your current location to turn this into a profile-anchored search."
+                : "Moving the map does not change the actual search centre. Save a new location first."}
+            </p>
+          </div>
+
+          <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={handleMapLocationClick}
+              className="flex items-center gap-2 rounded-full bg-slate-800/90 px-5 py-3 text-sm font-bold text-emerald-400 shadow-xl ring-1 ring-emerald-500/50 backdrop-blur transition-all hover:bg-slate-700/90 hover:scale-105 active:scale-95"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-5 w-5"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <circle cx="12" cy="12" r="7" />
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2" />
+                <path d="M12 20v2" />
+                <path d="M2 12h2" />
+                <path d="M20 12h2" />
+              </svg>
+              {usesFallbackLocation ? "SAVE LOCATION" : "UPDATE LOCATION"}
+            </button>
+          </div>
+
+          {filteredPins.length === 0 ? (
+            <div className="absolute right-6 top-28 z-10 max-w-xs rounded-2xl border border-white/10 bg-[#0F172A]/90 px-4 py-3 shadow-lg backdrop-blur">
+              <p className="text-sm font-semibold text-slate-100">No listings within {radiusKm}km</p>
+              <p className="mt-1 text-xs text-slate-400">
+                Try a larger local radius or add your own listing to start the neighbourhood loop.
+              </p>
+            </div>
+          ) : (
+            <div className="absolute right-6 top-28 z-10 rounded-full border border-white/10 bg-slate-900/90 px-3 py-1.5 text-xs font-medium text-slate-300 shadow-lg backdrop-blur">
+              {filteredPins.length} {filteredPins.length === 1 ? "listing" : "listings"} in range
+            </div>
+          )}
+        </div>
       </div>
 
       <LocationPromptModal
         isOpen={showLocationPrompt}
         onClose={() => setShowLocationPrompt(false)}
-        onSuccess={() => {
-          setShowLocationPrompt(false);
-          // The page will revalidate and update coordinates via the dashboard action
-        }}
+        onSuccess={() => setShowLocationPrompt(false)}
+        variant={usesFallbackLocation ? "setup" : "refresh"}
       />
-
-      {/* Listings count badge — reflects active radar filter */}
-      {filteredPins.length > 0 && (
-        <div className="absolute left-6 top-24 z-10 rounded-full bg-slate-800/90 px-3 py-1.5 text-xs font-medium text-slate-300 shadow-lg ring-1 ring-slate-700 backdrop-blur">
-          {filteredPins.length} {filteredPins.length === 1 ? "listing" : "listings"} within {radiusKm}km
-        </div>
-      )}
-
-      {filteredPins.length === 0 && (
-        <div className="absolute left-6 top-24 z-10 rounded-2xl border border-white/10 bg-[#0F172A]/90 px-4 py-3 shadow-lg backdrop-blur">
-          <p className="text-sm font-semibold text-slate-100">No listings within {radiusKm}km</p>
-          <p className="mt-1 text-xs text-slate-400">
-            Try expanding the radius or add your own listing to get started.
-          </p>
-        </div>
-      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import type { ActionFunctionArgs } from "react-router";
 import { requireAuth } from "~/lib/auth.server";
+import { AiServiceError } from "~/lib/ai.server";
 import { handleChat } from "~/lib/chat.server";
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -11,6 +12,10 @@ export async function action({ request }: ActionFunctionArgs) {
     return new Response(JSON.stringify(result), { status: 200, headers: { "Content-Type": "application/json" } });
   } catch (err: any) {
     console.error("/api/chat error:", err);
-    return new Response(JSON.stringify({ error: err.message || "server_error" }), { status: 500 });
+    const error =
+      err instanceof AiServiceError
+        ? err.code
+        : err?.message || "server_error";
+    return new Response(JSON.stringify({ error }), { status: 500 });
   }
 }

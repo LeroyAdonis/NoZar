@@ -11,7 +11,7 @@ import {
   Radar,
 } from "lucide-react";
 import type { Route } from "./+types/dashboard";
-import { getOptionalSession, requireAuth } from "~/lib/auth.server";
+import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import { profiles } from "~/lib/schema";
 import { eq } from "drizzle-orm";
@@ -22,11 +22,10 @@ import { LocationPromptModal } from "~/components/ui/location-prompt-modal";
 import { provinceToSlug, getClosestRegion, MVP_REGIONS } from "~/lib/regions";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const session = await getOptionalSession(request);
-  const user = session?.user ?? null;
-  const unreadCount = user ? await getUnreadCount(db, user.id) : 0;
+  const { user } = await requireAuth(request);
+  const unreadCount = await getUnreadCount(db, user.id);
 
-  const profile = user ? (await db
+  const profile = (await db
     .select({
       avatarUrl: profiles.avatarUrl,
       displayName: profiles.displayName,
@@ -36,7 +35,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     })
     .from(profiles)
     .where(eq(profiles.userId, user.id))
-    .limit(1))[0] : null;
+    .limit(1))[0];
 
   return { user, unreadCount, profile: profile ?? null };
 }
@@ -61,35 +60,46 @@ export async function action({ request }: Route.ActionArgs) {
           set: { province, updatedAt: new Date() },
         });
     }
-    return { success: true };
+    return { success: true, intent: "setRegion" };
   }
 
   if (intent === "updateLocation") {
     const lat = parseFloat(formData.get("lat") as string);
     const lng = parseFloat(formData.get("lng") as string);
 
-    if (!isNaN(lat) && !isNaN(lng)) {
-      const regionSlug = getClosestRegion(lat, lng);
-      const province = MVP_REGIONS[regionSlug].province;
-
-      await db
-        .insert(profiles)
-        .values({
-          userId: user.id,
-          lat,
-          lng,
-          province,
-          displayName: user.name || user.email?.split("@")[0] || "User",
-        })
-        .onConflictDoUpdate({
-          target: profiles.userId,
-          set: { lat, lng, province, updatedAt: new Date() },
-        });
+    if (isNaN(lat) || isNaN(lng)) {
+      return {
+        success: false,
+        intent: "updateLocation",
+        error: "We couldn't read your location. Please try again.",
+      };
     }
-    return { success: true };
+
+    const regionSlug = getClosestRegion(lat, lng);
+    const province = MVP_REGIONS[regionSlug].province;
+
+    await db
+      .insert(profiles)
+      .values({
+        userId: user.id,
+        lat,
+        lng,
+        province,
+        displayName: user.name || user.email?.split("@")[0] || "User",
+      })
+      .onConflictDoUpdate({
+        target: profiles.userId,
+        set: { lat, lng, province, updatedAt: new Date() },
+      });
+
+    return {
+      success: true,
+      intent: "updateLocation",
+      location: { lat, lng, province },
+    };
   }
 
-  return { error: "Unknown intent" };
+  return { success: false, intent: "unknown", error: "Unknown intent" };
 }
 
 function getActiveTab(pathname: string): string {

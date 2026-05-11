@@ -69,7 +69,7 @@ You are writing for a South African audience.
 ```typescript
 import { GoogleGenerativeAI } from '@google/genai';
 
-const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+const ai = new GoogleGenerativeAI(process.env.NVIDIA_API_KEY!);
 const model = ai.getGenerativeModel({ model: 'gemini-pro' });
 
 const prompt = `

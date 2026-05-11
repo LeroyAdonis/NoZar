@@ -5,6 +5,8 @@
   "scripts": {
     "build": "react-router build",
     "dev": "react-router dev",
+    "graphify": "node ./scripts/run-graphify.mjs",
+    "graphify:install": "node ./scripts/install-graphify.mjs",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
     "test": "playwright test",
@@ -21,7 +23,6 @@
   },
   "dependencies": {
     "@better-auth/drizzle-adapter": "^1.5.3",
-    "@google/genai": "^1.48.0",
     "@googlemaps/js-api-loader": "^2.0.2",
     "@neondatabase/serverless": "^1.0.2",
     "@react-router/node": "7.12.0",
@@ -53,8 +54,11 @@
     "@types/react-dom": "^19.2.3",
     "@vercel/node": "^4.0.0",
     "autoprefixer": "^10.4.27",
+    "context-mode": "file:context-mode",
     "dotenv": "^17.3.1",
     "drizzle-kit": "^0.31.9",
+    "get-shit-done-cc": "github:gsd-build/get-shit-done",
+    "impeccable": "^2.1.8",
     "postcss": "^8.5.8",
     "tailwindcss": "^4.2.1",
     "typescript": "^5.9.2",

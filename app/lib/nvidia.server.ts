@@ -1,3 +1,5 @@
+import { getConfiguredNvidiaApiKey } from "./nvidia-config.server";
+
 // Standard NVIDIA NIM (OpenAI-compatible) API wrapper
 
 export type NvidiaCallOptions = {
@@ -7,15 +9,15 @@ export type NvidiaCallOptions = {
 };
 
 // Recommended default for NIM
-const DEFAULT_MODEL = "meta/llama-3.1-405b-instruct";
+const DEFAULT_MODEL = "meta/llama-3.3-70b-instruct";
 
 async function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
 export async function callNvidiaModel(prompt: string, options: NvidiaCallOptions = {}) {
-  const key = process.env.NVIDIA_API_KEY;
-  if (!key || key === "YOUR_NVIDIA_API_KEY") throw new Error("NVIDIA_API_KEY not configured on server");
+  const key = getConfiguredNvidiaApiKey();
+  if (!key) throw new Error("NVIDIA_API_KEY not configured on server");
   
   const model = options.model ?? DEFAULT_MODEL;
   // OpenAI-compatible endpoint

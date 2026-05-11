@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5173/)",
+      "Bash(wait)",
+      "Bash(curl -s http://localhost:5173/dashboard)",
+      "Bash(curl -s http://localhost:5173/dashboard/asset/__TRACKED_VAR__)",
+      "Bash(npx drizzle-kit *)",
+      "Bash(node -e ' *)",
+      "Bash(xargs grep -l \"scrypt\")",
+      "Bash(grep -v \"//\")",
+      "Bash(node --input-type=module)",
+      "Bash(2>&1)"
+    ]
+  }
+}

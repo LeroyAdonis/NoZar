@@ -19,7 +19,7 @@ export default defineConfig({
   use: {
     /* Base URL matches the local dev server started by webServer below.
      * For production runs against Vercel, override via PW_BASE_URL env var. */
-    baseURL: process.env.PW_BASE_URL ?? 'http://localhost:3000',
+    baseURL: process.env.PW_BASE_URL ?? 'http://localhost:5173',
     
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -53,7 +53,13 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3000',
+    url: 'http://localhost:5173/logo.svg',
+    env: {
+      ...process.env,
+      PLAYWRIGHT_TEST: '1',
+      BETTER_AUTH_URL: process.env.BETTER_AUTH_URL ?? 'http://localhost:5173',
+      GOOGLE_MAPS_API_KEY: process.env.GOOGLE_MAPS_API_KEY ?? 'playwright-test-key',
+    },
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
   },

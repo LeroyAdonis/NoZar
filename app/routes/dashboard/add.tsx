@@ -22,7 +22,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { generateContent } from "~/lib/ai.server";
+import { AiServiceError, generateContent } from "~/lib/ai.server";
 import type { Route } from "./+types/add";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
@@ -111,14 +111,22 @@ export async function action({ request }: Route.ActionArgs) {
     }
   }
 
-  // ─── Gemini helpers (server-only) ──────────────────────────────
+  // ─── AI helpers (server-only) ──────────────────────────────────
   async function generateDescription(
     title: string,
     category: string,
   ): Promise<string> {
-    const prompt = `Write a compelling 2-3 sentence listing description for a South African barter platform.
-     Item: "${title}" (Category: ${category}).
-     Use natural SA English. Be specific about condition and value. Keep it concise.`;
+    const prompt = `Write a compelling 2-3 sentence listing description for Nozar, a South African barter platform.
+Item title: "${title}"
+Category: ${category}
+
+Requirements:
+- Use natural South African English.
+- Make the copy sound useful and specific, not generic.
+- Mention practical details a barter partner would care about, like likely condition, standout features, scope, or common use cases.
+- If the title is short or vague, expand it into a fuller, more helpful description without inventing exact specs you do not know.
+- Keep it concise and persuasive.
+- Return plain text only.`;
     return await generateContent(prompt);
   }
 
@@ -140,10 +148,13 @@ export async function action({ request }: Route.ActionArgs) {
         category || "General",
       );
       return { aiSuggestion };
-    } catch {
+    } catch (error) {
       return {
         aiError:
-          "AI is unavailable right now — write your own lekker description!",
+          error instanceof AiServiceError &&
+          error.code === "nvidia_not_configured"
+            ? "AI Assist is unavailable right now — NVIDIA AI is not configured on the server."
+            : "AI Assist could not generate a description right now — please try again.",
       };
     }
   }

@@ -2,6 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
+**Status:** Active — authoritative backend source of truth
+**Supersedes:** Phase 4 and overlapping backend/map decisions in `docs/plans/2026-03-04-nozar-implementation-plan.md`
+
 **Goal:** Wire every dashboard page to a real Neon PostgreSQL backend with Drizzle ORM, add Better Auth (email/password + Google OAuth), replace all mock data, and implement interactive Google Maps + Gemini AI features.
 
 **Architecture:** React Router v7 SSR app (Vite + TypeScript strict). Routes export `loader`/`action` for server-side data, default export for components. Better Auth handles auth via a catch-all API route; a `requireAuth` helper protects dashboard loaders. Drizzle ORM connects to Neon serverless PostgreSQL via `drizzle-orm/neon-http`. Google Maps loads client-side via `@googlemaps/js-api-loader`; Gemini AI calls are server-side only (in loaders/actions).
@@ -9,6 +12,17 @@
 **Tech Stack:** React Router v7.12, React 19, Drizzle ORM + Neon serverless, Better Auth, Google Maps JS API, Google Gemini SDK, Tailwind CSS v4, TypeScript 5.9 (strict + verbatimModuleSyntax)
 
 **Design Document:** `docs/plans/2026-03-04-auth-database-maps-design.md`
+
+---
+
+## Reconciliation Decisions
+
+This document is the authoritative implementation plan for NoZar backend work. When it conflicts with `docs/plans/2026-03-04-nozar-implementation-plan.md`, this plan wins.
+
+1. **Auth scope winner:** Better Auth with **email/password + Google OAuth** is the baseline sign-in scope. Phone verification remains a **post-authenticated profile trust step** at `/dashboard/verify-phone`, backed by `profiles.phone`, `profiles.phone_verified`, and `app/lib/otp.server.ts`. It is **not** a Better Auth credential provider and **not** a prerequisite to initial sign-in.
+2. **Schema winner:** The live `app/lib/schema.ts` file is authoritative for table/column shape. For MVP, keep Better Auth plural tables, keep `profiles.displayName` as the canonical profile-facing name while `users.name` remains the auth/account name, keep category as `listings.category` instead of introducing a standalone `categories` table, and keep `trade_items` alongside `trades.listingId` so structured barter offers can coexist with the anchor listing record.
+3. **Map stack winner:** Google Maps JS API remains the selected map stack for the authenticated product. Later planning should extend the existing Google Maps implementation rather than re-open Leaflet/Mapbox for MVP.
+4. **Migration workflow winner:** Use `drizzle-kit generate` + `drizzle-kit migrate` as the shared workflow. Do not use `drizzle-kit push` for the authoritative backend path.
 
 ---
 
@@ -131,7 +145,7 @@ export const db = drizzle(sql, { schema });
 
 **Step 1: Define the full schema**
 
-This file defines ALL tables — both Better Auth managed tables AND NoZar app tables. Better Auth requires specific table/column names. We use `usePlural: true` in the adapter, so table names are plural.
+This file defines ALL tables — both Better Auth managed tables AND NoZar app tables. Better Auth requires specific table/column names. We use `usePlural: true` in the adapter, so table names are plural. Start from the live `app/lib/schema.ts` in this repository and keep this plan aligned to that file rather than re-deriving schema from older design docs.
 
 ```ts
 import {
@@ -311,6 +325,13 @@ export const contactDisclosures = pgTable("contact_disclosures", {
 
 > **Note:** Better Auth column names (like `email_verified`, `provider_id`, `account_id`) must match exactly what Better Auth expects. The schema above follows the Better Auth Drizzle adapter conventions. If you encounter column name mismatches, run `npx @better-auth/cli generate` to see what Better Auth expects.
 
+> **Authority note:** The code sample above is illustrative, but the repository's `app/lib/schema.ts` is the final authority. That means:
+> - `users`, `sessions`, `accounts`, and `verifications` stay aligned to Better Auth's plural-table Drizzle adapter shape.
+> - `profiles.displayName` is the canonical profile display label; `users.name` remains the account/auth name.
+> - `listings.category` stays inline for MVP; do **not** add a separate `categories` table unless a later plan explicitly reintroduces it.
+> - `trade_items` stays in scope for structured barter offers, even though `trades.listingId` remains the anchor listing reference.
+> - Phone verification lives on the profile (`phone`, `phoneVerified`) after sign-in rather than inside the auth credential surface.
+
 ---
 
 ### Task 5: Create Drizzle Config
@@ -336,37 +357,45 @@ export default defineConfig({
 
 ---
 
-### Task 6: Push Schema to Database
+### Task 6: Generate and Apply Initial Migration
 
-**Step 1: Push the schema to Neon**
+**Step 1: Generate the initial migration**
 
 Run:
 ```bash
-npx drizzle-kit push
+npx drizzle-kit generate
 ```
-Expected: All tables created in Neon. Output shows each table being created/updated.
+Expected: A SQL migration is created under `drizzle/` from the current `app/lib/schema.ts`.
 
-**Step 2: Verify in Drizzle Studio (optional)**
+**Step 2: Apply the migration**
+
+Run:
+```bash
+npx drizzle-kit migrate
+```
+Expected: The generated migration is applied to Neon and all planned tables exist.
+
+**Step 3: Verify in Drizzle Studio (optional)**
 
 Run:
 ```bash
 npx drizzle-kit studio
 ```
-Expected: Opens Drizzle Studio at `https://local.drizzle.studio`. Verify all tables exist: `users`, `sessions`, `accounts`, `verifications`, `profiles`, `listings`, `listing_images`, `trades`, `messages`, `ratings`, `contact_disclosures`.
+Expected: Opens Drizzle Studio at `https://local.drizzle.studio`. Verify the Better Auth tables plus the current NoZar application tables from `app/lib/schema.ts`, including core MVP tables such as `profiles`, `listings`, `listing_images`, `trades`, `trade_items`, `messages`, `ratings`, and `contact_disclosures`.
 
-**Step 3: Commit**
+**Step 4: Commit**
 
 ```bash
-git add app/lib/db.server.ts app/lib/schema.ts drizzle.config.ts .env
+git add app/lib/db.server.ts app/lib/schema.ts drizzle.config.ts drizzle
 git commit -m "feat: add Neon PostgreSQL schema with Drizzle ORM
 
 - db.server.ts: Neon HTTP connection + Drizzle instance
-- schema.ts: Better Auth tables + profiles, listings, trades, messages, ratings
+- schema.ts: Better Auth tables + NoZar application tables
 - drizzle.config.ts: migration config
-- Pushed schema to Neon"
+- drizzle/: generated SQL migrations"
 ```
 
-> **Warning:** Do NOT commit `.env` with real credentials. The `.gitignore` already excludes `.env`. If you staged it by accident, `git reset HEAD .env`.
+> **Warning:** Do NOT commit `.env` with real credentials. The `.gitignore` already excludes `.env`. If you staged it by accident, unstage it before committing.
 
 ---
 
@@ -440,6 +469,8 @@ export async function getOptionalSession(request: Request) {
   return session;
 }
 ```
+
+> **Auth scope note:** Keep sign-in limited to Better Auth email/password plus Google OAuth. Phone verification should reuse the authenticated profile flow (`/dashboard/verify-phone`) and `app/lib/otp.server.ts`; do not fold Africa's Talking OTP into the primary Better Auth credential surface.
 
 ---
 

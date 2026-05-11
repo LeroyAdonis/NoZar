@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { data, Form, Link, useFetcher, useNavigation, useRevalidator } from "react-router";
-import { generateContent } from "~/lib/ai.server";
+import { AiServiceError, generateContent } from "~/lib/ai.server";
 import { eq, asc, and, or, count, avg } from "drizzle-orm";
 import {
   ChevronLeft,
@@ -834,7 +834,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         ownerProfile?.province ??
         "South Africa";
 
-      // ── Call AI ──────────────────────────────────────────────────
+      // ── Call NVIDIA AI ───────────────────────────────────────────
       try {
         const prompt = `Suggest exactly 3 safe public meetup spots near ${location}, South Africa for a barter exchange.
            Prefer shopping malls, police stations, community centres, or busy well-lit public spaces.
@@ -880,7 +880,12 @@ export async function action({ request, params }: Route.ActionArgs) {
         return { ok: true };
       } catch (err) {
         console.error("[generateSafeZone] AI call failed:", err);
-        return { error: "ai_failed" };
+        return {
+          error:
+            err instanceof AiServiceError && err.code === "nvidia_not_configured"
+              ? "no_nvidia_key"
+              : "ai_failed",
+        };
       }
     }
 
@@ -1182,7 +1187,7 @@ export default function PingDetail({
               )}
             </div>
 
-            {/* SafeZone — Gemini-powered meetup spot picker */}
+            {/* SafeZone — NVIDIA-powered meetup spot picker */}
             <div className="space-y-3">
               <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
                 <ShieldCheck className="w-3 h-3 text-emerald-500" />
@@ -1202,8 +1207,8 @@ export default function PingDetail({
                   <div className="p-4 space-y-3">
                     {generateFetcher.data?.error && (
                       <p className="text-[10px] font-mono text-red-400 uppercase tracking-widest">
-                        {generateFetcher.data.error === "no_gemini_key"
-                          ? "⚠ AI not configured — contact support"
+                        {generateFetcher.data.error === "no_nvidia_key"
+                          ? "⚠ NVIDIA AI not configured — contact support"
                           : "⚠ Could not generate spots — try again"}
                       </p>
                     )}
@@ -1646,7 +1651,7 @@ export default function PingDetail({
                 )}
               </div>
 
-              {/* SafeZone — Gemini-powered meetup spot picker */}
+              {/* SafeZone — NVIDIA-powered meetup spot picker */}
               <div className="space-y-3">
                 <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
                   <ShieldCheck className="w-3 h-3 text-emerald-500" />
@@ -1669,8 +1674,8 @@ export default function PingDetail({
                     <div className="p-4 space-y-3">
                       {generateFetcher.data?.error && (
                         <p className="text-[10px] font-mono text-red-400 uppercase tracking-widest">
-                          {generateFetcher.data.error === "no_gemini_key"
-                            ? "⚠ AI not configured — contact support"
+                          {generateFetcher.data.error === "no_nvidia_key"
+                            ? "⚠ NVIDIA AI not configured — contact support"
                             : "⚠ Could not generate spots — try again"}
                         </p>
                       )}

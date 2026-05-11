@@ -1,36 +1,40 @@
-import { GoogleGenAI } from "@google/genai";
 import { callNvidiaModel } from "./nvidia.server";
+import { getConfiguredNvidiaApiKey } from "./nvidia-config.server";
+
+export class AiServiceError extends Error {
+  code: "nvidia_not_configured" | "nvidia_failed";
+
+  constructor(
+    code: "nvidia_not_configured" | "nvidia_failed",
+    message: string,
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = "AiServiceError";
+    this.code = code;
+  }
+}
 
 export async function generateContent(prompt: string, systemInstruction?: string) {
-  // Try NVIDIA first
-  const nvidiaApiKey = process.env.NVIDIA_API_KEY;
-  if (nvidiaApiKey && nvidiaApiKey !== "YOUR_NVIDIA_API_KEY") {
-    try {
-      return await callNvidiaModel(systemInstruction ? `${systemInstruction}\n\n${prompt}` : prompt);
-    } catch (error: any) {
-      console.error("NVIDIA failed, falling back to Gemini:", error.message || error);
-    }
+  const fullPrompt = systemInstruction
+    ? `${systemInstruction}\n\n${prompt}`
+    : prompt;
+
+  if (!getConfiguredNvidiaApiKey()) {
+    throw new AiServiceError(
+      "nvidia_not_configured",
+      "NVIDIA AI is not configured on the server",
+    );
   }
 
-  // Fallback to Gemini
-  const geminiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_MAPS_API_KEY;
-  const hasGemini = geminiApiKey && geminiApiKey !== "YOUR_GEMINI_API_KEY" && geminiApiKey !== "YOUR_GOOGLE_MAPS_API_KEY";
-
-  if (hasGemini) {
-    try {
-      const genAI = new GoogleGenAI({ apiKey: geminiApiKey! });
-      const result = await genAI.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [{ role: "user", parts: [{ text: systemInstruction ? `${systemInstruction}\n\n${prompt}` : prompt }] }],
-      });
-      if (result.text) return result.text;
-      if (result.candidates?.[0]?.content?.parts?.[0]?.text) {
-        return result.candidates[0].content.parts[0].text;
-      }
-    } catch (error: any) {
-      console.error("Gemini fallback failed:", error.message || error);
-    }
+  try {
+    return await callNvidiaModel(fullPrompt);
+  } catch (error) {
+    console.error("NVIDIA AI request failed:", error);
+    throw new AiServiceError(
+      "nvidia_failed",
+      "NVIDIA AI request failed",
+      { cause: error },
+    );
   }
-
-  throw new Error("AI service unavailable (no valid keys or all services failed)");
 }

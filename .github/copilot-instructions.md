@@ -104,3 +104,13 @@ Nozar is a South African barter/swap platform ("No ZAR" — no cash needed). Use
 - Always-dark theme: `#030712` base, `#0F172A` card backgrounds, emerald-500 primary accent, slate text. No light mode.
 - Brutalist typography: `font-mono uppercase tracking-widest text-[10px]` for labels, `font-black uppercase tracking-tighter` for headings.
 - Inter font is loaded from Google Fonts in `app/root.tsx`.
+
+<!-- GSD Configuration — managed by get-shit-done installer -->
+# Instructions for GSD
+
+- Use the get-shit-done skill when the user asks for GSD or uses a `gsd-*` command.
+- Treat `/gsd-...` or `gsd-...` as command invocations and load the matching file from `.github/skills/gsd-*`.
+- When a command says to spawn a subagent, prefer a matching custom agent from `.github/agents`.
+- Do not apply GSD workflows unless the user explicitly asks for them.
+- After completing any `gsd-*` command (or any deliverable it triggers: feature, bug fix, tests, docs, etc.), ALWAYS: (1) offer the user the next step by prompting via `ask_user`; repeat this feedback loop until the user explicitly indicates they are done.
+<!-- /GSD Configuration -->

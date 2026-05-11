@@ -7,6 +7,19 @@
 
 ---
 
+## Backend Authority
+
+`docs/plans/2026-03-04-auth-database-maps-plan.md` is the authoritative backend implementation document. This comprehensive plan still owns the cross-phase sequence, but its overlapping backend details are superseded wherever the two documents diverge.
+
+### Winning backend decisions
+
+1. **Auth scope:** Better Auth with email/password + Google OAuth wins as the baseline auth surface. `/dashboard/verify-phone` stays as a post-login profile verification flow, not a custom Better Auth sign-in method.
+2. **Schema:** The live `app/lib/schema.ts` wins over the older Platform Design table list. `profiles.displayName` is the profile-facing name, `users.name` remains the auth/account name, `listings.category` stays inline for MVP, and `trade_items` remains in scope alongside `trades.listingId`.
+3. **Map stack:** Google Maps JS API is the selected authenticated-product map stack. Any Leaflet/Mapbox MVP guidance in this plan is superseded.
+4. **Execution rule:** Do not execute the Phase 4 task list in this document directly. Execute the dedicated backend buildout plan instead.
+
+---
+
 ## Problem Statement
 
 NoZar ("No ZAR — no cash needed") is a mobile-first PWA for the South African market enabling peer-to-peer barter trading without money. The app currently exists as a **polished frontend prototype** with a landing page, dashboard shell, asset feed, asset detail view, pings/chat UI, and a 3-stage handshake flow — all using mock data.
@@ -200,48 +213,21 @@ Phase 0 ─── Design System Foundation (IN PROGRESS)
 
 ## Phase 4: Backend Infrastructure
 
-**Status:** ⬜ Not Started
+**Status:** 🔁 Superseded — execute `docs/plans/2026-03-04-auth-database-maps-plan.md`
 **Estimated effort:** 2–3 weeks
 **Dependencies:** Phase 0 (completed)
-**Goal:** Set up the foundational backend layer: database, schema, ORM, authentication, and auth-protected routes.
+**Goal:** Historical phase placeholder only. The dedicated backend buildout plan is the source of truth for database, auth, route protection, dashboard wiring, and Google Maps/Gemini integration.
 
-### Tasks
+### Supersession note
 
-| # | Task | Complexity | Description |
-|---|------|------------|-------------|
-| 4.1 | Neon PostgreSQL project setup | Easy | Create Neon project, get connection string, add to `.env` (never committed). Both pooled (for serverless) and direct (for migrations) connection strings. |
-| 4.2 | Drizzle ORM installation & config | Easy | Install `drizzle-orm`, `drizzle-kit`, `@neondatabase/serverless`. Create `drizzle.config.ts`. Create `app/lib/db.ts` with connection pool. |
-| 4.3 | Schema implementation | High | Create `app/lib/schema.ts` with all tables from Platform Design §7: `users`, `profiles`, `listings`, `listing_images`, `categories`, `trades`, `trade_items`, `messages`, `ratings`, `contact_disclosures`. Run initial migration. |
-| 4.4 | Better Auth integration | High | Install `better-auth`. Create `app/lib/auth.ts` with Better Auth config. Create `app/lib/auth.server.ts` for server-side session validation in loaders/actions. Verify React Router v7 SSR adapter compatibility. Start with email/password — phone OTP added in 4.6. |
-| 4.5 | Auth pages (UI) | Moderate | Create 3 new routes: `/login` (email + password form), `/register` (email + password + display name), `/verify-phone` (OTP input, skip option for MVP). Use Input and Button components. Redirect to `/dashboard` on success. |
-| 4.6 | Phone OTP via Africa's Talking | High | Set up Africa's Talking sandbox account. Create phone verification API route (resource route). OTP generation, SMS sending, verification flow. Integrate with Better Auth as custom credential provider. Cost: ~R0.10/SMS. |
-| 4.7 | Route protection | Moderate | Auth check in dashboard layout `loader` — redirect to `/login` if no session. Replace hardcoded "Zanele A." with actual user data from session. Protect all `/dashboard/*` routes. |
-| 4.8 | Seed data script | Easy | Create `scripts/seed.ts` with realistic SA mock data: 3 users (different cities), 10 listings (mix of items/services), 2 active trades, sample messages. Run via `npx tsx scripts/seed.ts`. |
+The following sections are explicitly superseded by `docs/plans/2026-03-04-auth-database-maps-plan.md` and should be treated as planning history only:
 
-### React Router v7–Specific Patterns
+1. **Tasks 4.1-4.4 and 4.7-4.8** are superseded by the backend buildout plan's infrastructure, schema, auth, dashboard wiring, and verification streams.
+2. **Tasks 4.5-4.6** are superseded in scope: `/login` and `/register` stay in the baseline auth surface, while `/dashboard/verify-phone` remains a post-login profile verification flow instead of becoming a Better Auth credential provider.
+3. **Task 4.3's schema wording** is superseded by the live `app/lib/schema.ts`. Do not recreate a standalone `categories` table from this document, and do not remove `trade_items` from the schema.
+4. **Any Phase 4 assumption that MVP map work waits for a later Leaflet/Mapbox decision** is superseded by the backend buildout plan's Google Maps JS API choice.
 
-```typescript
-// Route protection in loader (replaces Next.js middleware)
-export async function loader({ request }: LoaderFunctionArgs) {
-  const session = await auth.api.getSession({ headers: request.headers });
-  if (!session) throw redirect("/login");
-  return { user: session.user };
-}
-
-// Mutation in action (replaces Next.js Server Actions)
-export async function action({ request }: ActionFunctionArgs) {
-  const formData = await request.formData();
-  // validate + insert via Drizzle
-  return redirect("/dashboard");
-}
-```
-
-### Risks
-- **High risk.** This is the most complex phase. Multiple new dependencies, external services, and security-critical code.
-- **Better Auth + React Router v7:** Better Auth is relatively new. Verify SSR compatibility before committing. Fallback: implement auth manually with session cookies + bcrypt.
-- **Africa's Talking:** External dependency. Sandbox for development, production requires funded account. SMS delivery to SA numbers is reliable but test thoroughly.
-- **Security:** Auth implementation must be correct from day one. Session validation on every protected loader/action. No shortcutting.
-- **Mitigation:** Start with email/password auth only (4.4). Add phone OTP (4.6) as a separate step. This way the app is functional even if OTP integration takes longer.
+Phase 5 and later phases should assume the dedicated backend buildout plan has been executed as written.
 
 ---
 
@@ -356,7 +342,7 @@ Side transitions:
 |---|------|------------|----------|-------------|
 | 7.1 | Business accounts | High | P1 | Separate profile structure for businesses: company name, CIPC registration number, business type, operating hours, service areas. Different verification flow. Different listing limits per tier. |
 | 7.2 | Monetization (Polar.sh) | High | P1 | Integrate Polar.sh for: subscription tiers (recurring billing), boost token bundles (one-time purchases). Create subscription management UI. Implement boost token spending (24hr priority placement in feed). Paywall enforcement for tier limits. |
-| 7.3 | Interactive map | High | P2 | Integrate Leaflet (free, open-source) or Mapbox. Filterable pins for active listings. User location dot with search radius circle. Safe meetup location pins (police stations, shopping malls). Cluster pins at zoom levels. Click-to-view listing detail. |
+| 7.3 | Interactive map | High | P2 | Extend the existing Google Maps implementation with richer filtering, clustering, safe meetup location overlays, and improved discovery UX. Do not plan a Leaflet/Mapbox migration unless Google Maps becomes untenable. |
 | 7.4 | WebRTC in-app calling | Very High | P2 | Replace masked phone relay with in-app voice/video calling. Requires STUN/TURN servers. Only available after trade reaches `contact_shared` state. Eliminates Africa's Talking per-call costs. |
 | 7.5 | CIPC business verification | Moderate | P2 | Validate business registration numbers against CIPC database. Award "Verified Business" badge. May require manual verification initially (CIPC API is unreliable). |
 | 7.6 | Advanced abuse detection | High | P2 | Harvester detection: flag accounts initiating 5+ trades but completing <20%. Geographic anomaly: flag "in-person" trades between different cities. Automated reporting: 3 reports → manual review, 5 → automatic suspension. ML-based pattern detection (future). |
@@ -379,7 +365,7 @@ Side transitions:
 | 2 | Lucide React vs. inline SVGs | Migrate (plan compliance) vs. keep (ergonomics) | Keep Lucide — tree-shakes well, ~5KB impact | — |
 | 3 | Chat transport for MVP | SSE (real-time) vs. polling (simple) | Short-polling (3s) for MVP, upgrade to SSE after launch | 5 |
 | 4 | Image storage provider | Cloudflare R2 (cheap) vs. Vercel Blob (integrated) | Depends on hosting platform — decide in Phase 5 | 5 |
-| 5 | Map library | Leaflet (free, open-source) vs. Mapbox (polished, costs) | Leaflet for MVP — free, sufficient for pin display | 7 |
+| 5 | Map library | Google Maps JS API (implemented) vs. re-platform later | Google Maps JS API is the authoritative choice; alternative map stacks are superseded for MVP | 4/7 |
 | 6 | Service worker library | Workbox (established) vs. raw SW (full control) | Workbox — proven, good React Router v7 support | 6 |
 | 7 | Contact expiry mechanism | Cron job vs. check-on-read | Check-on-read for MVP (no cron infra needed), cron later | 5 |
 
@@ -393,7 +379,7 @@ Side transitions:
 | 1 | Landing Page Completion | 3–5 days | ⬜ Not Started | Phase 0 |
 | 2 | Awwwards Animations | 3–5 days | ⬜ Not Started | Phase 1 |
 | 3 | Dashboard Pages | 3–5 days | ⬜ Not Started | Phase 0 |
-| 4 | Backend Infrastructure | 2–3 weeks | ⬜ Not Started | Phase 0 |
+| 4 | Backend Infrastructure | 2–3 weeks | 🔁 Superseded | Phase 0 |
 | 5 | Core Features (MVP) | 3–4 weeks | ⬜ Not Started | Phase 4 |
 | 6 | PWA & Performance | 1–2 weeks | ⬜ Not Started | Phase 5 |
 | 7 | Growth (Post-MVP) | 2+ months | ⬜ Not Started | Phase 5 |

@@ -1,30 +1,89 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Radar, ShieldCheck, X, Loader2, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFetcher } from "react-router";
+
+type LocationPromptResponse = {
+  success?: boolean;
+  intent?: string;
+  error?: string;
+};
+
+type LocationPromptModalVariant = "setup" | "refresh";
 
 interface LocationPromptModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  variant?: LocationPromptModalVariant;
 }
 
 export function LocationPromptModal({
   isOpen,
   onClose,
   onSuccess,
+  variant = "setup",
 }: LocationPromptModalProps) {
-  const fetcher = useFetcher();
+  const fetcher = useFetcher<LocationPromptResponse>();
   const [error, setError] = useState<string | null>(null);
-  const isLoading = fetcher.state !== "idle";
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const isSavingLocation = fetcher.state !== "idle";
+  const isLoading = isDetectingLocation || isSavingLocation;
+
+  const copy =
+    variant === "refresh"
+      ? {
+          title: "Refresh Radar Location",
+          description:
+            "We'll update the saved coordinates on your profile and only move your radar once the new centre has been persisted.",
+          ctaLabel: "SAVE CURRENT LOCATION",
+          secondaryLabel: "Keep Current Location",
+        }
+      : {
+          title: "Initialize Radar",
+          description:
+            "To use Nozar's radar feature and discover swaps nearby, enable location services. You can still browse by region without it, but exact distances and the radar map will stay limited.",
+          ctaLabel: "ENABLE LOCATION & START RADAR",
+          secondaryLabel: "Maybe Later",
+        };
+
+  useEffect(() => {
+    if (!isOpen) {
+      setError(null);
+      setIsDetectingLocation(false);
+      fetcher.reset();
+    }
+  }, [fetcher, isOpen]);
+
+  useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data) {
+      return;
+    }
+
+    if (fetcher.data.success) {
+      setError(null);
+      setIsDetectingLocation(false);
+      fetcher.reset();
+      onSuccess?.();
+      return;
+    }
+
+    if (fetcher.data.error) {
+      setError(fetcher.data.error);
+      setIsDetectingLocation(false);
+      fetcher.reset();
+    }
+  }, [fetcher, onSuccess]);
 
   const handleEnableLocation = () => {
     setError(null);
+    setIsDetectingLocation(true);
 
     if (!navigator.geolocation) {
       setError("Geolocation is not supported by your browser");
+      setIsDetectingLocation(false);
       return;
     }
 
@@ -39,10 +98,9 @@ export function LocationPromptModal({
           },
           { method: "post", action: "/dashboard" }
         );
-        onSuccess?.();
       },
       (err) => {
-        console.error("Geolocation error:", err);
+        setIsDetectingLocation(false);
         switch (err.code) {
           case err.PERMISSION_DENIED:
             setError("Location permission denied. Please enable it in your browser settings.");
@@ -95,12 +153,10 @@ export function LocationPromptModal({
               </div>
 
               <h2 className="text-2xl font-black uppercase tracking-tighter text-white">
-                Initialize Radar
+                {copy.title}
               </h2>
               <p className="mt-4 text-sm leading-relaxed text-slate-400">
-                To use Nozar's radar feature and discover swaps nearby, we recommend
-                enabling location services. You can still browse by region without it, 
-                but exact distances and the radar map will be limited.
+                {copy.description}
               </p>
             </div>
 
@@ -126,10 +182,10 @@ export function LocationPromptModal({
                 </div>
                 <div>
                   <h3 className="text-xs font-bold uppercase tracking-widest text-slate-200">
-                    Precision Search
+                    Profile-anchored radar
                   </h3>
                   <p className="mt-1 text-xs text-slate-500">
-                    Find items within 10km, 25km, or 50km of your current position.
+                    We only update the live map after your coordinates are saved, so the radar centre never pretends to move before persistence succeeds.
                   </p>
                 </div>
               </div>
@@ -144,17 +200,26 @@ export function LocationPromptModal({
                 className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-emerald-500 px-6 py-4 text-sm font-bold text-[#030712] transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100"
               >
                 <span className="relative z-10 uppercase tracking-tight">
-                  {isLoading ? "Fetching Location..." : "ENABLE LOCATION & START RADAR"}
+                  {isDetectingLocation
+                    ? "Getting Current Location..."
+                    : isSavingLocation
+                      ? "Saving Radar Location..."
+                      : copy.ctaLabel}
                 </span>
                 <div className="absolute inset-0 bg-white/20 opacity-0 transition-opacity group-hover:opacity-100" />
               </button>
+              {isSavingLocation && (
+                <p className="text-center text-[11px] font-medium text-slate-400" aria-live="polite">
+                  Saving your radar centre and refreshing nearby results…
+                </p>
+              )}
               {!isLoading && (
                 <button
                   type="button"
                   onClick={onClose}
                   className="w-full rounded-2xl border border-white/10 bg-white/5 px-6 py-4 text-sm font-semibold text-slate-400 transition-colors hover:bg-white/10 hover:text-slate-200"
                 >
-                  Maybe Later
+                  {copy.secondaryLabel}
                 </button>
               )}
             </div>

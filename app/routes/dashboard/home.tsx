@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams, useFetcher } from "react-router";
 import { eq, ne, and, desc, inArray, ilike, or } from "drizzle-orm";
-import { generateContent } from "~/lib/ai.server";
+import { AiServiceError, generateContent } from "~/lib/ai.server";
 import { Sparkles, Search, X, Radar } from "lucide-react";
 import type { Route } from "./+types/home";
 import type { ListingCard } from "~/lib/types";
@@ -224,7 +224,7 @@ export async function action({ request }: Route.ActionArgs) {
     return { matchedIds: [] };
   }
 
-  // Build the Gemini prompt
+  // Build the NVIDIA prompt
   const userProfile = userListings
     .map(
       (l) =>
@@ -273,8 +273,14 @@ Return ONLY the JSON array, no explanation.`;
 
     setCachedMatches(user.id, matchedIds);
     return { matchedIds };
-  } catch {
-    return { error: "AI matching unavailable — try again later" };
+  } catch (error) {
+    return {
+      error:
+        error instanceof AiServiceError &&
+        error.code === "nvidia_not_configured"
+          ? "AI matching is unavailable because NVIDIA AI is not configured"
+          : "AI matching unavailable — try again later",
+    };
   }
 }
 
