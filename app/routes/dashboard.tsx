@@ -125,7 +125,18 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const activeTab = getActiveTab(location.pathname);
   const { user, unreadCount, profile } = loaderData;
   const needsLocation = !!user && (!profile?.lat || !profile?.lng);
-  const [isLocationDismissed, setIsLocationDismissed] = useState(false);
+  const [isLocationDismissed, setIsLocationDismissed] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("nozar_location_dismissed") === "1";
+  });
+  const handleLocationDismiss = () => {
+    localStorage.setItem("nozar_location_dismissed", "1");
+    setIsLocationDismissed(true);
+  };
+  const handleLocationReopen = () => {
+    localStorage.removeItem("nozar_location_dismissed");
+    setIsLocationDismissed(false);
+  };
 
   const showLocationModal = !!user && needsLocation && !isLocationDismissed;
 
@@ -209,11 +220,6 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
                 onClick={(e) => {
                   if (isNavigating) {
                     e.preventDefault();
-                    return;
-                  }
-                  if (link.id === "home" && needsLocation) {
-                    e.preventDefault();
-                    setIsLocationDismissed(false);
                   }
                 }}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-mono text-[10px] uppercase tracking-widest transition-all border ${
@@ -329,7 +335,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
           </span>
           {needsLocation && isLocationDismissed && (
             <button
-              onClick={() => setIsLocationDismissed(false)}
+              onClick={handleLocationReopen}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-mono uppercase tracking-widest border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-all animate-in fade-in zoom-in-95 duration-300"
             >
               <Radar className="w-3.5 h-3.5" /> Enable Radar
@@ -340,7 +346,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
         <div className="flex items-center gap-3">
           {needsLocation && isLocationDismissed && (
             <button
-              onClick={() => setIsLocationDismissed(false)}
+              onClick={handleLocationReopen}
               className="md:hidden flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[9px] font-mono uppercase tracking-widest border border-amber-500/30 bg-amber-500/10 text-amber-400 active:scale-95 transition-all"
             >
               <Radar className="w-3.5 h-3.5" /> <span className="hidden sm:inline">Radar Off</span>
@@ -431,7 +437,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
 
       <LocationPromptModal 
         isOpen={showLocationModal} 
-        onClose={() => setIsLocationDismissed(true)} 
+        onClose={handleLocationDismiss} 
       />
 
       {/* Bottom navigation — mobile only (BottomNav itself adds md:hidden) */}

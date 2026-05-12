@@ -28,6 +28,7 @@ export default [
     route("add", "routes/dashboard/add.tsx"),
     route("trade/:id", "routes/dashboard/trade.$id.tsx"),
     route("profile", "routes/dashboard/profile.tsx"),
+    route("billing", "routes/dashboard/billing.tsx"),
     route("verify-phone", "routes/dashboard/verify-phone.tsx"),
   ]),
   route("legal", "routes/legal.tsx", [

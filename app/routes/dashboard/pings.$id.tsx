@@ -89,8 +89,8 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const counterpartyId =
     trade.initiatorId === user.id ? trade.responderId : trade.initiatorId;
 
-  // Fetch counterparty, messages, and listing in parallel
-  const [counterpartyRows, tradeMessages, [listing]] = await Promise.all([
+  // Fetch counterparty, messages, listing, and current user's active listings in parallel
+  const [counterpartyRows, tradeMessages, [listing], userListings] = await Promise.all([
     db
       .select({
         name: users.name,
@@ -113,6 +113,16 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       .from(listings)
       .where(eq(listings.id, trade.listingId))
       .limit(1),
+
+    // Current user's active listings for BalancePile "Add Listing" picker
+    db
+      .select({
+        id: listings.id,
+        title: listings.title,
+        estimatedValueZar: listings.estimatedValueZar,
+      })
+      .from(listings)
+      .where(and(eq(listings.userId, user.id), eq(listings.status, "active"))),
   ]);
 
   if (!counterpartyRows[0] || !listing) {
@@ -210,6 +220,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     votes,
     myVote: myVote ?? null,
     tradeItemsForTrade,
+    userListings,
     userMsgCount,
     activeReport,
     disclosures,
@@ -941,7 +952,7 @@ export default function PingDetail({
 }: Route.ComponentProps) {
   const { trade, messages: chatMessages, counterparty, listing, currentUserId,
     myTrust, isReady, theyReady, spots, myVote, tradeItemsForTrade,
-    userMsgCount, activeReport, hasRated, existingRatingScore, maxItems,
+    userListings, userMsgCount, activeReport, hasRated, existingRatingScore, maxItems,
     disclosures } =
     loaderData;
   const navigation = useNavigation();
@@ -983,6 +994,45 @@ export default function PingDetail({
   // ── Trust system state ────────────────────────────────────
   const [showReportModal, setShowReportModal] = useState(false);
   const [showBalancePile, setShowBalancePile] = useState(false);
+
+  // ── BalancePile: derive trade values from loaded items ────
+  // The listing's owner contributes its estimated value to their side of the scale.
+  // Both parties may also add extra tradeItems to close the value gap.
+  const counterpartyId =
+    trade.initiatorId === currentUserId ? trade.responderId : trade.initiatorId;
+  const listingValue = listing.estimatedValueZar ?? 0;
+  const listingBelongsToCounterparty = listing.userId !== currentUserId;
+
+  const theirBaseValue = listingBelongsToCounterparty ? listingValue : 0;
+  const yourBaseValue = listingBelongsToCounterparty ? 0 : listingValue;
+
+  const theirItemsValue = tradeItemsForTrade
+    .filter((item) => item.userId === counterpartyId)
+    .reduce((sum, item) => sum + (item.estimatedValue ?? 0), 0);
+  const yourItemsValue = tradeItemsForTrade
+    .filter((item) => item.userId === currentUserId)
+    .reduce((sum, item) => sum + (item.estimatedValue ?? 0), 0);
+
+  const theirValue = theirBaseValue + theirItemsValue;
+  const yourValue = yourBaseValue + yourItemsValue;
+
+  // Submit each BalancePile item as a separate addTradeItem action, then revalidate
+  const handleBalanceSubmit = (
+    items: Array<{ listingId?: number; description?: string; estimatedValue?: number }>,
+  ) => {
+    const requests = items.map((item) => {
+      const fd = new FormData();
+      fd.set("intent", "addTradeItem");
+      if (item.listingId != null) fd.set("listingId", String(item.listingId));
+      if (item.description) fd.set("description", item.description);
+      if (item.estimatedValue != null)
+        fd.set("estimatedValue", String(item.estimatedValue));
+      fd.set("type", item.listingId != null ? "listing" : "service_extension");
+      return fetch(`/dashboard/pings/${trade.id}`, { method: "post", body: fd });
+    });
+    Promise.all(requests).then(() => revalidator.revalidate());
+    setShowBalancePile(false);
+  };
 
   // ── Polling for new messages ──────────────────────────────
   useEffect(() => {
@@ -1871,11 +1921,11 @@ export default function PingDetail({
     <BalancePile
       isOpen={showBalancePile}
       onClose={() => setShowBalancePile(false)}
-      onSubmit={() => { /* handled by form submission via BalancePile internals */ }}
+      onSubmit={handleBalanceSubmit}
       maxItems={maxItems ?? 5}
-      userListings={[]}
-      theirValue={0}
-      yourValue={0}
+      userListings={userListings}
+      theirValue={theirValue}
+      yourValue={yourValue}
     />
   </>
 );

@@ -1,6 +1,6 @@
 ---
 name: next-best-practices
-description: Next.js best-practices reference. Use when building, reviewing, or debugging Next.js App Router code (RSC boundaries, async APIs, routing conventions, metadata, handlers, images/fonts, bundling). Note: this skill is auto-invoked (user-invocable: false) and activates automatically when working with Next.js — it cannot be manually triggered.
+description: "Next.js best-practices reference. Use when building, reviewing, or debugging Next.js App Router code (RSC boundaries, async APIs, routing conventions, metadata, handlers, images/fonts, bundling). Note: this skill is auto-invoked (user-invocable: false) and activates automatically when working with Next.js — it cannot be manually triggered."
 user-invocable: false
 ---
 
