@@ -11,7 +11,7 @@ export function AssetCard({ listing, onClick }: AssetCardProps) {
     <div
       data-testid="asset-card"
       onClick={onClick}
-      className="bg-[#0F172A] border border-white/10 rounded-3xl p-3 sm:p-4 flex gap-3 sm:gap-4 hover:border-white/20 transition-colors cursor-pointer group shadow-lg"
+      className="bg-[#0F172A] border border-white/10 rounded-3xl p-3 sm:p-4 flex gap-3 sm:gap-4 hover:border-white/20 transition-colors cursor-pointer group shadow-lg overflow-hidden"
     >
       {/* Image / placeholder */}
       <div
@@ -49,7 +49,7 @@ export function AssetCard({ listing, onClick }: AssetCardProps) {
           </p>
         </div>
         <div className="flex items-center justify-between mt-2 sm:mt-3 gap-1.5 sm:gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
             <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-mono text-slate-400 bg-white/5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md whitespace-nowrap">
               <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-cyan-500 shrink-0" /> {listing.distance}
             </span>
