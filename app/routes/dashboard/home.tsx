@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate, useSearchParams, useFetcher } from "react-router";
+import { useNavigate, useSearchParams, useFetcher, Link } from "react-router";
 import { eq, ne, and, desc, inArray, ilike, or } from "drizzle-orm";
 import { AiServiceError, generateContent } from "~/lib/ai.server";
 import { Sparkles, Search, X, Radar } from "lucide-react";
@@ -143,8 +143,16 @@ export async function loader({ request }: Route.LoaderArgs) {
       imageUrl: imageMap.get(r.id) ?? null,
     }));
 
+  // Check if user has any active listings (drives onboarding empty state)
+  const [ownListing] = await db
+    .select({ id: listings.id })
+    .from(listings)
+    .where(and(eq(listings.userId, user.id), eq(listings.status, "active")))
+    .limit(1);
+
   return {
     listings: items,
+    hasListings: ownListing !== undefined,
     currentRegion,
     needsRegion: !userProfile?.province || !provinceToSlug(userProfile.province),
     needsLocation: !userProfile?.lat || !userProfile?.lng,
@@ -456,6 +464,67 @@ export default function DashboardHome({
           );
         })}
       </div>
+
+      {/* Onboarding empty-state card — shown only when user has no active listings */}
+      {!loaderData.hasListings && (
+        <div className="bg-[#0F172A] border border-emerald-500/20 rounded-2xl p-5 sm:p-7 animate-in slide-in-from-top-4 duration-500">
+          <span className="text-emerald-500 font-mono text-[10px] uppercase tracking-widest block mb-2">
+            // Getting Started
+          </span>
+          <h2 className="text-lg sm:text-xl font-black uppercase tracking-tighter text-white mb-1">
+            Welcome to NoZar
+          </h2>
+          <p className="text-slate-400 text-xs leading-relaxed mb-6 max-w-prose">
+            South Africa's barter platform. No money changes hands — swap what you have for what you need.
+          </p>
+
+          {/* 3-step barter loop */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            {(
+              [
+                {
+                  step: "01",
+                  label: "List an Item",
+                  detail: "Post what you're offering and what you'd like in return.",
+                },
+                {
+                  step: "02",
+                  label: "Browse the Feed",
+                  detail: "Discover assets nearby. Use AI Match to find the best fits.",
+                },
+                {
+                  step: "03",
+                  label: "Ping to Swap",
+                  detail: "Send a swap offer. Chat, agree, and exchange — done.",
+                },
+              ] as const
+            ).map(({ step, label, detail }) => (
+              <div
+                key={step}
+                className="flex gap-3 bg-[#030712] border border-white/5 rounded-xl p-4"
+              >
+                <span className="font-mono text-[10px] text-emerald-500 uppercase tracking-widest shrink-0 pt-0.5">
+                  {step}
+                </span>
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-white mb-0.5">
+                    {label}
+                  </p>
+                  <p className="text-[10px] text-slate-500 leading-relaxed">{detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <Link
+            to="/dashboard/add"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-emerald-500 text-black text-[11px] font-mono font-bold uppercase tracking-widest hover:bg-emerald-400 transition-colors"
+          >
+            List Your First Item →
+          </Link>
+        </div>
+      )}
 
       {/* Asset feed */}
       {loaderData.listings.length > 0 ? (

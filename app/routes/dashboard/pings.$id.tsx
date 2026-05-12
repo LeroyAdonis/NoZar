@@ -269,8 +269,8 @@ export async function action({ request, params }: Route.ActionArgs) {
             eq(messages.senderId, user.id),
             eq(messages.type, "text"),
           ));
-        if (msgCount >= 3) {
-          return { error: "New users can send 3 messages per trade. Complete your first trade to unlock unlimited messaging." };
+        if (msgCount >= 5) {
+          return { error: "New users can send 5 messages per trade. Complete your first trade to unlock unlimited messaging." };
         }
       }
 
@@ -1110,6 +1110,79 @@ export default function PingDetail({
           </div>
         )}
 
+        {/* Proposed — initial open-chat phase (Stage 01) */}
+        {status === "proposed" && (
+          <div className="p-5 rounded-2xl bg-[#0F172A] border border-slate-700/50 space-y-4">
+            <div className="flex justify-center">
+              <div className="w-10 h-10 rounded-full bg-slate-700/30 flex items-center justify-center border border-slate-600/30">
+                <Handshake className="w-5 h-5 text-slate-300" />
+              </div>
+            </div>
+            <h4 className="text-center font-black uppercase tracking-tighter text-white text-sm">
+              Stage 01 — Open Chat
+            </h4>
+
+            {/* Trade summary */}
+            <div className="space-y-2">
+              <span className="font-mono uppercase tracking-widest text-[10px] text-slate-500 block">
+                // Trade Summary
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                  <span className="font-mono uppercase tracking-widest text-[9px] text-slate-500 block mb-1">You offer</span>
+                  <p className="text-xs text-white font-bold leading-snug">
+                    {listing.userId === currentUserId ? listing.title : "Your items"}
+                  </p>
+                  {yourValue > 0 && (
+                    <p className="text-[9px] font-mono text-emerald-400 mt-0.5">~R{yourValue.toLocaleString()}</p>
+                  )}
+                </div>
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                  <span className="font-mono uppercase tracking-widest text-[9px] text-slate-500 block mb-1">They offer</span>
+                  <p className="text-xs text-white font-bold leading-snug">
+                    {listing.userId !== currentUserId ? listing.title : "Their items"}
+                  </p>
+                  {theirValue > 0 && (
+                    <p className="text-[9px] font-mono text-emerald-400 mt-0.5">~R{theirValue.toLocaleString()}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Safe trading tips */}
+            <div className="space-y-2">
+              <span className="font-mono uppercase tracking-widest text-[10px] text-slate-500 block">
+                // Safe Trading Tips
+              </span>
+              <ul className="space-y-1.5">
+                {[
+                  "Use the Handshake flow to agree on terms",
+                  "Never share personal details in chat",
+                  "Use Balance Trade to compare values fairly",
+                  "Meet only at safe, well-lit public locations",
+                ].map((tip) => (
+                  <li key={tip} className="flex items-start gap-2">
+                    <span className="text-emerald-500 text-[10px] font-mono mt-0.5 shrink-0">✓</span>
+                    <span className="text-[10px] font-mono text-slate-400">{tip}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Handshake prompt */}
+            <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+              <div className="flex items-start gap-2">
+                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                <p className="text-[10px] font-mono text-emerald-400 leading-relaxed">
+                  When both parties are ready, use{" "}
+                  <span className="font-bold text-emerald-300">Initiate Handshake</span>{" "}
+                  (🛡 button in the chat footer) to lock in terms and proceed.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Handshake Stage: Negotiating */}
         {status === "negotiating" && (
           <div className="p-5 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
@@ -1372,6 +1445,25 @@ export default function PingDetail({
                 />
               </div>
             )}
+
+            {/* Post-completion CTA */}
+            <div className="mt-4 rounded-2xl bg-[#0F172A] border border-white/10 p-5 space-y-3">
+              <span className="font-mono uppercase tracking-widest text-[10px] text-slate-500 block">
+                // What&apos;s Next?
+              </span>
+              <Link
+                to="/dashboard/add"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all"
+              >
+                + List Another Item
+              </Link>
+              <Link
+                to="/refer"
+                className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#0F172A] border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 font-mono uppercase tracking-widest text-[10px] transition-all"
+              >
+                Invite a Friend
+              </Link>
+            </div>
           </>
         )}
 
@@ -1566,6 +1658,79 @@ export default function PingDetail({
 
           {/* Status panels — mobile only; desktop shows them in right column */}
           <div className="md:hidden">
+
+          {/* Proposed — initial open-chat phase (Stage 01), mobile */}
+          {status === "proposed" && (
+            <div className="mt-6 p-5 rounded-2xl bg-[#0F172A] border border-slate-700/50 space-y-4">
+              <div className="flex justify-center">
+                <div className="w-10 h-10 rounded-full bg-slate-700/30 flex items-center justify-center border border-slate-600/30">
+                  <Handshake className="w-5 h-5 text-slate-300" />
+                </div>
+              </div>
+              <h4 className="text-center font-black uppercase tracking-tighter text-white text-sm">
+                Stage 01 — Open Chat
+              </h4>
+
+              {/* Trade summary */}
+              <div className="space-y-2">
+                <span className="font-mono uppercase tracking-widest text-[10px] text-slate-500 block">
+                  // Trade Summary
+                </span>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                    <span className="font-mono uppercase tracking-widest text-[9px] text-slate-500 block mb-1">You offer</span>
+                    <p className="text-xs text-white font-bold leading-snug">
+                      {listing.userId === currentUserId ? listing.title : "Your items"}
+                    </p>
+                    {yourValue > 0 && (
+                      <p className="text-[9px] font-mono text-emerald-400 mt-0.5">~R{yourValue.toLocaleString()}</p>
+                    )}
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
+                    <span className="font-mono uppercase tracking-widest text-[9px] text-slate-500 block mb-1">They offer</span>
+                    <p className="text-xs text-white font-bold leading-snug">
+                      {listing.userId !== currentUserId ? listing.title : "Their items"}
+                    </p>
+                    {theirValue > 0 && (
+                      <p className="text-[9px] font-mono text-emerald-400 mt-0.5">~R{theirValue.toLocaleString()}</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Safe trading tips */}
+              <div className="space-y-2">
+                <span className="font-mono uppercase tracking-widest text-[10px] text-slate-500 block">
+                  // Safe Trading Tips
+                </span>
+                <ul className="space-y-1.5">
+                  {[
+                    "Use the Handshake flow to agree on terms",
+                    "Never share personal details in chat",
+                    "Use Balance Trade to compare values fairly",
+                    "Meet only at safe, well-lit public locations",
+                  ].map((tip) => (
+                    <li key={tip} className="flex items-start gap-2">
+                      <span className="text-emerald-500 text-[10px] font-mono mt-0.5 shrink-0">✓</span>
+                      <span className="text-[10px] font-mono text-slate-400">{tip}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Handshake prompt */}
+              <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                <div className="flex items-start gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <p className="text-[10px] font-mono text-emerald-400 leading-relaxed">
+                    When both parties are ready, use{" "}
+                    <span className="font-bold text-emerald-300">Initiate Handshake</span>{" "}
+                    (🛡 button below) to lock in terms and proceed.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Handshake Stage: Negotiating — waiting for acceptance */}
           {status === "negotiating" && (
@@ -1837,6 +2002,25 @@ export default function PingDetail({
                   />
                 </div>
               )}
+
+              {/* Post-completion CTA */}
+              <div className="mt-4 rounded-2xl bg-[#0F172A] border border-white/10 p-5 space-y-3">
+                <span className="font-mono uppercase tracking-widest text-[10px] text-slate-500 block">
+                  // What&apos;s Next?
+                </span>
+                <Link
+                  to="/dashboard/add"
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all"
+                >
+                  + List Another Item
+                </Link>
+                <Link
+                  to="/refer"
+                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#0F172A] border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 font-mono uppercase tracking-widest text-[10px] transition-all"
+                >
+                  Invite a Friend
+                </Link>
+              </div>
             </>
           )}
 
@@ -1883,7 +2067,7 @@ export default function PingDetail({
               isSubmitting={isSubmitting}
               submittingIntent={submittingIntent}
               myTrust={myTrust as any}
-              messagesRemaining={Math.max(0, 3 - ((userMsgCount ?? 0) as number))}
+              messagesRemaining={Math.max(0, 5 - ((userMsgCount ?? 0) as number))}
               onBalanceClick={() => setShowBalancePile(true)}
             />
           </div>
@@ -1949,13 +2133,23 @@ function MessageInput({
   onBalanceClick?: () => void;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
+  // Track the last submitting intent in a ref so we still have it when
+  // isSubmitting flips back to false (at which point submittingIntent is null).
+  const lastIntentRef = useRef<string | null>(null);
 
-  // Clear the input after successful submission
   useEffect(() => {
-    if (!isSubmitting && submittingIntent === "sendMessage") {
-      formRef.current?.reset();
+    if (isSubmitting && submittingIntent) {
+      lastIntentRef.current = submittingIntent;
     }
   }, [isSubmitting, submittingIntent]);
+
+  // Clear the input once the sendMessage submission completes
+  useEffect(() => {
+    if (!isSubmitting && lastIntentRef.current === "sendMessage") {
+      formRef.current?.reset();
+      lastIntentRef.current = null;
+    }
+  }, [isSubmitting]);
 
   return (
     <div>
