@@ -5,10 +5,19 @@ import { useLoaderData } from "react-router";
 export async function loader({ request }: LoaderFunctionArgs) {
   const { requireAuth } = await import("~/lib/auth.server");
   const { db } = await import("~/lib/db.server");
-  const { referrals } = await import("~/lib/schema");
+  const { referrals, users } = await import("~/lib/schema");
   const { count, eq } = await import("drizzle-orm");
 
   const session = await requireAuth(request);
+
+  let referralCode = session.user.referralCode as string | null;
+
+  // Backfill: generate a code for existing users who pre-date the hook
+  if (!referralCode) {
+    const newCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+    await db.update(users).set({ referralCode: newCode }).where(eq(users.id, session.user.id));
+    referralCode = newCode;
+  }
 
   // Get referral count
   const [{ value: referralCount }] = await db
@@ -16,9 +25,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
     .from(referrals)
     .where(eq(referrals.referrerId, session.user.id));
 
-  return { 
-    referralCode: session.user.referralCode,
-    referralCount 
+  return {
+    referralCode,
+    referralCount
   };
 }
 
@@ -33,7 +42,7 @@ export default function ReferPage() {
   const referralLink = referralCode ? `${origin}/r/${referralCode}` : "Loading...";
 
   return (
-    <div className="max-w-4xl mx-auto py-16 px-4">
+    <div className="max-w-4xl mx-auto py-6 px-0">
       <h1 className="text-3xl font-bold mb-8">Invite to Nozar</h1>
       <div className="p-6 bg-[#0F172A] rounded-xl border border-white/10">
         <h2 className="text-xl mb-4 font-bold">Your Referral Link</h2>

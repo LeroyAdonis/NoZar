@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { setOptions, importLibrary } from "@googlemaps/js-api-loader";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "motion/react";
 import { MapPinTooltip } from "./map-pin-tooltip";
 
 export type MapPin = {

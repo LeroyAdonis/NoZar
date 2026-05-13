@@ -5,7 +5,7 @@ import {
   useMotionValue,
   useReducedMotion,
   motion,
-} from "framer-motion";
+} from "motion/react";
 
 /** Format a number with spaces as thousands separators (South African convention). */
 function formatZA(value: number): string {

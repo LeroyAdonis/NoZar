@@ -36,6 +36,8 @@ export type ListingCard = {
   userName: string;
   isVerified: boolean;
   imageUrl: string | null;
+  /** True when the current user's listings keyword-match what this owner is seeking */
+  youHaveMatch?: boolean;
 };
 
 /** Trade thread as displayed in pings list */

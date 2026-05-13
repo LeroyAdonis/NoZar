@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Radar, ShieldCheck, X, Loader2, AlertCircle } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { useFetcher } from "react-router";
 
 type LocationPromptResponse = {

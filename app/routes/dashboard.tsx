@@ -9,6 +9,7 @@ import {
   MessageSquare,
   User,
   Radar,
+  Gift,
 } from "lucide-react";
 import type { Route } from "./+types/dashboard";
 import { requireAuth } from "~/lib/auth.server";
@@ -20,6 +21,8 @@ import { BottomNav } from "~/components/ui/bottom-nav";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 import { LocationPromptModal } from "~/components/ui/location-prompt-modal";
 import { provinceToSlug, getClosestRegion, MVP_REGIONS } from "~/lib/regions";
+import { vapidPublicKey } from "~/lib/webpush.server";
+import { PushPermissionButton } from "~/components/ui/push-permission-button";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
@@ -37,7 +40,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     .where(eq(profiles.userId, user.id))
     .limit(1))[0];
 
-  return { user, unreadCount, profile: profile ?? null };
+  return { user, unreadCount, profile: profile ?? null, vapidPublicKey };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -107,6 +110,7 @@ function getActiveTab(pathname: string): string {
   if (pathname.startsWith("/dashboard/add")) return "add";
   if (pathname.startsWith("/dashboard/pings")) return "messages";
   if (pathname.startsWith("/dashboard/profile")) return "profile";
+  if (pathname.startsWith("/dashboard/refer")) return "refer";
   // home, asset detail, and any unknown sub-routes default to "home"
   return "home";
 }
@@ -123,7 +127,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const location = useLocation();
   const navigation = useNavigation();
   const activeTab = getActiveTab(location.pathname);
-  const { user, unreadCount, profile } = loaderData;
+  const { user, unreadCount, profile, vapidPublicKey } = loaderData;
   const needsLocation = !!user && (!profile?.lat || !profile?.lng);
   const [isLocationDismissed, setIsLocationDismissed] = useState(() => {
     if (typeof window === "undefined") return false;
@@ -244,6 +248,24 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
           })}
         </nav>
 
+        {/* Invite / Refer — secondary action above user footer */}
+        <div className="px-3 pb-2">
+          <Link
+            to="/dashboard/refer"
+            aria-disabled={isNavigating}
+            tabIndex={isNavigating ? -1 : undefined}
+            onClick={isNavigating ? (e) => e.preventDefault() : undefined}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl font-mono text-[10px] uppercase tracking-widest transition-all border ${
+              activeTab === "refer"
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                : "text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/5 border-dashed border-white/10 hover:border-emerald-500/20"
+            } ${isNavigating ? "opacity-70 pointer-events-none" : ""}`}
+          >
+            <Gift className={`w-4 h-4 shrink-0 ${activeTab === "refer" ? "text-emerald-400" : "text-slate-500"}`} />
+            Invite Friends
+          </Link>
+        </div>
+
         {/* User info + notifications at bottom */}
         {user ? (
           <div className="p-4 border-t border-white/5 shrink-0 space-y-3">
@@ -344,6 +366,8 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Push notification toggle — shown in header on all screens */}
+          <PushPermissionButton vapidPublicKey={vapidPublicKey} />
           {needsLocation && isLocationDismissed && (
             <button
               onClick={handleLocationReopen}

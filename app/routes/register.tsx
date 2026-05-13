@@ -133,6 +133,7 @@ export default function RegisterPage() {
             placeholder="Min 8 characters"
             minLength={8}
             required
+            suppressHydrationWarning
           />
           <Button
             type="submit"

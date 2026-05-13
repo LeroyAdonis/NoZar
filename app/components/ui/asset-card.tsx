@@ -4,15 +4,21 @@ import type { ListingCard } from "~/lib/types";
 type AssetCardProps = {
   listing: ListingCard;
   onClick?: () => void;
+  youHaveMatch?: boolean;
 };
 
-export function AssetCard({ listing, onClick }: AssetCardProps) {
+export function AssetCard({ listing, onClick, youHaveMatch }: AssetCardProps) {
   return (
     <div
       data-testid="asset-card"
       onClick={onClick}
-      className="bg-[#0F172A] border border-white/10 rounded-3xl p-3 sm:p-4 flex gap-3 sm:gap-4 hover:border-white/20 transition-colors cursor-pointer group shadow-lg overflow-hidden"
+      className="relative bg-[#0F172A] border border-white/10 rounded-3xl p-3 sm:p-4 flex gap-3 sm:gap-4 hover:border-white/20 transition-colors cursor-pointer group shadow-lg overflow-hidden"
     >
+      {youHaveMatch && (
+        <span className="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full bg-teal-500/20 border border-teal-500/40 text-teal-400 font-mono text-[9px] uppercase tracking-widest">
+          ✓ You Have This
+        </span>
+      )}
       {/* Image / placeholder */}
       <div
         className={`w-20 h-20 sm:w-24 sm:h-24 rounded-xl sm:rounded-2xl ${listing.imageUrl ? "" : "bg-emerald-900/20"} border border-white/5 flex items-center justify-center flex-shrink-0 relative overflow-hidden`}

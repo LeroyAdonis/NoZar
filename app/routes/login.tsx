@@ -122,6 +122,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
+              suppressHydrationWarning
             />
             <Button
               type="submit"

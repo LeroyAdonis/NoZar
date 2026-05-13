@@ -10,7 +10,7 @@ import {
   useMotionValue,
   useSpring,
   useReducedMotion,
-} from "framer-motion";
+} from "motion/react";
 
 interface MagneticButtonProps {
   children: ReactNode;

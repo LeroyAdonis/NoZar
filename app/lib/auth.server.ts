@@ -95,6 +95,18 @@ export const auth = betterAuth({
       users: schema.users,
     },
   }),
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          const { users } = await import("./schema");
+          const { eq } = await import("drizzle-orm");
+          const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+          await db.update(users).set({ referralCode: code }).where(eq(users.id, user.id));
+        },
+      },
+    },
+  },
   user: {
     additionalFields: {
       referralCode: {

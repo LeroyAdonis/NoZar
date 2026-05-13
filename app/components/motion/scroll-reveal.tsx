@@ -1,6 +1,6 @@
 import { useRef, useMemo, type ReactNode } from "react";
-import { motion, useInView, useReducedMotion } from "framer-motion";
-import type { Variants } from "framer-motion";
+import { motion, useInView, useReducedMotion } from "motion/react";
+import type { Variants } from "motion/react";
 
 interface ScrollRevealProps {
   /** Delay in seconds before the animation starts */

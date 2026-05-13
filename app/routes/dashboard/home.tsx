@@ -104,15 +104,21 @@ export async function loader({ request }: Route.LoaderArgs) {
     .orderBy(desc(listings.createdAt))
     .limit(50);
 
-  // Fetch first images for listings
+  // Fetch images and own listings in parallel
   const listingIds = rows.map((r) => r.id);
-  const images = listingIds.length > 0
-    ? await db
-        .select({ listingId: listingImages.listingId, url: listingImages.url })
-        .from(listingImages)
-        .where(inArray(listingImages.listingId, listingIds))
-        .orderBy(listingImages.order)
-    : [];
+  const [images, ownListings] = await Promise.all([
+    listingIds.length > 0
+      ? db
+          .select({ listingId: listingImages.listingId, url: listingImages.url })
+          .from(listingImages)
+          .where(inArray(listingImages.listingId, listingIds))
+          .orderBy(listingImages.order)
+      : Promise.resolve([]),
+    db
+      .select({ title: listings.title, description: listings.description, category: listings.category })
+      .from(listings)
+      .where(and(eq(listings.userId, user.id), eq(listings.status, "active"))),
+  ]);
 
   // Keep only the first image per listing (query is ordered by `order`)
   const imageMap = new Map<number, string>();
@@ -143,16 +149,32 @@ export async function loader({ request }: Route.LoaderArgs) {
       imageUrl: imageMap.get(r.id) ?? null,
     }));
 
-  // Check if user has any active listings (drives onboarding empty state)
-  const [ownListing] = await db
-    .select({ id: listings.id })
-    .from(listings)
-    .where(and(eq(listings.userId, user.id), eq(listings.status, "active")))
-    .limit(1);
+  // Build a word set from own listings (words longer than 3 chars to reduce noise)
+  const ownWords = new Set(
+    ownListings.flatMap((l) =>
+      `${l.title} ${l.description ?? ""} ${l.category}`
+        .toLowerCase()
+        .split(/\W+/)
+        .filter((w) => w.length > 3),
+    ),
+  );
+
+  // Check if any seeking keywords overlap with the user's own listing words
+  function matchesSeeking(seekingDescription: string | null): boolean {
+    if (!seekingDescription || ownWords.size === 0) return false;
+    const seekWords = seekingDescription.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
+    return seekWords.some((w) => ownWords.has(w));
+  }
+
+  // Tag items with youHaveMatch
+  const taggedItems: ListingCard[] = items.map((item) => ({
+    ...item,
+    youHaveMatch: matchesSeeking(item.seekingDescription),
+  }));
 
   return {
-    listings: items,
-    hasListings: ownListing !== undefined,
+    listings: taggedItems,
+    hasListings: ownListings.length > 0,
     currentRegion,
     needsRegion: !userProfile?.province || !provinceToSlug(userProfile.province),
     needsLocation: !userProfile?.lat || !userProfile?.lng,
@@ -539,6 +561,7 @@ export default function DashboardHome({
               )}
               <AssetCard
                 listing={listing}
+                youHaveMatch={listing.youHaveMatch}
                 onClick={() => navigate(`/dashboard/asset/${listing.id}`)}
               />
             </div>

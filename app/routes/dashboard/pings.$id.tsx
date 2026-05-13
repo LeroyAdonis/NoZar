@@ -37,6 +37,7 @@ import {
 } from "~/lib/schema";
 import { timeAgo } from "~/lib/utils";
 import { markThreadRead } from "~/lib/notifications.server";
+import { sendPushToUser } from "~/lib/webpush.server";
 import {
   newMessageEmail,
   tradeAcceptedEmail,
@@ -309,8 +310,15 @@ export async function action({ request, params }: Route.ActionArgs) {
           messageSnippet: text,
           tradeId,
           listingTitle: listForMsg?.title ?? "a listing",
-        });
+        }).catch(() => {});
       }
+
+      // Push notification to counterparty (non-fatal — don't fail the request)
+      sendPushToUser(counterpartyId_msg, {
+        title: "New message on NoZar",
+        body: `${user.name ?? "Someone"} sent you a message`,
+        url: `/dashboard/pings/${tradeId}`,
+      }).catch(() => {});
 
       return { ok: true };
     }
@@ -384,7 +392,7 @@ export async function action({ request, params }: Route.ActionArgs) {
           senderName: user.name,
           tradeId,
           listingTitle: listForAccept?.title ?? "a listing",
-        });
+        }).catch(() => {});
       }
 
       return { ok: true };
@@ -464,7 +472,7 @@ export async function action({ request, params }: Route.ActionArgs) {
           senderName: user.name,
           tradeId,
           listingTitle: listingForContact?.title ?? "a listing",
-        });
+        }).catch(() => {});
       }
 
       return { ok: true };
@@ -554,7 +562,7 @@ export async function action({ request, params }: Route.ActionArgs) {
             otherName: uid === counterpartyId ? user.name : cpForComplete.name,
             tradeId,
             listingTitle: listingForComplete?.title ?? "a listing",
-          });
+          }).catch(() => {});
         }
         // Also email the current user (they initiated completion)
         tradeCompletedEmail({
@@ -563,7 +571,7 @@ export async function action({ request, params }: Route.ActionArgs) {
           otherName: cpForComplete?.name ?? "your trading partner",
           tradeId,
           listingTitle: listingForComplete?.title ?? "a listing",
-        });
+        }).catch(() => {});
       }
 
       return { ok: true };
@@ -1034,15 +1042,32 @@ export default function PingDetail({
     setShowBalancePile(false);
   };
 
-  // ── Polling for new messages ──────────────────────────────
+  // ── SSE for real-time message updates ────────────────────
+  // Opens a persistent connection; revalidates only when the server
+  // signals new messages — eliminates constant 2 s polling.
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (revalidator.state === "idle") {
-        revalidator.revalidate();
-      }
-    }, 2000);
-    return () => clearInterval(interval);
-  }, [revalidator]);
+    // Fallback for environments that don't support EventSource (e.g. old WebViews)
+    if (typeof EventSource === "undefined") {
+      const interval = setInterval(() => {
+        if (revalidator.state === "idle") revalidator.revalidate();
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+
+    const es = new EventSource(`/api/chat-stream/${trade.id}`);
+
+    es.addEventListener("new-messages", () => {
+      if (revalidator.state === "idle") revalidator.revalidate();
+    });
+
+    es.onerror = () => {
+      // On a permanent error the browser will retry automatically;
+      // close explicitly to prevent zombie connections on unmount.
+      es.close();
+    };
+
+    return () => es.close();
+  }, [trade.id, revalidator]);
 
   // Immediate revalidation after action completes
   const prevNavState = useRef(navigation.state);
@@ -1458,7 +1483,7 @@ export default function PingDetail({
                 + List Another Item
               </Link>
               <Link
-                to="/refer"
+                to="/dashboard/refer"
                 className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#0F172A] border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 font-mono uppercase tracking-widest text-[10px] transition-all"
               >
                 Invite a Friend
@@ -1553,7 +1578,7 @@ export default function PingDetail({
               <h3 className="font-bold text-sm text-white">
                 {counterparty.name}
               </h3>
-              <TrustBadge level={(myTrust as any).level || "newcomer"} completedTrades={(myTrust as any).completedTrades || 0} averageRating={null} />
+              <TrustBadge level={myTrust.level} completedTrades={myTrust.completedTrades} averageRating={null} />
             </div>
             <span className="text-[10px] font-mono text-slate-500 uppercase">
               {listing.title}
@@ -2015,7 +2040,7 @@ export default function PingDetail({
                   + List Another Item
                 </Link>
                 <Link
-                  to="/refer"
+                  to="/dashboard/refer"
                   className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#0F172A] border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 font-mono uppercase tracking-widest text-[10px] transition-all"
                 >
                   Invite a Friend
@@ -2066,7 +2091,7 @@ export default function PingDetail({
               status={status}
               isSubmitting={isSubmitting}
               submittingIntent={submittingIntent}
-              myTrust={myTrust as any}
+              myTrust={myTrust}
               messagesRemaining={Math.max(0, 5 - ((userMsgCount ?? 0) as number))}
               onBalanceClick={() => setShowBalancePile(true)}
             />

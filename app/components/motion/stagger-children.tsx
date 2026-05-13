@@ -1,5 +1,5 @@
 import { createContext, useContext, useRef, type ReactNode } from "react";
-import { motion, useInView, useReducedMotion } from "framer-motion";
+import { motion, useInView, useReducedMotion } from "motion/react";
 
 // ── Context ────────────────────────────────────────────────────────────
 // Passes the parent-configured `duration` down to each StaggerItem
