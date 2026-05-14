@@ -264,6 +264,8 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
   const [dragActive, setDragActive] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const errors = actionData?.errors as Record<string, string> | undefined;
+  const [step, setStep] = useState<1 | 2>(1);
+  const [moreDetailsOpen, setMoreDetailsOpen] = useState(false);
 
   const formRef = useRef<HTMLFormElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
@@ -382,472 +384,520 @@ export default function AddAsset({ actionData }: Route.ComponentProps) {
 
   return (
     <div className="space-y-8">
-      {/* Page header */}
+      {/* Page header with step indicator */}
       <div className="flex items-center gap-3 pt-2">
         <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
           <PackagePlus className="w-5 h-5 text-emerald-400" />
         </div>
         <div>
           <h1 className="text-xl font-black tracking-tight text-white">
-            Add Asset
+            {step === 1 ? "What are you offering?" : "What do you want in return?"}
           </h1>
           <p className="text-xs text-slate-500">
-            List an item or service for barter
+            Step {step} of 2
           </p>
         </div>
       </div>
 
+      {/* Step progress dots */}
+      <div className="flex gap-2">
+        <div className={`h-1 flex-1 rounded-full transition-colors ${step >= 1 ? "bg-emerald-500" : "bg-white/10"}`} />
+        <div className={`h-1 flex-1 rounded-full transition-colors ${step >= 2 ? "bg-emerald-500" : "bg-white/10"}`} />
+      </div>
+
       {/* Form */}
-      <Form ref={formRef} method="post" className="space-y-6">
+      <Form
+        ref={formRef}
+        method="post"
+        className="space-y-6"
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && step === 1) e.preventDefault();
+        }}
+      >
         {isListingSubmitting && <LoadingBar />}
         {/* Hidden type field for form submission */}
         <input type="hidden" name="type" value={type} />
+        <input type="hidden" name="category" value={selectedCategory} />
 
-        {/* Type toggle */}
-        <div>
-          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block">
-            Type
-          </span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setType("item")}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all ${
-                type === "item"
-                  ? "bg-emerald-500 text-[#030712]"
-                  : "bg-[#0F172A] text-slate-400 border border-white/10 hover:border-white/20"
-              }`}
-            >
-              Item
-            </button>
-            <button
-              type="button"
-              onClick={() => setType("service")}
-              className={`flex-1 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all ${
-                type === "service"
-                  ? "bg-emerald-500 text-[#030712]"
-                  : "bg-[#0F172A] text-slate-400 border border-white/10 hover:border-white/20"
-              }`}
-            >
-              Service
-            </button>
-          </div>
-          {errors?.type && (
-            <p className="mt-1 text-xs text-red-400">{errors.type}</p>
-          )}
-        </div>
-
-        {/* Title */}
-        <div>
-          <Input
-            label="Title"
-            name="title"
-            placeholder={
-              type === "item"
-                ? "e.g. Samsung Galaxy S24 Ultra"
-                : "e.g. Web Design Services"
-            }
-            required
-          />
-          {errors?.title && (
-            <p className="mt-1 text-xs text-red-400">{errors.title}</p>
-          )}
-        </div>
-
-        {/* Description + AI Assist */}
-        <div>
-          <div className="flex items-end justify-between mb-1.5">
-            <label
-              htmlFor="description"
-              className="text-[10px] font-mono uppercase tracking-widest text-slate-400"
-            >
-            </label>
-            <button
-              type="button"
-              onClick={handleAiAssist}
-              disabled={isAiLoading}
-              className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-400 hover:text-purple-300 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors"
-            >
-              {isAiLoading ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Sparkles className="w-3.5 h-3.5" />
-              )}
-              {isAiLoading ? "Generating…" : "AI Assist"}
-            </button>
-          </div>
-          <Textarea
-            ref={descriptionRef}
-            id="description"
-            name="description"
-            label="Description"
-            rows={4}
-            required
-            placeholder={
-              type === "service"
-                ? "Describe the service you offer — scope, duration, experience…"
-                : selectedCategory === "Electronics"
-                ? "Brand, model, condition, battery health, any faults..."
-                : selectedCategory === "Home & Garden"
-                ? "Age, dimensions, material, reason for parting with it..."
-                : selectedCategory === "Fashion"
-                ? "Size, brand, condition, material, original price..."
-                : selectedCategory === "Skills"
-                ? "Years of experience, what specific problems you solve..."
-                : selectedCategory === "Vehicles"
-                ? "Mileage, model, year, service history, condition..."
-                : selectedCategory === "Sports"
-                ? "Brand, age, wear and tear, size/spec..."
-                : selectedCategory === "Books"
-                ? "Edition, condition, highlights/notes, language..."
-                : selectedCategory === "Services"
-                ? "Service scope, availability, what to expect..."
-                : "Describe the item — brand, model, age, included accessories…"
-            }
-            error={errors?.description}
-          />
-
-          {/* AI suggestion panel */}
-          {aiSuggestion && !aiDismissed && (
-            <div className="mt-3 rounded-xl border border-purple-500/20 bg-purple-500/5 p-4">
-              <div className="flex items-start gap-2">
-                <Sparkles className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
-                <p className="text-sm text-slate-300 leading-relaxed flex-1">
-                  {aiSuggestion}
-                </p>
-              </div>
-              <div className="flex gap-2 mt-3">
-                <button
-                  type="button"
-                  onClick={handleAcceptSuggestion}
-                  className="flex items-center gap-1.5 rounded-lg bg-purple-500/20 px-3 py-1.5 text-xs font-semibold text-purple-300 hover:bg-purple-500/30 transition-colors"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  Use this
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAiDismissed(true)}
-                  className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:bg-white/10 transition-colors"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  Dismiss
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* AI error */}
-          {aiError && !isAiLoading && (
-            <p className="mt-2 text-xs text-amber-400">{aiError}</p>
-          )}
-        </div>
-
-        {/* Category */}
-        <div>
-          <label className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-2 block">
-            Category
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {CATEGORIES.map((cat) => (
+        {/* ── Step 1 fields ── */}
+        <div className={step === 1 ? "space-y-6" : "hidden"}>
+          {/* Type toggle */}
+          <div>
+            <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block">
+              Type
+            </span>
+            <div className="flex gap-2">
               <button
-                key={cat.name}
                 type="button"
-                onClick={() => setSelectedCategory(cat.name)}
-                className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
-                  selectedCategory === cat.name
-                    ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400"
-                    : "bg-[#0F172A] border-white/10 text-slate-400 hover:border-white/20 hover:text-white"
+                onClick={() => setType("item")}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all ${
+                  type === "item"
+                    ? "bg-emerald-500 text-[#030712]"
+                    : "bg-[#0F172A] text-slate-400 border border-white/10 hover:border-white/20"
                 }`}
               >
-                <cat.icon className="w-5 h-5 mb-1.5" />
-                <span className="text-[10px] font-medium">{cat.name}</span>
+                Item
               </button>
-            ))}
-          </div>
-          <input type="hidden" name="category" value={selectedCategory} required />
-          {errors?.category && (
-            <p className="mt-1 text-xs text-red-400">{errors.category}</p>
-          )}
-        </div>
-
-        {/* Estimated Value */}
-        <Input
-          label="Estimated Value (ZAR)"
-          name="estimatedValue"
-          type="number"
-          min={0}
-          placeholder="e.g. 5000"
-        />
-
-        {/* Images */}
-        <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-              <ImagePlus className="w-3.5 h-3.5" />
-              Image URLs
-              <span className="text-slate-600">
-                ({imageUrls.length}/5)
-              </span>
-            </span>
+              <button
+                type="button"
+                onClick={() => setType("service")}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-bold uppercase tracking-wider transition-all ${
+                  type === "service"
+                    ? "bg-emerald-500 text-[#030712]"
+                    : "bg-[#0F172A] text-slate-400 border border-white/10 hover:border-white/20"
+                }`}
+              >
+                Service
+              </button>
+            </div>
+            {errors?.type && (
+              <p className="mt-1 text-xs text-red-400">{errors.type}</p>
+            )}
           </div>
 
-          {/* ── File upload zone ──────────────────────────────── */}
-          {imageUrls.length < 5 && (
-            <div
-              className={`rounded-xl border-2 border-dashed transition-all px-4 py-4 text-center ${
-                dragActive
-                  ? "border-emerald-400 bg-emerald-500/10"
-                  : "border-white/10 bg-[#0F172A]/50 hover:border-white/20"
-              }`}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-            >
-              <div className="flex flex-col items-center gap-2">
-                <Upload className="w-6 h-6 text-slate-500" />
-                <p className="text-[11px] text-slate-400">
-                  Drop images here or{" "}
+          {/* Title */}
+          <div>
+            <Input
+              label="Title"
+              name="title"
+              placeholder={
+                type === "item"
+                  ? "e.g. Samsung Galaxy S24 Ultra"
+                  : "e.g. Web Design Services"
+              }
+              required
+            />
+            {errors?.title && (
+              <p className="mt-1 text-xs text-red-400">{errors.title}</p>
+            )}
+          </div>
+
+          {/* Description + AI Assist */}
+          <div>
+            <div className="flex items-end justify-between mb-1.5">
+              <label
+                htmlFor="description"
+                className="text-[10px] font-mono uppercase tracking-widest text-slate-400"
+              >
+              </label>
+              <button
+                type="button"
+                onClick={handleAiAssist}
+                disabled={isAiLoading}
+                className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-400 hover:text-purple-300 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors"
+              >
+                {isAiLoading ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5" />
+                )}
+                {isAiLoading ? "Generating…" : "AI Assist"}
+              </button>
+            </div>
+            <Textarea
+              ref={descriptionRef}
+              id="description"
+              name="description"
+              label="Description"
+              rows={4}
+              required
+              placeholder={
+                type === "service"
+                  ? "Describe the service you offer — scope, duration, experience…"
+                  : selectedCategory === "Electronics"
+                  ? "Brand, model, condition, battery health, any faults..."
+                  : selectedCategory === "Home & Garden"
+                  ? "Age, dimensions, material, reason for parting with it..."
+                  : selectedCategory === "Fashion"
+                  ? "Size, brand, condition, material, original price..."
+                  : selectedCategory === "Skills"
+                  ? "Years of experience, what specific problems you solve..."
+                  : selectedCategory === "Vehicles"
+                  ? "Mileage, model, year, service history, condition..."
+                  : selectedCategory === "Sports"
+                  ? "Brand, age, wear and tear, size/spec..."
+                  : selectedCategory === "Books"
+                  ? "Edition, condition, highlights/notes, language..."
+                  : selectedCategory === "Services"
+                  ? "Service scope, availability, what to expect..."
+                  : "Describe the item — brand, model, age, included accessories…"
+              }
+              error={errors?.description}
+            />
+
+            {/* AI suggestion panel */}
+            {aiSuggestion && !aiDismissed && (
+              <div className="mt-3 rounded-xl border border-purple-500/20 bg-purple-500/5 p-4">
+                <div className="flex items-start gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-400 mt-0.5 shrink-0" />
+                  <p className="text-sm text-slate-300 leading-relaxed flex-1">
+                    {aiSuggestion}
+                  </p>
+                </div>
+                <div className="flex gap-2 mt-3">
                   <button
                     type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-emerald-400 hover:text-emerald-300 font-semibold underline underline-offset-2"
+                    onClick={handleAcceptSuggestion}
+                    className="flex items-center gap-1.5 rounded-lg bg-purple-500/20 px-3 py-1.5 text-xs font-semibold text-purple-300 hover:bg-purple-500/30 transition-colors"
                   >
-                    browse
+                    <Check className="w-3.5 h-3.5" />
+                    Use this
                   </button>
-                  {" "}or{" "}
-                  <CameraCapture onCapture={(url) => setImageUrls([...imageUrls, url])} />
-                </p>
-                <p className="text-[10px] text-slate-600">
-                  JPG, PNG, WebP — max 5 MB each
-                </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
+                  <button
+                    type="button"
+                    onClick={() => setAiDismissed(true)}
+                    className="flex items-center gap-1.5 rounded-lg bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:bg-white/10 transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    Dismiss
+                  </button>
+                </div>
               </div>
+            )}
 
-              {/* Upload progress badges */}
-              {uploadingFiles.some((f) => f.status === "uploading") && (
-                <div className="mt-3 flex flex-wrap justify-center gap-1.5">
-                  {uploadingFiles.map((f, i) => (
-                    <span
-                      key={`${f.name}-${i}`}
-                      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-mono ${
-                        f.status === "uploading"
-                          ? "bg-amber-500/15 text-amber-300 border border-amber-500/20"
-                          : f.status === "done"
-                          ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/20"
-                          : "bg-red-500/15 text-red-300 border border-red-500/20"
-                      }`}
-                    >
-                      {f.status === "uploading" && (
-                        <Loader2 className="w-3 h-3 animate-spin" />
-                      )}
-                      {f.status === "done" && <Check className="w-3 h-3" />}
-                      {f.status === "error" && <X className="w-3 h-3" />}
-                      {f.name.length > 18 ? f.name.slice(0, 16) + "…" : f.name}
-                      {f.status === "error" && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setUploadingFiles((prev) => prev.filter((_, j) => j !== i))
-                          }
-                          className="ml-0.5 text-red-300 hover:text-red-100"
-                        >
-                          <X className="w-3 h-3" />
-                        </button>
-                      )}
-                    </span>
-                  ))}
-                </div>
-              )}
+            {/* AI error */}
+            {aiError && !isAiLoading && (
+              <p className="mt-2 text-xs text-amber-400">{aiError}</p>
+            )}
+          </div>
 
-              {/* Preview thumbnails */}
-              {uploadingFiles.filter((f) => f.status === "done").length > 0 && (
-                <div className="mt-3 flex flex-wrap justify-center gap-2">
-                  {uploadingFiles
-                    .filter((f) => f.status === "done")
-                    .map((f, i) => (
-                      <img
-                        key={`thumb-${i}`}
-                        src={f.url}
-                        alt={f.name}
-                        className="w-12 h-12 rounded-lg object-cover border border-white/10"
-                      />
-                    ))}
-                </div>
-              )}
+          {/* Category */}
+          <div>
+            <label className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-2 block">
+              Category
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat.name}
+                  type="button"
+                  onClick={() => setSelectedCategory(cat.name)}
+                  className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
+                    selectedCategory === cat.name
+                      ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400"
+                      : "bg-[#0F172A] border-white/10 text-slate-400 hover:border-white/20 hover:text-white"
+                  }`}
+                >
+                  <cat.icon className="w-5 h-5 mb-1.5" />
+                  <span className="text-[10px] font-medium">{cat.name}</span>
+                </button>
+              ))}
             </div>
-          )}
+            {errors?.category && (
+              <p className="mt-1 text-xs text-red-400">{errors.category}</p>
+            )}
+          </div>
 
-          {/* ── URL text inputs ───────────────────────────── */}
-          <div className="space-y-3">
-            {imageUrls.map((url, index) => (
-              <div key={index}>
-                <div className="flex gap-2">
-                  <input
-                    name={`imageUrl_${index}`}
-                    type="url"
-                    value={url}
-                    onChange={(e) => {
-                      const next = [...imageUrls];
-                      next[index] = e.target.value;
-                      setImageUrls(next);
-                    }}
-                    placeholder={
-                      index === 0
-                        ? "https://i.imgur.com/example.jpg"
-                        : `Image URL ${index + 1}`
-                    }
-                    className="flex-1 rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 text-sm"
-                  />
-                  {imageUrls.length > 1 && (
+          {/* Images */}
+          <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+                <ImagePlus className="w-3.5 h-3.5" />
+                Image URLs
+                <span className="text-slate-600">
+                  ({imageUrls.length}/5)
+                </span>
+              </span>
+            </div>
+
+            {/* ── File upload zone ──────────────────────────────── */}
+            {imageUrls.length < 5 && (
+              <div
+                className={`rounded-xl border-2 border-dashed transition-all px-4 py-4 text-center ${
+                  dragActive
+                    ? "border-emerald-400 bg-emerald-500/10"
+                    : "border-white/10 bg-[#0F172A]/50 hover:border-white/20"
+                }`}
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <Upload className="w-6 h-6 text-slate-500" />
+                  <p className="text-[11px] text-slate-400">
+                    Drop images here or{" "}
                     <button
                       type="button"
-                      onClick={() =>
-                        setImageUrls(imageUrls.filter((_, i) => i !== index))
-                      }
-                      className="shrink-0 w-10 h-10 rounded-xl border border-white/10 bg-[#0F172A] flex items-center justify-center text-slate-500 hover:text-red-400 hover:border-red-500/30 transition-colors"
-                      aria-label={`Remove image ${index + 1}`}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-emerald-400 hover:text-emerald-300 font-semibold underline underline-offset-2"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      browse
                     </button>
-                  )}
+                    {" "}or{" "}
+                    <CameraCapture onCapture={(url) => setImageUrls([...imageUrls, url])} />
+                  </p>
+                  <p className="text-[10px] text-slate-600">
+                    JPG, PNG, WebP — max 5 MB each
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
                 </div>
-                {errors?.[`imageUrl_${index}`] && (
-                  <p className="mt-1 text-xs text-red-400">
-                    {errors[`imageUrl_${index}`]}
-                  </p>
+
+                {/* Upload progress badges */}
+                {uploadingFiles.some((f) => f.status === "uploading") && (
+                  <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+                    {uploadingFiles.map((f, i) => (
+                      <span
+                        key={`${f.name}-${i}`}
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[10px] font-mono ${
+                          f.status === "uploading"
+                            ? "bg-amber-500/15 text-amber-300 border border-amber-500/20"
+                            : f.status === "done"
+                            ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/20"
+                            : "bg-red-500/15 text-red-300 border border-red-500/20"
+                        }`}
+                      >
+                        {f.status === "uploading" && (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        )}
+                        {f.status === "done" && <Check className="w-3 h-3" />}
+                        {f.status === "error" && <X className="w-3 h-3" />}
+                        {f.name.length > 18 ? f.name.slice(0, 16) + "…" : f.name}
+                        {f.status === "error" && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setUploadingFiles((prev) => prev.filter((_, j) => j !== i))
+                            }
+                            className="ml-0.5 text-red-300 hover:text-red-100"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                  </div>
                 )}
-                {/* Inline preview hint for non-empty valid-looking URLs */}
-                {url.trim().startsWith("https://") && url.trim().length > 12 && (
-                  <p className="mt-1 text-[11px] text-slate-600 truncate">
-                    {url.trim()}
-                  </p>
+
+                {/* Preview thumbnails */}
+                {uploadingFiles.filter((f) => f.status === "done").length > 0 && (
+                  <div className="mt-3 flex flex-wrap justify-center gap-2">
+                    {uploadingFiles
+                      .filter((f) => f.status === "done")
+                      .map((f, i) => (
+                        <img
+                          key={`thumb-${i}`}
+                          src={f.url}
+                          alt={f.name}
+                          className="w-12 h-12 rounded-lg object-cover border border-white/10"
+                        />
+                      ))}
+                  </div>
                 )}
               </div>
-            ))}
+            )}
+
+            {/* ── URL text inputs ───────────────────────────── */}
+            <div className="space-y-3">
+              {imageUrls.map((url, index) => (
+                <div key={index}>
+                  <div className="flex gap-2">
+                    <input
+                      name={`imageUrl_${index}`}
+                      type="url"
+                      value={url}
+                      onChange={(e) => {
+                        const next = [...imageUrls];
+                        next[index] = e.target.value;
+                        setImageUrls(next);
+                      }}
+                      placeholder={
+                        index === 0
+                          ? "https://i.imgur.com/example.jpg"
+                          : `Image URL ${index + 1}`
+                      }
+                      className="flex-1 rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 text-sm"
+                    />
+                    {imageUrls.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setImageUrls(imageUrls.filter((_, i) => i !== index))
+                        }
+                        className="shrink-0 w-10 h-10 rounded-xl border border-white/10 bg-[#0F172A] flex items-center justify-center text-slate-500 hover:text-red-400 hover:border-red-500/30 transition-colors"
+                        aria-label={`Remove image ${index + 1}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  {errors?.[`imageUrl_${index}`] && (
+                    <p className="mt-1 text-xs text-red-400">
+                      {errors[`imageUrl_${index}`]}
+                    </p>
+                  )}
+                  {/* Inline preview hint for non-empty valid-looking URLs */}
+                  {url.trim().startsWith("https://") && url.trim().length > 12 && (
+                    <p className="mt-1 text-[11px] text-slate-600 truncate">
+                      {url.trim()}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {imageUrls.length < 5 && (
+              <button
+                type="button"
+                onClick={() => setImageUrls([...imageUrls, ""])}
+                className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add another image
+              </button>
+            )}
+
+            <p className="mt-2 text-[11px] text-slate-600">
+              Or paste HTTPS image URLs from Imgur, Unsplash, Cloudinary, or any
+              direct image link.
+            </p>
           </div>
 
-          {imageUrls.length < 5 && (
+          {/* More details collapsible */}
+          <div>
             <button
               type="button"
-              onClick={() => setImageUrls([...imageUrls, ""])}
-              className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+              onClick={() => setMoreDetailsOpen(!moreDetailsOpen)}
+              className="flex items-center gap-2 text-[11px] font-mono text-slate-400 hover:text-emerald-400 uppercase tracking-widest transition-colors"
             >
-              <Plus className="w-3.5 h-3.5" />
-              Add another image
+              <span>{moreDetailsOpen ? "▲ Hide details" : "▼ More details"}</span>
             </button>
-          )}
 
-          <p className="mt-2 text-[11px] text-slate-600">
-            Or paste HTTPS image URLs from Imgur, Unsplash, Cloudinary, or any
-            direct image link.
-          </p>
+            {moreDetailsOpen && (
+              <div className="mt-4 space-y-4 p-4 bg-[#0F172A]/50 border border-white/5 rounded-xl">
+                {/* Estimated Value */}
+                <Input
+                  label="Estimated value (Rands)"
+                  name="estimatedValue"
+                  type="number"
+                  min={0}
+                  placeholder="e.g. 5000"
+                />
+
+                {/* Condition — hidden for services */}
+                {type === "item" && (
+                  <div>
+                    <label
+                      htmlFor="condition"
+                      className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
+                    >
+                      Condition
+                    </label>
+                    <select id="condition" name="condition" defaultValue="" className={selectStyles}>
+                      <option value="" disabled>Select condition</option>
+                      {CONDITIONS.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Delivery Method */}
+                <div>
+                  <label
+                    htmlFor="deliveryMethod"
+                    className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
+                  >
+                    Delivery method
+                  </label>
+                  <select id="deliveryMethod" name="deliveryMethod" defaultValue="" className={selectStyles}>
+                    <option value="" disabled>Select delivery method</option>
+                    {DELIVERY_METHODS.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Suburb */}
+                <div>
+                  <label
+                    htmlFor="suburb"
+                    className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
+                  >
+                    Suburb / area
+                  </label>
+                  <input
+                    id="suburb"
+                    name="suburb"
+                    type="text"
+                    placeholder="e.g. Sandton, Camps Bay, Menlyn"
+                    className="w-full rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Step 1 CTA */}
+          <button
+            type="button"
+            onClick={() => {
+              if (!selectedCategory) return;
+              setStep(2);
+              if (typeof window !== "undefined") {
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }
+            }}
+            className="w-full py-4 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-sm hover:bg-emerald-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!selectedCategory}
+          >
+            Next: What do you want? →
+          </button>
         </div>
 
-        {/* Condition — hidden for services */}
-        {type === "item" && (
+        {/* ── Step 2 fields ── */}
+        <div className={step === 2 ? "space-y-6" : "hidden"}>
           <div>
             <label
-              htmlFor="condition"
+              htmlFor="seekingDescription"
               className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
             >
-              Condition
+              What do you want in return?
             </label>
-            <select
-              id="condition"
-              name="condition"
-              defaultValue=""
-              className={selectStyles}
-            >
-              <option value="" disabled>
-                Select condition
-              </option>
-              {CONDITIONS.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
+            <textarea
+              id="seekingDescription"
+              name="seekingDescription"
+              rows={4}
+              placeholder="e.g. A laptop, guitar lessons, plumbing work…"
+              className={textareaStyles}
+            />
+            <p className="mt-1.5 text-[10px] text-slate-600">
+              Be specific — it helps others decide if they have what you need.
+            </p>
           </div>
-        )}
 
-        {/* Delivery Method */}
-        <div>
-          <label
-            htmlFor="deliveryMethod"
-            className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
-          >
-            Delivery Method
-          </label>
-          <select
-            id="deliveryMethod"
-            name="deliveryMethod"
-            defaultValue=""
-            className={selectStyles}
-          >
-            <option value="" disabled>
-              Select delivery method
-            </option>
-            {DELIVERY_METHODS.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
+          {/* Step 2 actions */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setStep(1)}
+              className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-bold uppercase tracking-widest text-xs hover:bg-white/10 transition-colors"
+            >
+              ← Back
+            </button>
+            <Button
+              type="submit"
+              size="lg"
+              className="flex-[2]"
+              disabled={isListingSubmitting}
+            >
+              {isListingSubmitting ? (
+                <>
+                  <Spinner />
+                  Posting...
+                </>
+              ) : (
+                "Post listing"
+              )}
+            </Button>
+          </div>
         </div>
-
-        {/* Suburb */}
-        <div>
-          <label
-            htmlFor="suburb"
-            className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
-          >
-            Suburb / Area
-          </label>
-          <input
-            id="suburb"
-            name="suburb"
-            type="text"
-            placeholder="e.g. Sandton, Camps Bay, Menlyn"
-            className="w-full rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5"
-          />
-        </div>
-
-        {/* Seeking Description */}
-        <div>
-          <label
-            htmlFor="seekingDescription"
-            className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
-          >
-            What are you looking for in exchange?
-          </label>
-          <textarea
-            id="seekingDescription"
-            name="seekingDescription"
-            rows={3}
-            placeholder="e.g. Looking for a laptop, guitar lessons, or home repair services…"
-            className={textareaStyles}
-          />
-        </div>
-
-        {/* Submit */}
-        <Button type="submit" size="lg" className="w-full" disabled={isListingSubmitting}>
-          {isListingSubmitting ? (
-            <>
-              <Spinner />
-              Listing Asset...
-            </>
-          ) : (
-            "List Asset"
-          )}
-        </Button>
       </Form>
     </div>
   );
