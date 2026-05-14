@@ -8,7 +8,6 @@ import {
   ArrowRightLeft,
   CheckCircle2,
   ShieldCheck,
-  ShieldX,
   Pencil,
   MapPin,
   Package,
@@ -440,6 +439,7 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
   const [avatarInput, setAvatarInput] = useState(profile.avatarUrl ?? "");
   // Hidden file input for avatar upload
   const avatarFileInputRef = useRef<HTMLInputElement | null>(null);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
 
   const isSubmitting = navigation.state === "submitting";
   const submittingIntent = isSubmitting
@@ -455,8 +455,35 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
 
   // Auto-close the edit sheet when profile update succeeds
   useEffect(() => {
-    if (didUpdate) setShowEditSheet(false);
-  }, [didUpdate]);
+    if (navigation.state === "idle" && didUpdate) {
+      setShowEditSheet(false);
+    }
+  }, [navigation.state, didUpdate]);
+
+  // Escape key closes the sheet
+  useEffect(() => {
+    if (!showEditSheet) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowEditSheet(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [showEditSheet]);
+
+  // Focus the sheet panel when it opens
+  useEffect(() => {
+    if (showEditSheet) {
+      sheetRef.current?.focus();
+    }
+  }, [showEditSheet]);
+
+  // Lock body scroll while sheet is open
+  useEffect(() => {
+    if (showEditSheet) {
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = ""; };
+    }
+  }, [showEditSheet]);
 
   // Partition listings into active and archived
   const activeListings = userListings.filter((l) => l.status === "active");
@@ -492,7 +519,7 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
           <button
             key={tab}
             type="button"
-            onClick={() => setProfileTab(tab)}
+            onClick={() => { setProfileTab(tab); setShowEditSheet(false); }}
             className={`flex-1 py-2 rounded-xl text-[11px] font-mono uppercase tracking-widest transition-all ${
               profileTab === tab
                 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
@@ -695,9 +722,16 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
             className="absolute inset-0 bg-black/50"
             onClick={() => setShowEditSheet(false)}
           />
-          <div className="relative w-full max-w-sm h-full bg-[#0F172A] border-l border-white/10 overflow-y-auto p-6 flex flex-col gap-6">
+          <div
+            ref={sheetRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-profile-sheet-title"
+            className="relative w-full max-w-sm h-full bg-[#0F172A] border-l border-white/10 overflow-y-auto p-6 flex flex-col gap-6"
+          >
             <div className="flex items-center justify-between">
-              <h3 className="font-bold text-white">Edit profile</h3>
+              <h3 id="edit-profile-sheet-title" className="font-bold text-white">Edit profile</h3>
               <button
                 type="button"
                 onClick={() => setShowEditSheet(false)}
