@@ -462,7 +462,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
 
       {/* Main content */}
       <main
-        className={`relative z-10 p-3 sm:p-4 md:p-6 max-w-2xl mx-auto md:max-w-4xl md:mx-0 md:px-8 md:py-8 transition-opacity duration-200 ${
+        className={`relative p-3 sm:p-4 md:p-6 max-w-2xl mx-auto md:max-w-4xl md:mx-0 md:px-8 md:py-8 transition-opacity duration-200 ${
           isNavigating ? "opacity-70" : ""
         }`}
         aria-busy={isNavigating}
