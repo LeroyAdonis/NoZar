@@ -16,7 +16,7 @@ export function AssetCard({ listing, onClick, youHaveMatch }: AssetCardProps) {
     >
       {youHaveMatch && (
         <span className="absolute top-2 right-2 z-10 px-2 py-0.5 rounded-full bg-teal-500/20 border border-teal-500/40 text-teal-400 font-mono text-[9px] uppercase tracking-widest">
-          ✓ You Have This
+          You have a match!
         </span>
       )}
       {/* Image / placeholder */}
@@ -42,11 +42,22 @@ export function AssetCard({ listing, onClick, youHaveMatch }: AssetCardProps) {
         <h3 className="font-bold text-xs sm:text-sm leading-snug text-slate-50 group-hover:text-emerald-400 transition-colors break-words">
           {listing.title}
         </h3>
-        <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-mono text-slate-400 bg-white/5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md self-start whitespace-nowrap">
-          <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-cyan-500 shrink-0" /> {listing.distance}
-        </span>
+        {/* Row 1: distance + username */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-mono text-slate-400 bg-white/5 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md whitespace-nowrap">
+            <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-cyan-500 shrink-0" />
+            {listing.distance}
+          </span>
+          {listing.userName && (
+            <span className="text-[9px] sm:text-[10px] font-mono text-slate-500 whitespace-nowrap">
+              by {listing.userName}
+            </span>
+          )}
+        </div>
+        {/* Row 2: time-ago */}
         <span className="flex items-center gap-1 text-[9px] sm:text-[10px] font-mono text-slate-500 whitespace-nowrap">
-          <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" /> {listing.timeAgo}
+          <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
+          {listing.timeAgo}
         </span>
       </div>
     </div>

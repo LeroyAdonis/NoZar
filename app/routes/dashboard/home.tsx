@@ -9,8 +9,7 @@ import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import { listings, listingImages, profiles, users } from "~/lib/schema";
 import { timeAgo, haversineKm, formatDistance } from "~/lib/utils";
-import { resolveRegion, MVP_REGIONS, provinceToSlug, type RegionSlug } from "~/lib/regions";
-import { RegionToggle } from "~/components/ui/region-toggle";
+import { resolveRegion, MVP_REGIONS, provinceToSlug } from "~/lib/regions";
 import { AssetCard } from "~/components/ui/asset-card";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
@@ -21,7 +20,15 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-const CATEGORIES = ["All", "Electronics", "Furniture", "Service", "Vehicles"];
+const CATEGORY_CHIPS = [
+  { display: "All",           value: "All" },
+  { display: "📱 Electronics", value: "Electronics" },
+  { display: "👕 Clothes",     value: "Fashion" },
+  { display: "🏠 Home",        value: "Home & Garden" },
+  { display: "🔧 Skills",      value: "Skills" },
+  { display: "🚗 Vehicles",    value: "Vehicles" },
+  { display: "📦 Other",       value: "Other" },
+] as const;
 
 // ─── AI Match Cache (5-minute TTL per user) ────────────────────
 type CacheEntry = { matchedIds: number[]; expiresAt: number };
@@ -54,6 +61,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const category = url.searchParams.get("category");
   const regionParam = url.searchParams.get("region");
   const searchQuery = url.searchParams.get("q");
+  const scope = url.searchParams.get("scope") ?? "local";
 
   // Fetch user's province for region resolution
   const [userProfile] = await db
@@ -96,7 +104,9 @@ export async function loader({ request }: Route.LoaderArgs) {
     .where(
       and(
         eq(listings.status, "active"),
-        eq(profiles.province, regionConfig.province),
+        scope === "national"
+          ? undefined
+          : eq(profiles.province, regionConfig.province),
         ne(listings.userId, user.id),
         searchFilter,
       ),
@@ -179,6 +189,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     needsRegion: !userProfile?.province || !provinceToSlug(userProfile.province),
     needsLocation: !userProfile?.lat || !userProfile?.lng,
     searchQuery: searchQuery ?? null,
+    scope,
   };
 }
 
@@ -322,6 +333,7 @@ export default function DashboardHome({
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeCategory = searchParams.get("category") ?? "All";
+  const scope = (searchParams.get("scope") ?? "local") as "local" | "national";
   const radiusKm = Number(searchParams.get("radius") ?? "10");
   const fetcher = useFetcher<typeof action>();
   const { currentRegion, searchQuery } = loaderData;
@@ -350,11 +362,16 @@ export default function DashboardHome({
     }, 300);
   }
 
-  function handleRegionChange(slug: RegionSlug) {
-    const params = new URLSearchParams(searchParams);
-    params.set("region", slug);
-    params.delete("category");
-    setSearchParams(params, { preventScrollReset: true });
+  function handleScopeChange(newScope: "local" | "national") {
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      if (newScope === "local") {
+        p.delete("scope");
+      } else {
+        p.set("scope", "national");
+      }
+      return p;
+    }, { preventScrollReset: true });
   }
 
   const isMatching = fetcher.state !== "idle";
@@ -362,9 +379,9 @@ export default function DashboardHome({
   const matchedIds = matchData && "matchedIds" in matchData ? new Set(matchData.matchedIds) : null;
   const matchError = matchData && "error" in matchData ? matchData.error : null;
 
-  function handleCategoryClick(category: string) {
+  function handleCategoryClick(value: string) {
     setSearchParams(
-      category === "All" ? {} : { category },
+      value === "All" ? {} : { category: value },
       { preventScrollReset: true },
     );
   }
@@ -387,19 +404,32 @@ export default function DashboardHome({
           </div>
         </div>
       )}
-      {/* Region toggle */}
-      <div className="pt-2 -mx-1 px-1 sm:mx-0 sm:px-0 sm:flex sm:justify-center">
-        <RegionToggle activeRegion={currentRegion} onChange={handleRegionChange} />
+      {/* Local / National toggle */}
+      <div className="flex gap-1 bg-[#0F172A] border border-white/10 rounded-full p-1 w-fit">
+        {(["local", "national"] as const).map((s) => (
+          <button
+            key={s}
+            type="button"
+            onClick={() => handleScopeChange(s)}
+            className={`px-4 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-widest transition-all ${
+              scope === s
+                ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                : "text-slate-500 hover:text-slate-300"
+            }`}
+          >
+            {s === "local" ? "Local" : "National"}
+          </button>
+        ))}
       </div>
 
       {/* Section header */}
       <div className="flex justify-between items-end gap-2">
         <div>
-          <span className="text-emerald-500 font-mono text-[10px] uppercase tracking-widest block mb-1">
-            // Local Index
-          </span>
+          <p className="text-emerald-500 font-mono text-[10px] uppercase tracking-widest mb-1">
+            Based on your listings
+          </p>
           <h2 className="text-lg sm:text-xl font-bold uppercase tracking-tight">
-            Nearby Assets
+            Your match
           </h2>
         </div>
 
@@ -467,21 +497,22 @@ export default function DashboardHome({
         </div>
       )}
 
-      {/* Category filter pills */}
+      {/* Category filter chips */}
       <div className="flex gap-1.5 sm:gap-2 overflow-x-auto md:flex-wrap md:overflow-x-visible pb-2 scrollbar-hide -mx-1 px-1">
-        {CATEGORIES.map((category) => {
-          const isActive = activeCategory === category;
+        {CATEGORY_CHIPS.map((chip) => {
+          const isActive = activeCategory === chip.value;
           return (
             <button
-              key={category}
-              onClick={() => handleCategoryClick(category)}
+              key={chip.value}
+              type="button"
+              onClick={() => handleCategoryClick(chip.value)}
               className={`whitespace-nowrap px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[11px] sm:text-xs font-mono uppercase tracking-wider sm:tracking-widest transition-all border ${
                 isActive
                   ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
                   : "bg-[#0F172A] text-slate-400 border-white/5 hover:border-white/20 hover:text-slate-300"
               }`}
             >
-              {category}
+              {chip.display}
             </button>
           );
         })}
