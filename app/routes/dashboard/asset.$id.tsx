@@ -1,7 +1,7 @@
 import { data, redirect, useFetcher, Form, Link } from "react-router";
 import type { Route } from "./+types/asset.$id";
 import { ChevronLeft, MessageSquare, Repeat, ShieldCheck, Pencil, Trash2, RotateCcw, ChevronRight, X } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { eq, and, ne } from "drizzle-orm";
 import { motion, AnimatePresence } from "motion/react";
 import { requireAuth } from "~/lib/auth.server";
@@ -174,6 +174,18 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
   const [selectedOfferItemId, setSelectedOfferItemId] = useState<number | null>(
     userInventory?.length === 1 ? userInventory[0].id : null
   );
+  const [showOfferSheet, setShowOfferSheet] = useState(false);
+
+  const sheetRef = useRef<HTMLDivElement>(null);
+
+  // Value-gap warning
+  const selectedItem = userInventory?.find((i: typeof listings.$inferSelect) => i.id === selectedOfferItemId);
+  const listingValue = listing.estimatedValueZar ?? 0;
+  const offerValue = selectedItem?.estimatedValueZar ?? 0;
+  const hasValueGap =
+    listingValue > 0 &&
+    offerValue > 0 &&
+    Math.abs(listingValue - offerValue) / Math.max(listingValue, offerValue) > 0.2;
 
   useEffect(() => {
     if (!isLightboxOpen) return;
@@ -192,6 +204,29 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
       document.body.style.overflow = "unset";
     };
   }, [isLightboxOpen, images.length]);
+
+  useEffect(() => {
+    if (!showOfferSheet) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowOfferSheet(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showOfferSheet]);
+
+  useEffect(() => {
+    if (showOfferSheet) {
+      sheetRef.current?.focus();
+    }
+  }, [showOfferSheet]);
+
+  useEffect(() => {
+    if (!showOfferSheet) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [showOfferSheet]);
 
   const nextImage = (e?: React.MouseEvent) => {
     e?.stopPropagation();
@@ -524,54 +559,167 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
                 </div>
               </div>
             ) : (
-              <Form method="post">
+              <>
+                <button
+                  type="button"
+                  disabled={isOutOfRange}
+                  onClick={() => setShowOfferSheet(true)}
+                  className="w-full py-4 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-sm hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed disabled:hover:shadow-none"
+                >
+                  <MessageSquare className="w-4 h-4 fill-[#030712]" />
+                  {isOutOfRange ? "Out of Range" : "Offer a swap"}
+                </button>
+
+                {/* Report link */}
+                <button
+                  type="button"
+                  className="w-full text-center text-[10px] font-mono text-slate-600 hover:text-slate-400 uppercase tracking-widest transition-colors mt-2"
+                  onClick={() => {}}
+                >
+                  Report this listing
+                </button>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* ── Offer a Swap bottom sheet ── */}
+      <AnimatePresence>
+        {showOfferSheet && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              key="offer-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowOfferSheet(false)}
+              className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-sm"
+            />
+
+            {/* Sheet */}
+            <motion.div
+              key="offer-sheet"
+              ref={sheetRef}
+              tabIndex={-1}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="offer-sheet-title"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 z-[70] bg-[#0F172A] border-t border-white/10 rounded-t-3xl p-6 max-h-[85vh] overflow-y-auto"
+            >
+              <div aria-hidden="true" className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-6" />
+
+              <h3 id="offer-sheet-title" className="text-lg font-black uppercase tracking-tight text-white mb-4">
+                Your swap offer
+              </h3>
+
+              {/* Trade summary */}
+              <div className="flex items-center gap-3 p-4 bg-[#030712] rounded-xl border border-white/10 mb-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-0.5">
+                    You're offering
+                  </p>
+                  <p className="text-sm font-bold text-white truncate">
+                    {selectedItem?.title ?? (userInventory && userInventory.length === 1 ? userInventory[0].title : "Select below")}
+                  </p>
+                  {(selectedItem?.estimatedValueZar ?? (userInventory?.length === 1 ? userInventory[0].estimatedValueZar : null)) != null && (
+                    <p className="text-[10px] font-mono text-emerald-400">
+                      ~R{((selectedItem?.estimatedValueZar ?? userInventory![0].estimatedValueZar) ?? 0).toLocaleString("en-ZA")}
+                    </p>
+                  )}
+                </div>
+                <span className="text-slate-400 font-bold text-lg">⇄</span>
+                <div className="flex-1 min-w-0 text-right">
+                  <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mb-0.5">
+                    You want
+                  </p>
+                  <p className="text-sm font-bold text-white truncate">{listing.title}</p>
+                  {listing.estimatedValueZar != null && (
+                    <p className="text-[10px] font-mono text-emerald-400">
+                      ~R{listing.estimatedValueZar.toLocaleString("en-ZA")}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Value gap warning */}
+              {hasValueGap && (
+                <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl mb-4">
+                  <span className="text-amber-400 mt-0.5">⚠</span>
+                  <p className="text-xs text-amber-300">
+                    Value gap — you may need to top up or negotiate
+                  </p>
+                </div>
+              )}
+
+              {/* Inventory picker (only when multiple items) */}
+              {userInventory && userInventory.length > 1 && (
+                <div className="mb-4 space-y-2">
+                  <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
+                    Select what you're offering
+                  </p>
+                  {userInventory.map((item: typeof listings.$inferSelect) => (
+                    <label
+                      key={item.id}
+                      className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                        selectedOfferItemId === item.id
+                          ? "border-emerald-500/40 bg-emerald-500/10"
+                          : "border-white/10 bg-white/5 hover:border-white/20"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="offerItemId"
+                        value={item.id}
+                        form="offer-swap-form"
+                        checked={selectedOfferItemId === item.id}
+                        onChange={() => setSelectedOfferItemId(item.id)}
+                        className="accent-emerald-500"
+                      />
+                      <span className="text-sm text-white font-medium">{item.title}</span>
+                      <span className="ml-auto text-[10px] font-mono text-slate-500 uppercase">{item.category}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {/* Explanatory text */}
+              <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+                Tapping "Start chatting" opens a conversation with {owner.name}. You can agree on details before anything is finalised.
+              </p>
+
+              {/* Form — actual trade creation */}
+              <Form id="offer-swap-form" method="post" className="space-y-3">
                 <input type="hidden" name="intent" value="propose_trade" />
-                {userInventory && userInventory.length > 1 && (
-                  <div className="mb-4">
-                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest block mb-2">
-                      Select what you're offering
-                    </span>
-                    <div className="space-y-2">
-                      {userInventory.map((item) => (
-                        <label
-                          key={item.id}
-                          className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
-                            selectedOfferItemId === item.id
-                              ? "border-emerald-500/40 bg-emerald-500/10"
-                              : "border-white/10 bg-white/5 hover:border-white/20"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="offerItemId"
-                            value={item.id}
-                            checked={selectedOfferItemId === item.id}
-                            onChange={() => setSelectedOfferItemId(item.id)}
-                            className="accent-emerald-500"
-                          />
-                          <span className="text-sm text-white font-medium">{item.title}</span>
-                          <span className="ml-auto text-[10px] font-mono text-slate-500 uppercase">{item.category}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                )}
                 {userInventory && userInventory.length === 1 && (
                   <input type="hidden" name="offerItemId" value={userInventory[0].id} />
                 )}
                 <button
                   type="submit"
                   disabled={isOutOfRange || !selectedOfferItemId}
-                  className="w-full py-4 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-sm hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed disabled:hover:shadow-none"
+                  className="w-full py-4 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-sm hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
                 >
                   <MessageSquare className="w-4 h-4 fill-[#030712]" />
-                  {isOutOfRange ? "Out of Range" : "Initialize Ping"}
+                  Start chatting
                 </button>
               </Form>
-            )}
-          </div>
+
+              <button
+                type="button"
+                onClick={() => setShowOfferSheet(false)}
+                className="w-full py-3 text-sm font-mono text-slate-500 hover:text-slate-300 uppercase tracking-widest transition-colors"
+              >
+                Cancel
+              </button>
+            </motion.div>
+          </>
         )}
-      </div>
+      </AnimatePresence>
     </div>
   );
 }
