@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Form, useNavigation, useFetcher, Link } from "react-router";
 import { eq, or, and, count, avg, inArray } from "drizzle-orm";
 import {
@@ -8,9 +8,7 @@ import {
   ArrowRightLeft,
   CheckCircle2,
   ShieldCheck,
-  ShieldX,
   Pencil,
-  LogOut,
   MapPin,
   Package,
   Archive,
@@ -433,13 +431,15 @@ export async function action({ request }: Route.ActionArgs) {
 export default function Profile({ loaderData, actionData }: Route.ComponentProps) {
   const { user, profile, blobConfigured, stats, listings: userListings, listingImagesMap } = loaderData;
   const navigation = useNavigation();
-  const [isEditing, setIsEditing] = useState(false);
+  const [profileTab, setProfileTab] = useState<"listings" | "account">("listings");
+  const [showEditSheet, setShowEditSheet] = useState(false);
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [confirmArchiveId, setConfirmArchiveId] = useState<number | null>(null);
   const avatarFetcher = useFetcher();
   const [avatarInput, setAvatarInput] = useState(profile.avatarUrl ?? "");
   // Hidden file input for avatar upload
   const avatarFileInputRef = useRef<HTMLInputElement | null>(null);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
 
   const isSubmitting = navigation.state === "submitting";
   const submittingIntent = isSubmitting
@@ -452,6 +452,38 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
   // Close edit form after successful profile update
   const didUpdate =
     actionData && "intent" in actionData && actionData.intent === "updateProfile" && actionData.success;
+
+  // Auto-close the edit sheet when profile update succeeds
+  useEffect(() => {
+    if (navigation.state === "idle" && didUpdate) {
+      setShowEditSheet(false);
+    }
+  }, [navigation.state, didUpdate]);
+
+  // Escape key closes the sheet
+  useEffect(() => {
+    if (!showEditSheet) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowEditSheet(false);
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [showEditSheet]);
+
+  // Focus the sheet panel when it opens
+  useEffect(() => {
+    if (showEditSheet) {
+      sheetRef.current?.focus();
+    }
+  }, [showEditSheet]);
+
+  // Lock body scroll while sheet is open
+  useEffect(() => {
+    if (showEditSheet) {
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = ""; };
+    }
+  }, [showEditSheet]);
 
   // Partition listings into active and archived
   const activeListings = userListings.filter((l) => l.status === "active");
@@ -481,550 +513,503 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
   return (
     <div className="space-y-6">
       {isSubmitting && <LoadingBar />}
-      {/* Section label */}
-      <div className="pt-2">
-        <span className="text-emerald-500 font-mono text-[10px] uppercase tracking-widest block mb-1">
-          // Your Profile
-        </span>
-        <h2 className="text-xl font-bold uppercase tracking-tight">
-          Account
-        </h2>
+      {/* Tab navigation */}
+      <div className="flex gap-1 bg-[#0F172A] border border-white/10 rounded-2xl p-1 mt-2">
+        {(["listings", "account"] as const).map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => { setProfileTab(tab); setShowEditSheet(false); }}
+            className={`flex-1 py-2 rounded-xl text-[11px] font-mono uppercase tracking-widest transition-all ${
+              profileTab === tab
+                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                : "text-slate-500 hover:text-slate-300"
+            }`}
+          >
+            {tab === "listings" ? "My listings" : "Account"}
+          </button>
+        ))}
       </div>
 
-      {/* Avatar management */}
-      <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6">
-        <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 block mb-4">
-          Profile Photo
-        </span>
+      {/* My listings tab */}
+      {profileTab === "listings" && (
+        <div className="space-y-4">
+          {/* Header row */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-slate-400">
+              {activeListings.length} active
+            </p>
+            <Link
+              to="/dashboard/add"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-mono uppercase tracking-widest hover:bg-emerald-500/20 transition-all"
+            >
+              + Add item
+            </Link>
+          </div>
 
-        <div className="flex items-start gap-5">
-          {/* Current avatar display — large circle */}
-          <div className="flex-shrink-0">
+          {/* Active listings */}
+          {activeListings.length > 0 ? (
+            <div className="space-y-2">
+              {activeListings.map((listing) => (
+                <ListingCard
+                  key={listing.id}
+                  listing={listing}
+                  images={listingImagesMap[listing.id] ?? []}
+                  isEditingThis={editingListingId === listing.id}
+                  isConfirmingArchive={confirmArchiveId === listing.id}
+                  isSubmitting={isSubmitting}
+                  submittingIntent={submittingIntent}
+                  submittingListingId={submittingListingId}
+                  onEditToggle={() =>
+                    setEditingListingId(editingListingId === listing.id ? null : listing.id)
+                  }
+                  onArchiveToggle={() =>
+                    setConfirmArchiveId(confirmArchiveId === listing.id ? null : listing.id)
+                  }
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-8 text-center">
+              <div className="text-slate-600 text-3xl mb-3">⊘</div>
+              <p className="text-slate-500 text-xs mb-3">You have no active listings</p>
+              <Link
+                to="/dashboard/add"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-emerald-500 text-[#030712] text-xs font-bold uppercase tracking-widest hover:bg-emerald-400 transition-colors"
+              >
+                + Add your first item
+              </Link>
+            </div>
+          )}
+
+          {/* Hidden (archived) listings */}
+          {archivedListings.length > 0 && (
+            <div className="space-y-3 mt-4">
+              <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">
+                Hidden ({archivedListings.length})
+              </p>
+              <div className="space-y-2">
+                {archivedListings.map((listing) => (
+                  <ListingCard
+                    key={listing.id}
+                    listing={listing}
+                    images={listingImagesMap[listing.id] ?? []}
+                    isEditingThis={editingListingId === listing.id}
+                    isConfirmingArchive={false}
+                    isSubmitting={isSubmitting}
+                    submittingIntent={submittingIntent}
+                    submittingListingId={submittingListingId}
+                    onEditToggle={() =>
+                      setEditingListingId(editingListingId === listing.id ? null : listing.id)
+                    }
+                    onArchiveToggle={() => {}}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Account tab */}
+      {profileTab === "account" && (
+        <div className="space-y-6">
+          {/* Avatar + name + Edit button */}
+          <div className="flex items-center gap-4">
             {profile.avatarUrl ? (
               <img
                 src={profile.avatarUrl}
                 alt={profile.displayName}
-                className="w-24 h-24 rounded-full object-cover border-2 border-emerald-500/30"
+                className="w-16 h-16 rounded-full object-cover border-2 border-emerald-500/30 flex-shrink-0"
               />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-slate-700 border-2 border-white/10 flex items-center justify-center">
-                <span className="text-emerald-400 font-bold text-2xl">
-                  {(profile.displayName || user.name || "?").charAt(0).toUpperCase()}
+              <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-emerald-400 font-black text-lg">{initials}</span>
+              </div>
+            )}
+            <div className="flex-1 min-w-0">
+              <p className="font-bold text-white truncate">{profile.displayName || user.name}</p>
+              {locationStr && (
+                <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
+                  <MapPin className="w-3 h-3" /> {locationStr}
+                </p>
+              )}
+              {user.emailVerified && (
+                <span className="inline-flex items-center gap-1 text-[9px] font-mono text-emerald-400 uppercase mt-1">
+                  <ShieldCheck className="w-2.5 h-2.5" /> Email verified
                 </span>
-              </div>
-            )}
-          </div>
-
-          {/* Avatar controls */}
-          <div className="flex-1 space-y-3">
-            {/* ── File upload (when blob is configured) ── */}
-            {blobConfigured && (
-              <div>
-                {/* Hidden file input */}
-                <input
-                  ref={avatarFileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  tabIndex={-1}
-                  disabled={isAvatarSubmitting}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    e.target.value = "";
-
-                    // Validate locally first
-                    if (!file.type.startsWith("image/")) {
-                      setAvatarUploadError("File must be an image.");
-                      return;
-                    }
-                    if (file.size > 5 * 1024 * 1024) {
-                      setAvatarUploadError("Image must be under 5 MB.");
-                      return;
-                    }
-
-                    setAvatarUploadError(null);
-                    setIsAvatarFileUploading(true);
-
-                    try {
-                      // Upload directly to Vercel Blob — file bytes never
-                      // touch the serverless function, so the 4.5 MB body
-                      // limit is bypassed entirely.
-                      const { upload } = await import("@vercel/blob/client");
-                      const blob = await upload(`avatars/${file.name}`, file, {
-                        access: "public",
-                        handleUploadUrl: "/api/upload",
-                      });
-
-                      // Persist the blob URL on the profile via the
-                      // existing lightweight "update-avatar" intent.
-                      setAvatarInput(blob.url);
-                      const fd = new FormData();
-                      fd.set("intent", "update-avatar");
-                      fd.set("avatarUrl", blob.url);
-                      avatarFetcher.submit(fd, { method: "post" });
-                    } catch (err) {
-                      console.error("[avatar] client upload failed:", err);
-                      setAvatarUploadError(
-                        err instanceof Error ? err.message : "Upload failed. Please try again.",
-                      );
-                    } finally {
-                      setIsAvatarFileUploading(false);
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  disabled={isAvatarSubmitting}
-                  onClick={() => avatarFileInputRef.current?.click()}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/30 text-xs font-mono uppercase tracking-widest transition-all disabled:opacity-50"
-                >
-                  {isAvatarFileUploading ? (
-                    <>
-                      <Spinner />
-                      Uploading…
-                    </>
-                  ) : (
-                    <>
-                      <ImagePlus className="w-3.5 h-3.5" />
-                      Upload Photo
-                    </>
-                  )}
-                </button>
-
-                {/* File upload error (client-side) */}
-                {avatarUploadError && (
-                  <p className="mt-1.5 text-red-400 text-xs font-mono">
-                    {avatarUploadError}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* ── URL form ── */}
-            <avatarFetcher.Form method="post" className="space-y-3">
-              <input type="hidden" name="intent" value="update-avatar" />
-
-              <div>
-                <label
-                  htmlFor="avatarUrl"
-                  className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
-                >
-                  {blobConfigured ? "Or paste an image URL" : "Image URL"}
-                </label>
-                <input
-                  id="avatarUrl"
-                  name="avatarUrl"
-                  type="url"
-                  value={avatarInput}
-                  onChange={(e) => setAvatarInput(e.target.value)}
-                  placeholder="https://example.com/photo.jpg"
-                  className="w-full rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 font-mono text-sm"
-                />
-              </div>
-
-              {/* Validation error */}
-              {avatarActionData && !avatarActionData.success && avatarActionData.intent === "update-avatar" && (
-                <p className="text-red-400 text-xs font-mono">
-                  {avatarActionData.error}
-                </p>
-              )}
-
-              {/* Success message */}
-              {avatarActionData?.success && (avatarActionData.intent === "update-avatar" || avatarActionData.intent === "remove-avatar") && (
-                <p className="text-emerald-400 text-xs font-mono uppercase tracking-widest">
-                  {avatarActionData.intent === "remove-avatar" ? "Avatar removed" : "Avatar updated"}
-                </p>
-              )}
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="submit"
-                  disabled={isAvatarSubmitting}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/30 text-xs font-mono uppercase tracking-widest transition-all disabled:opacity-50"
-                >
-                  {isAvatarSubmitting && avatarFetcher.formData?.get("intent") === "update-avatar" ? (
-                    <Spinner />
-                  ) : (
-                    <Camera className="w-3.5 h-3.5" />
-                  )}
-                  Save URL
-                </button>
-
-                {profile.avatarUrl && (
-                  <button
-                    type="button"
-                    disabled={isAvatarSubmitting}
-                    onClick={() => {
-                      const fd = new FormData();
-                      fd.set("intent", "remove-avatar");
-                      avatarFetcher.submit(fd, { method: "post" });
-                      setAvatarInput("");
-                    }}
-                    className="text-red-400 hover:text-red-300 text-xs font-mono uppercase tracking-widest transition-colors disabled:opacity-50 flex items-center gap-1"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                    Remove
-                  </button>
-                )}
-              </div>
-            </avatarFetcher.Form>
-          </div>
-        </div>
-      </div>
-
-      {/* Profile card */}
-      <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6">
-        <div className="flex items-start gap-4">
-          {/* Avatar */}
-          {profile.avatarUrl ? (
-            <img
-              src={profile.avatarUrl}
-              alt={profile.displayName}
-              className="w-16 h-16 rounded-2xl object-cover border border-white/10"
-            />
-          ) : (
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
-              <span className="text-emerald-400 font-black text-lg">
-                {initials}
-              </span>
-            </div>
-          )}
-
-          {/* Info */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-bold text-lg text-white truncate">
-                {profile.displayName}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsEditing(!isEditing)}
-                className="text-slate-500 hover:text-emerald-400 transition-colors p-1"
-                aria-label="Edit profile"
-              >
-                <Pencil className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {profile.bio && (
-              <p className="text-sm text-slate-400 mb-2 line-clamp-2">
-                {profile.bio}
-              </p>
-            )}
-
-            {locationStr && (
-              <div className="flex items-center gap-1 text-xs text-slate-500">
-                <MapPin className="w-3 h-3 text-cyan-500" />
-                <span>{locationStr}</span>
-              </div>
-            )}
-
-            {/* Email + verification badge */}
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-[10px] font-mono text-slate-500 truncate">
-                {user.email}
-              </span>
-              {user.emailVerified ? (
-                <Badge variant="verified">
-                  <ShieldCheck className="w-3 h-3 mr-0.5" />
-                  Verified
-                </Badge>
-              ) : (
-                <Badge variant="unverified">
-                  <ShieldX className="w-3 h-3 mr-0.5" />
-                  Unverified
-                </Badge>
               )}
             </div>
-
-            {/* Phone + verification badge */}
-            <div className="flex items-center gap-2 mt-1.5">
-              <Phone className="w-3 h-3 text-slate-600 flex-shrink-0" />
-              {profile.phone ? (
-                <>
-                  <span className="text-[10px] font-mono text-slate-500 truncate">
-                    {profile.phone}
-                  </span>
-                  {profile.phoneVerified ? (
-                    <Badge variant="verified">
-                      <ShieldCheck className="w-3 h-3 mr-0.5" />
-                      Verified
-                    </Badge>
-                  ) : (
-                    <Badge variant="unverified">
-                      <ShieldX className="w-3 h-3 mr-0.5" />
-                      Unverified
-                    </Badge>
-                  )}
-                  <Link
-                    to="/dashboard/verify-phone"
-                    className="text-[10px] font-mono uppercase tracking-widest text-cyan-500 hover:text-cyan-400 transition-colors ml-auto"
-                  >
-                    {profile.phoneVerified ? "Change" : "Verify"}
-                  </Link>
-                </>
-              ) : (
-                <Link
-                  to="/dashboard/verify-phone"
-                  className="text-[10px] font-mono uppercase tracking-widest text-emerald-500 hover:text-emerald-400 transition-colors"
-                >
-                  + Add Phone
-                </Link>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Success message */}
-        {didUpdate && !isEditing && (
-          <div className="mt-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 px-4 py-2 text-xs font-mono text-emerald-400 uppercase tracking-widest">
-            Profile updated
-          </div>
-        )}
-      </div>
-
-      {/* Stats grid */}
-      <div className="grid grid-cols-3 gap-3">
-        <StatCard
-          icon={<ArrowRightLeft className="w-4 h-4 text-cyan-400" />}
-          label="Total Trades"
-          value={stats.tradeCount}
-        />
-        <StatCard
-          icon={<CheckCircle2 className="w-4 h-4 text-emerald-400" />}
-          label="Completed"
-          value={stats.completedCount}
-        />
-        <StatCard
-          icon={<Star className="w-4 h-4 text-amber-400" />}
-          label="Avg Rating"
-          value={
-            stats.avgRating !== null ? stats.avgRating.toFixed(1) : "—"
-          }
-        />
-      </div>
-
-      {/* Edit form (toggled) */}
-      {isEditing && (
-        <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-bold text-sm uppercase tracking-widest text-slate-300">
-              Edit Profile
-            </h3>
             <button
               type="button"
-              onClick={() => setIsEditing(false)}
-              className="text-xs text-slate-500 hover:text-slate-300 font-mono uppercase tracking-widest"
+              onClick={() => setShowEditSheet(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-mono uppercase tracking-widest text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/10 transition-colors flex-shrink-0"
             >
-              Cancel
+              <Pencil className="w-3 h-3" /> Edit
             </button>
           </div>
 
-          <Form method="post" className="space-y-4">
-            <input type="hidden" name="intent" value="updateProfile" />
-
-            <Input
-              variant="nozar"
-              label="Display Name"
-              name="displayName"
-              defaultValue={profile.displayName}
-              placeholder="Your display name"
-              required
-              maxLength={50}
+          {/* Stats grid — renamed labels */}
+          <div className="grid grid-cols-3 gap-3">
+            <StatCard
+              icon={<ArrowRightLeft className="w-4 h-4 text-cyan-400" />}
+              label="Swaps started"
+              value={stats.tradeCount}
             />
+            <StatCard
+              icon={<CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+              label="Completed"
+              value={stats.completedCount}
+            />
+            <StatCard
+              icon={<Star className="w-4 h-4 text-amber-400" />}
+              label="Your rating"
+              value={stats.avgRating !== null ? stats.avgRating.toFixed(1) : "—"}
+            />
+          </div>
 
-            <div>
-              <label
-                htmlFor="bio"
-                className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
+          {/* Phone verification card */}
+          {!profile.phone && (
+            <div className="p-4 bg-[#0F172A] border border-white/10 rounded-2xl flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-slate-500" />
+                <span className="text-sm text-slate-400">Phone</span>
+              </div>
+              <Link
+                to="/dashboard/verify-phone"
+                className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest hover:text-emerald-300"
               >
-                Bio
-              </label>
-              <textarea
-                id="bio"
-                name="bio"
-                defaultValue={profile.bio ?? ""}
-                placeholder="Tell people what you're about..."
-                maxLength={280}
-                rows={3}
-                className="w-full rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 resize-none"
-              />
+                + Add &amp; verify →
+              </Link>
             </div>
+          )}
 
-            <div className="grid grid-cols-2 gap-3">
-              <Input
-                variant="nozar"
-                label="Suburb"
-                name="suburb"
-                defaultValue={profile.suburb ?? ""}
-                placeholder="e.g. Braamfontein"
-                maxLength={100}
-              />
-              <Input
-                variant="nozar"
-                label="City"
-                name="city"
-                defaultValue={profile.city ?? ""}
-                placeholder="e.g. Johannesburg"
-                maxLength={100}
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="province"
-                className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
-              >
-                Province
-              </label>
-              <select
-                id="province"
-                name="province"
-                defaultValue={profile.province ?? ""}
-                className="w-full rounded-xl bg-[#0F172A] border border-white/10 text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 appearance-none cursor-pointer"
-              >
-                <option value="">Select province</option>
-                {MVP_PROVINCES.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-              <p className="text-[10px] font-mono uppercase tracking-widest text-slate-600 mt-1">
-                More provinces coming soon
-              </p>
-            </div>
-
-            <Button
-              type="submit"
-              variant="nozar"
-              size="md"
-              disabled={isSubmitting}
-              className="w-full"
+          {/* Plan row */}
+          <div className="p-4 bg-[#0F172A] border border-white/10 rounded-2xl flex items-center justify-between">
+            <span className="text-sm text-slate-400">Free plan — 5 listings</span>
+            <Link
+              to="/dashboard/refer"
+              className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest hover:text-emerald-300"
             >
-              {submittingIntent === "updateProfile" ? (
-                <>
-                  <Spinner />
-                  Saving...
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
-          </Form>
-        </div>
-      )}
-
-      {/* Active listings */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-sm uppercase tracking-widest text-slate-300">
-            Your Listings
-          </h3>
-          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
-            {activeListings.length} active
-          </span>
-        </div>
-
-        {activeListings.length > 0 ? (
-          <div className="space-y-2">
-            {activeListings.map((listing) => (
-              <ListingCard
-                key={listing.id}
-                listing={listing}
-                images={listingImagesMap[listing.id] ?? []}
-                isEditingThis={editingListingId === listing.id}
-                isConfirmingArchive={confirmArchiveId === listing.id}
-                isSubmitting={isSubmitting}
-                submittingIntent={submittingIntent}
-                submittingListingId={submittingListingId}
-                onEditToggle={() =>
-                  setEditingListingId(
-                    editingListingId === listing.id ? null : listing.id,
-                  )
-                }
-                onArchiveToggle={() =>
-                  setConfirmArchiveId(
-                    confirmArchiveId === listing.id ? null : listing.id,
-                  )
-                }
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-8 text-center">
-            <div className="text-slate-600 text-3xl mb-3">⊘</div>
-            <p className="text-slate-500 font-mono text-xs uppercase tracking-widest mb-1">
-              No active listings
-            </p>
-            <p className="text-slate-600 text-xs">
-              Create your first listing to start trading
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Archived listings */}
-      {archivedListings.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-bold text-sm uppercase tracking-widest text-slate-500">
-              Archived
-            </h3>
-            <span className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">
-              {archivedListings.length} archived
-            </span>
+              Upgrade →
+            </Link>
           </div>
 
-          <div className="space-y-2">
-            {archivedListings.map((listing) => (
-              <ListingCard
-                key={listing.id}
-                listing={listing}
-                images={listingImagesMap[listing.id] ?? []}
-                isEditingThis={editingListingId === listing.id}
-                isConfirmingArchive={false}
-                isSubmitting={isSubmitting}
-                submittingIntent={submittingIntent}
-                submittingListingId={submittingListingId}
-                onEditToggle={() =>
-                  setEditingListingId(
-                    editingListingId === listing.id ? null : listing.id,
-                  )
-                }
-                onArchiveToggle={() => {}}
-              />
-            ))}
+          {/* Sign out */}
+          <div className="pt-2 pb-4">
+            <Form method="post">
+              <input type="hidden" name="intent" value="logout" />
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full py-3 rounded-xl border border-red-500/20 text-red-400 text-sm font-mono uppercase tracking-widest hover:bg-red-500/5 transition-colors disabled:opacity-50"
+              >
+                {submittingIntent === "logout" ? (
+                  <><Spinner /> Signing out...</>
+                ) : (
+                  "Sign out"
+                )}
+              </button>
+            </Form>
           </div>
         </div>
       )}
 
-      {/* Logout */}
-      <div className="pt-2 pb-4">
-        <Form method="post">
-          <input type="hidden" name="intent" value="logout" />
-          <Button
-            type="submit"
-            variant="danger"
-            size="md"
-            disabled={isSubmitting}
-            className="w-full"
+      {/* Edit profile slide-in sheet */}
+      {showEditSheet && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setShowEditSheet(false)}
+          />
+          <div
+            ref={sheetRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-profile-sheet-title"
+            className="relative w-full max-w-sm h-full bg-[#0F172A] border-l border-white/10 overflow-y-auto p-6 flex flex-col gap-6"
           >
-            {submittingIntent === "logout" ? (
-              <>
-                <Spinner />
-                Signing out...
-              </>
-            ) : (
-              <>
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </>
-            )}
-          </Button>
-        </Form>
-      </div>
+            <div className="flex items-center justify-between">
+              <h3 id="edit-profile-sheet-title" className="font-bold text-white">Edit profile</h3>
+              <button
+                type="button"
+                onClick={() => setShowEditSheet(false)}
+                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+              >
+                <X className="w-4 h-4 text-slate-400" />
+              </button>
+            </div>
+
+            {/* Avatar management */}
+            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6">
+              <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 block mb-4">
+                Profile Photo
+              </span>
+
+              <div className="flex items-start gap-5">
+                {/* Current avatar display */}
+                <div className="flex-shrink-0">
+                  {profile.avatarUrl ? (
+                    <img
+                      src={profile.avatarUrl}
+                      alt={profile.displayName}
+                      className="w-24 h-24 rounded-full object-cover border-2 border-emerald-500/30"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-slate-700 border-2 border-white/10 flex items-center justify-center">
+                      <span className="text-emerald-400 font-bold text-2xl">
+                        {(profile.displayName || user.name || "?").charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Avatar controls */}
+                <div className="flex-1 space-y-3">
+                  {/* ── File upload (when blob is configured) ── */}
+                  {blobConfigured && (
+                    <div>
+                      {/* Hidden file input */}
+                      <input
+                        ref={avatarFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="sr-only"
+                        tabIndex={-1}
+                        disabled={isAvatarSubmitting}
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          e.target.value = "";
+
+                          if (!file.type.startsWith("image/")) {
+                            setAvatarUploadError("File must be an image.");
+                            return;
+                          }
+                          if (file.size > 5 * 1024 * 1024) {
+                            setAvatarUploadError("Image must be under 5 MB.");
+                            return;
+                          }
+
+                          setAvatarUploadError(null);
+                          setIsAvatarFileUploading(true);
+
+                          try {
+                            const { upload } = await import("@vercel/blob/client");
+                            const blob = await upload(`avatars/${file.name}`, file, {
+                              access: "public",
+                              handleUploadUrl: "/api/upload",
+                            });
+
+                            setAvatarInput(blob.url);
+                            const fd = new FormData();
+                            fd.set("intent", "update-avatar");
+                            fd.set("avatarUrl", blob.url);
+                            avatarFetcher.submit(fd, { method: "post" });
+                          } catch (err) {
+                            console.error("[avatar] client upload failed:", err);
+                            setAvatarUploadError(
+                              err instanceof Error ? err.message : "Upload failed. Please try again.",
+                            );
+                          } finally {
+                            setIsAvatarFileUploading(false);
+                          }
+                        }}
+                      />
+                      <button
+                        type="button"
+                        disabled={isAvatarSubmitting}
+                        onClick={() => avatarFileInputRef.current?.click()}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/30 text-xs font-mono uppercase tracking-widest transition-all disabled:opacity-50"
+                      >
+                        {isAvatarFileUploading ? (
+                          <>
+                            <Spinner />
+                            Uploading…
+                          </>
+                        ) : (
+                          <>
+                            <ImagePlus className="w-3.5 h-3.5" />
+                            Upload Photo
+                          </>
+                        )}
+                      </button>
+
+                      {avatarUploadError && (
+                        <p className="mt-1.5 text-red-400 text-xs font-mono">
+                          {avatarUploadError}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ── URL form ── */}
+                  <avatarFetcher.Form method="post" className="space-y-3">
+                    <input type="hidden" name="intent" value="update-avatar" />
+
+                    <div>
+                      <label
+                        htmlFor="avatarUrl"
+                        className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
+                      >
+                        {blobConfigured ? "Or paste an image URL" : "Image URL"}
+                      </label>
+                      <input
+                        id="avatarUrl"
+                        name="avatarUrl"
+                        type="url"
+                        value={avatarInput}
+                        onChange={(e) => setAvatarInput(e.target.value)}
+                        placeholder="https://example.com/photo.jpg"
+                        className="w-full rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 font-mono text-sm"
+                      />
+                    </div>
+
+                    {avatarActionData && !avatarActionData.success && avatarActionData.intent === "update-avatar" && (
+                      <p className="text-red-400 text-xs font-mono">
+                        {avatarActionData.error}
+                      </p>
+                    )}
+
+                    {avatarActionData?.success && (avatarActionData.intent === "update-avatar" || avatarActionData.intent === "remove-avatar") && (
+                      <p className="text-emerald-400 text-xs font-mono uppercase tracking-widest">
+                        {avatarActionData.intent === "remove-avatar" ? "Avatar removed" : "Avatar updated"}
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="submit"
+                        disabled={isAvatarSubmitting}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 hover:border-emerald-500/30 text-xs font-mono uppercase tracking-widest transition-all disabled:opacity-50"
+                      >
+                        {isAvatarSubmitting && avatarFetcher.formData?.get("intent") === "update-avatar" ? (
+                          <Spinner />
+                        ) : (
+                          <Camera className="w-3.5 h-3.5" />
+                        )}
+                        Save URL
+                      </button>
+
+                      {profile.avatarUrl && (
+                        <button
+                          type="button"
+                          disabled={isAvatarSubmitting}
+                          onClick={() => {
+                            const fd = new FormData();
+                            fd.set("intent", "remove-avatar");
+                            avatarFetcher.submit(fd, { method: "post" });
+                            setAvatarInput("");
+                          }}
+                          className="text-red-400 hover:text-red-300 text-xs font-mono uppercase tracking-widest transition-colors disabled:opacity-50 flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </avatarFetcher.Form>
+                </div>
+              </div>
+            </div>
+
+            {/* Profile update form */}
+            <Form method="post" className="space-y-4 flex-1">
+              <input type="hidden" name="intent" value="updateProfile" />
+
+              <Input
+                variant="nozar"
+                label="Display Name"
+                name="displayName"
+                defaultValue={profile.displayName}
+                placeholder="Your display name"
+                required
+                maxLength={50}
+              />
+
+              <div>
+                <label
+                  htmlFor="bio"
+                  className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
+                >
+                  Bio
+                </label>
+                <textarea
+                  id="bio"
+                  name="bio"
+                  defaultValue={profile.bio ?? ""}
+                  placeholder="Tell people what you're about..."
+                  maxLength={280}
+                  rows={3}
+                  className="w-full rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 resize-none"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Input
+                  variant="nozar"
+                  label="Suburb"
+                  name="suburb"
+                  defaultValue={profile.suburb ?? ""}
+                  placeholder="e.g. Braamfontein"
+                  maxLength={100}
+                />
+                <Input
+                  variant="nozar"
+                  label="City"
+                  name="city"
+                  defaultValue={profile.city ?? ""}
+                  placeholder="e.g. Johannesburg"
+                  maxLength={100}
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="province"
+                  className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block"
+                >
+                  Province
+                </label>
+                <select
+                  id="province"
+                  name="province"
+                  defaultValue={profile.province ?? ""}
+                  className="w-full rounded-xl bg-[#0F172A] border border-white/10 text-white focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 appearance-none cursor-pointer"
+                >
+                  <option value="">Select province</option>
+                  {MVP_PROVINCES.map((p) => (
+                    <option key={p} value={p}>
+                      {p}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] font-mono uppercase tracking-widest text-slate-600 mt-1">
+                  More provinces coming soon
+                </p>
+              </div>
+
+              <Button
+                type="submit"
+                variant="nozar"
+                size="md"
+                disabled={isSubmitting}
+                className="w-full"
+              >
+                {submittingIntent === "updateProfile" ? (
+                  <>
+                    <Spinner />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            </Form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1190,7 +1175,7 @@ function ListingCard({
                       submittingIntent === "archive-listing" ? (
                         <Spinner />
                       ) : (
-                        "Confirm"
+                        "Hide listing"
                       )}
                     </button>
                   </Form>
@@ -1207,10 +1192,10 @@ function ListingCard({
                   type="button"
                   onClick={onArchiveToggle}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-widest text-red-400/70 hover:text-red-400 hover:bg-red-500/5 border border-transparent transition-all"
-                  title="Archive listing"
+                  title="Hide listing"
                 >
                   <Archive className="w-3 h-3" />
-                  Archive
+                  Hide
                 </button>
               )}
             </>

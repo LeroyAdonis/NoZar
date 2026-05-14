@@ -23,6 +23,7 @@ import { LocationPromptModal } from "~/components/ui/location-prompt-modal";
 import { provinceToSlug, getClosestRegion, MVP_REGIONS } from "~/lib/regions";
 import { vapidPublicKey } from "~/lib/webpush.server";
 import { PushPermissionButton } from "~/components/ui/push-permission-button";
+import { WelcomeOverlay } from "~/components/ui/welcome-overlay";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
@@ -116,11 +117,11 @@ function getActiveTab(pathname: string): string {
 }
 
 const SIDEBAR_LINKS = [
-  { id: "home",     label: "Index",     href: "/dashboard",          icon: Home },
-  { id: "map",      label: "Radar",     href: "/dashboard/map",      icon: MapIcon },
-  { id: "add",      label: "Add Item",  href: "/dashboard/add",      icon: Plus },
-  { id: "messages", label: "Pings",     href: "/dashboard/pings",    icon: MessageSquare },
-  { id: "profile",  label: "My Profile", href: "/dashboard/profile",  icon: User },
+  { id: "home",     label: "Home",     href: "/dashboard",          icon: Home },
+  { id: "map",      label: "Explore",  href: "/dashboard/map",      icon: MapIcon },
+  { id: "add",      label: "Add item", href: "/dashboard/add",      icon: Plus },
+  { id: "messages", label: "Chats",    href: "/dashboard/pings",    icon: MessageSquare },
+  { id: "profile",  label: "Profile",  href: "/dashboard/profile",  icon: User },
 ] as const;
 
 export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
@@ -140,6 +141,16 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const handleLocationReopen = () => {
     localStorage.removeItem("nozar_location_dismissed");
     setIsLocationDismissed(false);
+  };
+
+  const [hasSeenWelcome, setHasSeenWelcome] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return localStorage.getItem("nozar_welcome_seen") === "1";
+  });
+
+  const handleWelcomeDismiss = () => {
+    localStorage.setItem("nozar_welcome_seen", "1");
+    setHasSeenWelcome(true);
   };
 
   const showLocationModal = !!user && needsLocation && !isLocationDismissed;
@@ -346,14 +357,14 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
         <div className="hidden md:flex items-center gap-4">
           <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">
             {activeTab === "home"
-              ? "// Local Index"
+              ? "Home"
               : activeTab === "map"
-              ? "// Radar"
+              ? "Explore"
               : activeTab === "add"
-              ? "// New Asset"
+              ? "Add item"
               : activeTab === "messages"
-              ? "// Pings"
-              : "// Profile"}
+              ? "Chats"
+              : "Profile"}
           </span>
           {needsLocation && isLocationDismissed && (
             <button
@@ -459,13 +470,17 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
         <Outlet />
       </main>
 
-      <LocationPromptModal 
-        isOpen={showLocationModal} 
-        onClose={handleLocationDismiss} 
+      <LocationPromptModal
+        isOpen={showLocationModal}
+        onClose={handleLocationDismiss}
       />
 
+      {!hasSeenWelcome && (
+        <WelcomeOverlay onDismiss={handleWelcomeDismiss} />
+      )}
+
       {/* Bottom navigation — mobile only (BottomNav itself adds md:hidden) */}
-      <BottomNav activeTab={activeTab} isPending={isNavigating} />
+      <BottomNav activeTab={activeTab} isPending={isNavigating} hasUnread={unreadCount > 0} />
     </div>
   );
 }

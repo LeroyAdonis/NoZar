@@ -19,7 +19,7 @@ type NavTab = {
 const NAV_TABS: NavTab[] = [
   {
     id: "home",
-    label: "Index",
+    label: "Home",
     href: "/dashboard",
     icon: Home,
     activeColor: "text-emerald-400",
@@ -27,7 +27,7 @@ const NAV_TABS: NavTab[] = [
   },
   {
     id: "map",
-    label: "Radar",
+    label: "Explore",
     href: "/dashboard/map",
     icon: MapIcon,
     activeColor: "text-cyan-400",
@@ -43,7 +43,7 @@ const NAV_TABS: NavTab[] = [
   },
   {
     id: "messages",
-    label: "Pings",
+    label: "Chats",
     href: "/dashboard/pings",
     icon: MessageSquare,
     activeColor: "text-emerald-400",
@@ -51,7 +51,7 @@ const NAV_TABS: NavTab[] = [
   },
   {
     id: "profile",
-    label: "Node",
+    label: "Profile",
     href: "/dashboard/profile",
     icon: User,
     activeColor: "text-emerald-400",
@@ -63,9 +63,10 @@ type BottomNavProps = {
   activeTab: string;
   /** When true, nav items are visually dimmed and clicks are blocked */
   isPending?: boolean;
+  hasUnread?: boolean;
 };
 
-export function BottomNav({ activeTab, isPending = false }: BottomNavProps) {
+export function BottomNav({ activeTab, isPending = false, hasUnread = false }: BottomNavProps) {
   return (
     <nav
       data-testid="bottom-nav"
@@ -130,8 +131,8 @@ export function BottomNav({ activeTab, isPending = false }: BottomNavProps) {
                 {tab.label}
               </span>
 
-              {/* Notification dot for Pings tab */}
-              {tab.id === "messages" && (
+              {/* Notification dot for Chats tab */}
+              {tab.id === "messages" && hasUnread && (
                 <span className="absolute top-1 right-2 w-2 h-2 rounded-full bg-emerald-500 border border-[#030712]" />
               )}
             </Link>

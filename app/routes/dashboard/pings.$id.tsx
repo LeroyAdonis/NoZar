@@ -959,10 +959,11 @@ export default function PingDetail({
   loaderData,
 }: Route.ComponentProps) {
   const { trade, messages: chatMessages, counterparty, listing, currentUserId,
-    myTrust, isReady, theyReady, spots, myVote, tradeItemsForTrade,
+    myTrust, isReady, theyReady, spots, votes, myVote, tradeItemsForTrade,
     userListings, userMsgCount, activeReport, hasRated, existingRatingScore, maxItems,
     disclosures } =
     loaderData;
+  const bothVoted = votes.length >= 2;
   const navigation = useNavigation();
   const revalidator = useRevalidator();
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1246,96 +1247,7 @@ export default function PingDetail({
         {/* Handshake Stage: Agreed — Dual-Blind Contact + SafeZone */}
         {status === "agreed" && (
           <div className="space-y-4">
-            {/* Dual-Blind Contact Reveal */}
-            <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <h4 className="font-bold text-white uppercase tracking-wide text-sm">
-                  Contact Exchange
-                </h4>
-              </div>
-
-              {/* Readiness Grid */}
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className={`text-center p-3 rounded-xl border transition-all ${
-                  isReady
-                    ? "bg-emerald-500/10 border-emerald-500/30"
-                    : "bg-white/5 border-white/10"
-                }`}>
-                  <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">You</span>
-                  <span className={`text-sm font-bold ${isReady ? "text-emerald-400" : "text-slate-400"}`}>
-                    {isReady ? "✓ Ready" : "Not Ready"}
-                  </span>
-                </div>
-                <div className={`text-center p-3 rounded-xl border transition-all ${
-                  theyReady
-                    ? "bg-emerald-500/10 border-emerald-500/30"
-                    : "bg-white/5 border-white/10"
-                }`}>
-                  <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">
-                    {counterparty.name}
-                  </span>
-                  <span className={`text-sm font-bold ${theyReady ? "text-emerald-400" : "text-slate-400"}`}>
-                    {theyReady ? "✓ Ready" : "Not Ready"}
-                  </span>
-                </div>
-              </div>
-
-              {isReady && theyReady ? (
-                <>
-                  <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mb-3">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <p className="text-xs font-mono text-emerald-400">
-                      Both parties ready! Proceed to contact sharing.
-                    </p>
-                  </div>
-                  <ShareContactForm isSubmitting={isSubmitting} submittingIntent={submittingIntent} />
-                </>
-              ) : isReady ? (
-                <div className="space-y-2">
-                  <div className="text-center p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-                    <p className="text-xs font-mono text-emerald-400">
-                      Waiting for {counterparty.name} to confirm...
-                    </p>
-                  </div>
-                  <Form method="post">
-                    <input type="hidden" name="intent" value="toggleReady" />
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 font-mono uppercase tracking-widest text-[10px] transition-all disabled:opacity-50"
-                    >
-                      {submittingIntent === "toggleReady" ? (
-                        <span className="inline-flex items-center gap-2">
-                          <Spinner className="w-3 h-3" /> Updating...
-                        </span>
-                      ) : (
-                        "Un-mark Ready"
-                      )}
-                    </button>
-                  </Form>
-                </div>
-              ) : (
-                <Form method="post">
-                  <input type="hidden" name="intent" value="toggleReady" />
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-mono uppercase tracking-widest text-xs transition-all disabled:opacity-50"
-                  >
-                    {submittingIntent === "toggleReady" ? (
-                      <span className="inline-flex items-center gap-2">
-                        <Spinner className="w-3.5 h-3.5" /> Committing...
-                      </span>
-                    ) : (
-                      "I'm Ready — Exchange Contacts"
-                    )}
-                  </button>
-                </Form>
-              )}
-            </div>
-
-            {/* SafeZone — NVIDIA-powered meetup spot picker */}
+            {/* SafeZone section - always shown when agreed */}
             <div className="space-y-3">
               <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
                 <ShieldCheck className="w-3 h-3 text-emerald-500" />
@@ -1392,10 +1304,101 @@ export default function PingDetail({
                     );
                   }}
                   isGenerating={isGeneratingSpots}
-                  isConfirmed={myVote != null && voteFetcher.state === "idle"}
+                  isConfirmed={bothVoted && myVote != null && voteFetcher.state === "idle"}
                 />
               )}
             </div>
+
+            {/* Contact Exchange — only after both parties voted */}
+            {bothVoted && (
+              <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">
+                <div className="flex items-center gap-2 mb-4">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <h4 className="font-bold text-white uppercase tracking-wide text-sm">
+                    Contact Exchange
+                  </h4>
+                </div>
+
+                {/* Readiness Grid */}
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <div className={`text-center p-3 rounded-xl border transition-all ${
+                    isReady
+                      ? "bg-emerald-500/10 border-emerald-500/30"
+                      : "bg-white/5 border-white/10"
+                  }`}>
+                    <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">You</span>
+                    <span className={`text-sm font-bold ${isReady ? "text-emerald-400" : "text-slate-400"}`}>
+                      {isReady ? "✓ Ready" : "Not Ready"}
+                    </span>
+                  </div>
+                  <div className={`text-center p-3 rounded-xl border transition-all ${
+                    theyReady
+                      ? "bg-emerald-500/10 border-emerald-500/30"
+                      : "bg-white/5 border-white/10"
+                  }`}>
+                    <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">
+                      {counterparty.name}
+                    </span>
+                    <span className={`text-sm font-bold ${theyReady ? "text-emerald-400" : "text-slate-400"}`}>
+                      {theyReady ? "✓ Ready" : "Not Ready"}
+                    </span>
+                  </div>
+                </div>
+
+                {isReady && theyReady ? (
+                  <>
+                    <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mb-3">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <p className="text-xs font-mono text-emerald-400">
+                        Both parties ready! Proceed to contact sharing.
+                      </p>
+                    </div>
+                    <ShareContactForm isSubmitting={isSubmitting} submittingIntent={submittingIntent} />
+                  </>
+                ) : isReady ? (
+                  <div className="space-y-2">
+                    <div className="text-center p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                      <p className="text-xs font-mono text-emerald-400">
+                        Waiting for {counterparty.name} to confirm...
+                      </p>
+                    </div>
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="toggleReady" />
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 font-mono uppercase tracking-widest text-[10px] transition-all disabled:opacity-50"
+                      >
+                        {submittingIntent === "toggleReady" ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Spinner className="w-3 h-3" /> Updating...
+                          </span>
+                        ) : (
+                          "Un-mark Ready"
+                        )}
+                      </button>
+                    </Form>
+                  </div>
+                ) : (
+                  <Form method="post">
+                    <input type="hidden" name="intent" value="toggleReady" />
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-mono uppercase tracking-widest text-xs transition-all disabled:opacity-50"
+                    >
+                      {submittingIntent === "toggleReady" ? (
+                        <span className="inline-flex items-center gap-2">
+                          <Spinner className="w-3.5 h-3.5" /> Committing...
+                        </span>
+                      ) : (
+                        "I'm Ready — Exchange Contacts"
+                      )}
+                    </button>
+                  </Form>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -1795,103 +1798,7 @@ export default function PingDetail({
           {/* Handshake Stage: Agreed — Dual-Blind Contact + SafeZone */}
           {status === "agreed" && (
             <div className="mt-6 space-y-4">
-              {/* Dual-Blind Contact Reveal */}
-              <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">
-                <div className="flex items-center gap-2 mb-4">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <h4 className="font-bold text-white uppercase tracking-wide text-sm">
-                    Contact Exchange
-                  </h4>
-                </div>
-
-                {/* Readiness Grid */}
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  <div className={`text-center p-3 rounded-xl border transition-all ${
-                    isReady
-                      ? "bg-emerald-500/10 border-emerald-500/30"
-                      : "bg-white/5 border-white/10"
-                  }`}>
-                    <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">
-                      You
-                    </span>
-                    <span className={`text-sm font-bold ${
-                      isReady ? "text-emerald-400" : "text-slate-400"
-                    }`}>
-                      {isReady ? "✓ Ready" : "Not Ready"}
-                    </span>
-                  </div>
-                  <div className={`text-center p-3 rounded-xl border transition-all ${
-                    theyReady
-                      ? "bg-emerald-500/10 border-emerald-500/30"
-                      : "bg-white/5 border-white/10"
-                  }`}>
-                    <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">
-                      {counterparty.name}
-                    </span>
-                    <span className={`text-sm font-bold ${
-                      theyReady ? "text-emerald-400" : "text-slate-400"
-                    }`}>
-                      {theyReady ? "✓ Ready" : "Not Ready"}
-                    </span>
-                  </div>
-                </div>
-
-                {isReady && theyReady ? (
-                  /* Both ready — reveal contacts */
-                  <>
-                    <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mb-3">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                      <p className="text-xs font-mono text-emerald-400">
-                        Both parties ready! Proceed to contact sharing.
-                      </p>
-                    </div>
-                    <ShareContactForm isSubmitting={isSubmitting} submittingIntent={submittingIntent} />
-                  </>
-                ) : isReady ? (
-                  <div className="space-y-2">
-                    <div className="text-center p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-                      <p className="text-xs font-mono text-emerald-400">
-                        Waiting for {counterparty.name} to confirm...
-                      </p>
-                    </div>
-                    <Form method="post">
-                      <input type="hidden" name="intent" value="toggleReady" />
-                      <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 font-mono uppercase tracking-widest text-[10px] transition-all disabled:opacity-50"
-                      >
-                        {submittingIntent === "toggleReady" ? (
-                          <span className="inline-flex items-center gap-2">
-                            <Spinner className="w-3 h-3" /> Updating...
-                          </span>
-                        ) : (
-                          "Un-mark Ready"
-                        )}
-                      </button>
-                    </Form>
-                  </div>
-                ) : (
-                  <Form method="post">
-                    <input type="hidden" name="intent" value="toggleReady" />
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-mono uppercase tracking-widest text-xs transition-all disabled:opacity-50"
-                    >
-                      {submittingIntent === "toggleReady" ? (
-                        <span className="inline-flex items-center gap-2">
-                          <Spinner className="w-3.5 h-3.5" /> Committing...
-                        </span>
-                      ) : (
-                        "I'm Ready — Exchange Contacts"
-                      )}
-                    </button>
-                  </Form>
-                )}
-              </div>
-
-              {/* SafeZone — NVIDIA-powered meetup spot picker */}
+              {/* SafeZone section - always shown when agreed */}
               <div className="space-y-3">
                 <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
                   <ShieldCheck className="w-3 h-3 text-emerald-500" />
@@ -1955,10 +1862,108 @@ export default function PingDetail({
                       );
                     }}
                     isGenerating={isGeneratingSpots}
-                    isConfirmed={myVote != null && voteFetcher.state === "idle"}
+                    isConfirmed={bothVoted && myVote != null && voteFetcher.state === "idle"}
                   />
                 )}
               </div>
+
+              {/* Contact Exchange — only after both parties voted */}
+              {bothVoted && (
+                <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <h4 className="font-bold text-white uppercase tracking-wide text-sm">
+                      Contact Exchange
+                    </h4>
+                  </div>
+
+                  {/* Readiness Grid */}
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className={`text-center p-3 rounded-xl border transition-all ${
+                      isReady
+                        ? "bg-emerald-500/10 border-emerald-500/30"
+                        : "bg-white/5 border-white/10"
+                    }`}>
+                      <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">
+                        You
+                      </span>
+                      <span className={`text-sm font-bold ${
+                        isReady ? "text-emerald-400" : "text-slate-400"
+                      }`}>
+                        {isReady ? "✓ Ready" : "Not Ready"}
+                      </span>
+                    </div>
+                    <div className={`text-center p-3 rounded-xl border transition-all ${
+                      theyReady
+                        ? "bg-emerald-500/10 border-emerald-500/30"
+                        : "bg-white/5 border-white/10"
+                    }`}>
+                      <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">
+                        {counterparty.name}
+                      </span>
+                      <span className={`text-sm font-bold ${
+                        theyReady ? "text-emerald-400" : "text-slate-400"
+                      }`}>
+                        {theyReady ? "✓ Ready" : "Not Ready"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {isReady && theyReady ? (
+                    /* Both ready — reveal contacts */
+                    <>
+                      <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mb-3">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                        <p className="text-xs font-mono text-emerald-400">
+                          Both parties ready! Proceed to contact sharing.
+                        </p>
+                      </div>
+                      <ShareContactForm isSubmitting={isSubmitting} submittingIntent={submittingIntent} />
+                    </>
+                  ) : isReady ? (
+                    <div className="space-y-2">
+                      <div className="text-center p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+                        <p className="text-xs font-mono text-emerald-400">
+                          Waiting for {counterparty.name} to confirm...
+                        </p>
+                      </div>
+                      <Form method="post">
+                        <input type="hidden" name="intent" value="toggleReady" />
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 font-mono uppercase tracking-widest text-[10px] transition-all disabled:opacity-50"
+                        >
+                          {submittingIntent === "toggleReady" ? (
+                            <span className="inline-flex items-center gap-2">
+                              <Spinner className="w-3 h-3" /> Updating...
+                            </span>
+                          ) : (
+                            "Un-mark Ready"
+                          )}
+                        </button>
+                      </Form>
+                    </div>
+                  ) : (
+                    <Form method="post">
+                      <input type="hidden" name="intent" value="toggleReady" />
+                      <button
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-mono uppercase tracking-widest text-xs transition-all disabled:opacity-50"
+                      >
+                        {submittingIntent === "toggleReady" ? (
+                          <span className="inline-flex items-center gap-2">
+                            <Spinner className="w-3.5 h-3.5" /> Committing...
+                          </span>
+                        ) : (
+                          "I'm Ready — Exchange Contacts"
+                        )}
+                      </button>
+                    </Form>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
