@@ -1,7 +1,7 @@
 import type { Route } from "./+types/api.chat-stream.$tradeId";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
-import { messages, trades } from "~/lib/schema";
+import { messages, trades, meetupVotes } from "~/lib/schema";
 import { eq, count } from "drizzle-orm";
 
 /**
@@ -36,16 +36,17 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   }
 
   // Snapshot the message count at connection time
-  const [{ value: initialCount }] = await db
-    .select({ value: count() })
-    .from(messages)
-    .where(eq(messages.tradeId, tradeId));
+  const [[{ value: initialCount }], [{ value: initialVoteCount }]] = await Promise.all([
+    db.select({ value: count() }).from(messages).where(eq(messages.tradeId, tradeId)),
+    db.select({ value: count() }).from(meetupVotes).where(eq(meetupVotes.tradeId, tradeId)),
+  ]);
 
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
     start(controller) {
       let lastCount = initialCount;
+      let lastVoteCount = initialVoteCount;
 
       function sendEvent(event: string, data: string): void {
         try {
@@ -74,13 +75,17 @@ export async function loader({ request, params }: Route.LoaderArgs) {
           return;
         }
         try {
-          const [{ value: currentCount }] = await db
-            .select({ value: count() })
-            .from(messages)
-            .where(eq(messages.tradeId, tradeId));
+          const [[{ value: currentCount }], [{ value: currentVoteCount }]] = await Promise.all([
+            db.select({ value: count() }).from(messages).where(eq(messages.tradeId, tradeId)),
+            db.select({ value: count() }).from(meetupVotes).where(eq(meetupVotes.tradeId, tradeId)),
+          ]);
 
           if (currentCount !== lastCount) {
             lastCount = currentCount;
+            sendEvent("new-messages", String(currentCount));
+          }
+          if (currentVoteCount !== lastVoteCount) {
+            lastVoteCount = currentVoteCount;
             sendEvent("new-messages", String(currentCount));
           }
         } catch {

@@ -12,8 +12,8 @@ import { PingThread } from "~/components/ui/ping-thread";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Pings — Nozar" },
-    { name: "description", content: "Your swap requests and conversations" },
+    { title: "Chats — Nozar" },
+    { name: "description", content: "Your swap conversations" },
   ];
 }
 
@@ -142,15 +142,13 @@ export default function Pings({ loaderData }: Route.ComponentProps) {
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>
-          <span className="text-emerald-500 font-mono text-[10px] uppercase tracking-widest block mb-1">
-            // Comms.Uplink
-          </span>
           <h2 className="text-xl font-bold uppercase tracking-tight text-white">
-            Active Pings
+            Chats
           </h2>
+          <p className="text-xs text-slate-500 mt-1">Your swap conversations</p>
         </div>
-        <span className="text-xs font-mono text-slate-400 border border-white/10 px-2 py-1 rounded bg-[#0F172A]">
-          {threads.length} Thread{threads.length !== 1 ? "s" : ""}
+        <span className="text-xs font-mono text-slate-400">
+          {threads.filter(t => t.status !== "completed").length} active
         </span>
       </div>
 
@@ -171,11 +169,10 @@ export default function Pings({ loaderData }: Route.ComponentProps) {
             <MessageSquare className="w-8 h-8 text-slate-600" />
           </div>
           <h3 className="text-sm font-bold text-slate-400 mb-1">
-            No Active Pings
+            No chats yet
           </h3>
           <p className="text-xs text-slate-500 max-w-[240px]">
-            Start a conversation by pinging an asset you&apos;re interested in
-            swapping for.
+            Start a conversation by tapping &quot;Offer a swap&quot; on a listing you&apos;re interested in.
           </p>
         </div>
       )}
