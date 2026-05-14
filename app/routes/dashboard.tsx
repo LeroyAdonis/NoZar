@@ -116,11 +116,11 @@ function getActiveTab(pathname: string): string {
 }
 
 const SIDEBAR_LINKS = [
-  { id: "home",     label: "Index",     href: "/dashboard",          icon: Home },
-  { id: "map",      label: "Radar",     href: "/dashboard/map",      icon: MapIcon },
-  { id: "add",      label: "Add Item",  href: "/dashboard/add",      icon: Plus },
-  { id: "messages", label: "Pings",     href: "/dashboard/pings",    icon: MessageSquare },
-  { id: "profile",  label: "My Profile", href: "/dashboard/profile",  icon: User },
+  { id: "home",     label: "Home",     href: "/dashboard",          icon: Home },
+  { id: "map",      label: "Explore",  href: "/dashboard/map",      icon: MapIcon },
+  { id: "add",      label: "Add item", href: "/dashboard/add",      icon: Plus },
+  { id: "messages", label: "Chats",    href: "/dashboard/pings",    icon: MessageSquare },
+  { id: "profile",  label: "Profile",  href: "/dashboard/profile",  icon: User },
 ] as const;
 
 export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
@@ -346,14 +346,14 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
         <div className="hidden md:flex items-center gap-4">
           <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">
             {activeTab === "home"
-              ? "// Local Index"
+              ? "Home"
               : activeTab === "map"
-              ? "// Radar"
+              ? "Explore"
               : activeTab === "add"
-              ? "// New Asset"
+              ? "Add item"
               : activeTab === "messages"
-              ? "// Pings"
-              : "// Profile"}
+              ? "Chats"
+              : "Profile"}
           </span>
           {needsLocation && isLocationDismissed && (
             <button
@@ -465,7 +465,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
       />
 
       {/* Bottom navigation — mobile only (BottomNav itself adds md:hidden) */}
-      <BottomNav activeTab={activeTab} isPending={isNavigating} />
+      <BottomNav activeTab={activeTab} isPending={isNavigating} hasUnread={unreadCount > 0} />
     </div>
   );
 }
