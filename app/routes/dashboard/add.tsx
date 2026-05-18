@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Form, redirect, useFetcher, useNavigation } from "react-router";
+import { Form, Link, redirect, useFetcher, useNavigation } from "react-router";
 import { CameraCapture } from "~/components/ui/camera-capture";
 import {
   Monitor,
@@ -12,8 +12,11 @@ import {
   Briefcase,
   Camera,
   Check,
+  CreditCard,
   ImagePlus,
+  Layers,
   Loader2,
+  Lock,
   MapPin,
   PackagePlus,
   Plus,
@@ -26,8 +29,9 @@ import { AiServiceError, generateContent } from "~/lib/ai.server";
 import type { Route } from "./+types/add";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
-import { listings, listingImages, subscriptions } from "~/lib/schema";
-import { count, eq } from "drizzle-orm";
+import { listings, listingImages } from "~/lib/schema";
+import { getListingUsage } from "~/lib/tier-limits.server";
+import type { ListingUsage } from "~/lib/tier-limits";
 import {
   validateImageUrl,
   sanitizeImageUrl,
@@ -67,6 +71,14 @@ export function meta({}: Route.MetaArgs) {
     { title: "Add Asset — Nozar" },
     { name: "description", content: "List a new item or service for barter" },
   ];
+}
+
+// ─── Loader ────────────────────────────────────────────────────
+
+export async function loader({ request }: Route.LoaderArgs) {
+  const { user } = await requireAuth(request);
+  const usage = await getListingUsage(user.id);
+  return { usage };
 }
 
 // ─── Action ────────────────────────────────────────────────────
@@ -162,18 +174,13 @@ Requirements:
   // ── Create Listing (default) ──────────────────────────────
   const { user } = await requireAuth(request);
 
-  // --- START LIMIT ENFORCEMENT ---
-  const [sub] = await db.select().from(subscriptions).where(eq(subscriptions.userId, user.id));
-  const listingCountResult = await db.select({ count: count() }).from(listings).where(eq(listings.userId, user.id));
-  const listingCount = listingCountResult[0].count;
-
-  const limits: Record<string, number> = { free: 5, plus: 20, business: 100, enterprise: Infinity };
-  const currentPlan = sub?.planCode || "free";
-
-  if (listingCount >= limits[currentPlan]) {
-    return redirect("/dashboard/billing?error=limit_exceeded");
+  // Defense-in-depth: re-check the active-listing limit on submit.
+  // Primary UX path is the loader-driven upgrade panel in the component;
+  // this catches stale-tab submits or anyone bypassing the UI.
+  const usage = await getListingUsage(user.id);
+  if (usage.atLimit) {
+    throw redirect("/dashboard/billing?error=limit_exceeded");
   }
-  // --- END LIMIT ENFORCEMENT ---
 
   const title = formData.get("title") as string | null;
   const description = formData.get("description") as string | null;
@@ -253,7 +260,89 @@ Requirements:
 
 // ─── Component ─────────────────────────────────────────────────
 
-export default function AddAsset({ actionData }: Route.ComponentProps) {
+export default function AddAsset({ loaderData, actionData }: Route.ComponentProps) {
+  const { usage } = loaderData;
+
+  if (usage.atLimit) {
+    return <LimitReachedPanel usage={usage} />;
+  }
+
+  return <AddAssetForm actionData={actionData} />;
+}
+
+function LimitReachedPanel({ usage }: { usage: ListingUsage }) {
+  const planLabel = usage.planCode.charAt(0).toUpperCase() + usage.planCode.slice(1);
+
+  return (
+    <div className="max-w-2xl mx-auto pt-8 pb-24 px-4 space-y-6">
+      <div>
+        <span className="text-rose-400 font-mono text-[10px] uppercase tracking-widest block mb-1">
+          // Limit reached
+        </span>
+        <h1 className="text-xl font-black uppercase tracking-tight flex items-center gap-2">
+          <Lock className="w-5 h-5 text-rose-400" />
+          You&apos;ve hit your listing limit
+        </h1>
+      </div>
+
+      <section className="bg-[#0F172A] border border-rose-500/20 rounded-2xl p-6 space-y-5">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-slate-500">
+              Active Listings
+            </span>
+            <span className="px-3 py-1 rounded-full border text-[10px] font-mono uppercase tracking-widest bg-rose-500/10 text-rose-400 border-rose-500/30">
+              {planLabel} plan
+            </span>
+          </div>
+          <div className="flex justify-between items-baseline">
+            <p className="text-2xl font-black tracking-tight text-rose-400">
+              {usage.activeCount} / {usage.listingLimit}
+            </p>
+            <span className="text-[10px] font-mono text-slate-500">
+              all slots used
+            </span>
+          </div>
+          <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+            <div className="h-full rounded-full bg-rose-500 w-full" />
+          </div>
+          <p className="text-[11px] text-slate-400 leading-relaxed">
+            You&apos;re using every active-listing slot on the {planLabel.toLowerCase()} plan.
+            To add another item, upgrade to a higher tier or hide one of your
+            existing listings to free up a slot.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+          <Link
+            to="/dashboard/billing"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500 text-[#030712] text-[11px] font-mono font-bold uppercase tracking-widest hover:bg-emerald-400 transition-colors"
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            View plans
+          </Link>
+          <Link
+            to="/dashboard/profile"
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/10 text-slate-300 text-[11px] font-mono font-bold uppercase tracking-widest hover:bg-white/[0.06] hover:border-white/20 transition-colors"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            Manage listings
+          </Link>
+        </div>
+      </section>
+
+      <p className="text-[10px] font-mono text-slate-600 text-center">
+        Need more headroom? Plus &amp; Business tiers raise the limit to 20 and 100.
+      </p>
+    </div>
+  );
+}
+
+function AddAssetForm({
+  actionData,
+}: {
+  actionData: Route.ComponentProps["actionData"];
+}) {
   const [type, setType] = useState<"item" | "service">("item");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [aiDismissed, setAiDismissed] = useState(false);

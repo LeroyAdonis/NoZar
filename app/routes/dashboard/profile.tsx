@@ -31,6 +31,7 @@ import {
   sanitizeImageUrl,
 } from "~/lib/media-validation.server";
 import { isBlobConfigured } from "~/lib/blob.server";
+import { getListingUsage } from "~/lib/tier-limits.server";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
 import { Badge } from "~/components/ui/badge";
@@ -203,6 +204,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     imagesByListing[img.listingId] = arr;
   }
 
+  const usage = await getListingUsage(user.id);
+
   return {
     user,
     profile,
@@ -216,6 +219,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     },
     listings: userListings,
     listingImagesMap: imagesByListing,
+    usage,
   };
 }
 
@@ -396,6 +400,15 @@ export async function action({ request }: Route.ActionArgs) {
       return { success: false, intent: "activate-listing", error: "Invalid listing ID" };
     }
 
+    const usage = await getListingUsage(user.id);
+    if (usage.atLimit) {
+      return {
+        success: false,
+        intent: "activate-listing",
+        error: `You're at your ${usage.listingLimit}-listing limit on the ${usage.planCode} plan. Hide another listing or upgrade to reactivate this one.`,
+      };
+    }
+
     // Ownership enforced in SQL WHERE clause
     const result = await db
       .update(listings)
@@ -429,7 +442,7 @@ export async function action({ request }: Route.ActionArgs) {
 // ─── Component ─────────────────────────────────────────────────
 
 export default function Profile({ loaderData, actionData }: Route.ComponentProps) {
-  const { user, profile, blobConfigured, stats, listings: userListings, listingImagesMap } = loaderData;
+  const { user, profile, blobConfigured, stats, listings: userListings, listingImagesMap, usage } = loaderData;
   const navigation = useNavigation();
   const [profileTab, setProfileTab] = useState<"listings" | "account">("listings");
   const [showEditSheet, setShowEditSheet] = useState(false);
@@ -488,6 +501,16 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
   // Partition listings into active and archived
   const activeListings = userListings.filter((l) => l.status === "active");
   const archivedListings = userListings.filter((l) => l.status === "archived");
+
+  // Error returned from activate-listing action (e.g. limit reached)
+  const activateError =
+    actionData &&
+    "intent" in actionData &&
+    actionData.intent === "activate-listing" &&
+    !actionData.success &&
+    "error" in actionData
+      ? actionData.error
+      : null;
 
   const avatarActionData = avatarFetcher.data as { success?: boolean; intent?: string; error?: string; avatarUrl?: string } | undefined;
   const isAvatarSubmitting = avatarFetcher.state === "submitting";
@@ -560,6 +583,7 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
                   isSubmitting={isSubmitting}
                   submittingIntent={submittingIntent}
                   submittingListingId={submittingListingId}
+                  activationBlocked={false}
                   onEditToggle={() =>
                     setEditingListingId(editingListingId === listing.id ? null : listing.id)
                   }
@@ -588,6 +612,43 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
               <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">
                 Hidden ({archivedListings.length})
               </p>
+
+              {activateError && (
+                <div
+                  role="alert"
+                  className="flex items-start gap-2 bg-rose-500/5 border border-rose-500/20 rounded-xl px-3 py-2.5"
+                >
+                  <span className="text-rose-400 font-mono text-[10px] mt-0.5 shrink-0">
+                    !
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[11px] text-rose-300 leading-relaxed">
+                      {activateError}
+                    </p>
+                    <Link
+                      to="/dashboard/billing"
+                      className="inline-block mt-1 text-[10px] font-mono uppercase tracking-widest text-emerald-400 hover:text-emerald-300"
+                    >
+                      View plans →
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {usage.atLimit && (
+                <p className="text-[10px] font-mono text-slate-500 leading-relaxed">
+                  You&apos;re at your {usage.listingLimit}-listing limit — hide an
+                  active listing or{" "}
+                  <Link
+                    to="/dashboard/billing"
+                    className="text-emerald-400 hover:text-emerald-300 underline underline-offset-2"
+                  >
+                    upgrade
+                  </Link>{" "}
+                  to reactivate any hidden item.
+                </p>
+              )}
+
               <div className="space-y-2">
                 {archivedListings.map((listing) => (
                   <ListingCard
@@ -599,6 +660,7 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
                     isSubmitting={isSubmitting}
                     submittingIntent={submittingIntent}
                     submittingListingId={submittingListingId}
+                    activationBlocked={usage.atLimit}
                     onEditToggle={() =>
                       setEditingListingId(editingListingId === listing.id ? null : listing.id)
                     }
@@ -1040,6 +1102,7 @@ function ListingCard({
   isSubmitting,
   submittingIntent,
   submittingListingId,
+  activationBlocked,
   onEditToggle,
   onArchiveToggle,
 }: {
@@ -1050,6 +1113,7 @@ function ListingCard({
   isSubmitting: boolean;
   submittingIntent: string | null;
   submittingListingId: number | null;
+  activationBlocked: boolean;
   onEditToggle: () => void;
   onArchiveToggle: () => void;
 }) {
@@ -1119,9 +1183,18 @@ function ListingCard({
               <input type="hidden" name="listingId" value={listing.id} />
               <button
                 type="submit"
-                disabled={isSubmitting}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-widest text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border border-emerald-500/20 transition-all disabled:opacity-50"
-                title="Re-activate listing"
+                disabled={isSubmitting || activationBlocked}
+                aria-disabled={isSubmitting || activationBlocked}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-widest border transition-all disabled:opacity-50 ${
+                  activationBlocked
+                    ? "text-slate-500 border-white/10 cursor-not-allowed"
+                    : "text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border-emerald-500/20"
+                }`}
+                title={
+                  activationBlocked
+                    ? "Listing limit reached — hide an active listing or upgrade to reactivate this one"
+                    : "Re-activate listing"
+                }
               >
                 {isThisSubmitting && submittingIntent === "activate-listing" ? (
                   <Spinner />

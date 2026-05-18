@@ -3,8 +3,8 @@ import { Repeat } from "lucide-react";
 import { ScrollReveal } from "~/components/motion/scroll-reveal";
 
 const anchorLinks = [
-  { label: "How It Works", id: "how-it-works" },
-  { label: "Features", id: "consumers" },
+  { label: "How it works", id: "how-it-works" },
+  { label: "For you", id: "exchange" },
   { label: "Pricing", id: "pricing" },
   { label: "FAQ", id: "faq" },
 ] as const;
@@ -40,8 +40,8 @@ export default function FooterSection() {
               Trade without cash.
             </p>
             <p className="text-sm text-slate-400 leading-relaxed">
-              The spatial barter network for South Africa. Bypass inflation by
-              exchanging idle assets directly.
+              South Africa's barter platform. Swap your stuff, skills, and
+              services with people near you — no money needed.
             </p>
           </div>
 
@@ -124,9 +124,7 @@ export default function FooterSection() {
         {/* Bottom Bar */}
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 font-mono text-xs text-slate-600 uppercase tracking-widest">
           <p>Made with ❤️ in Mzansi 🇿🇦</p>
-          <p>
-            Sys.Build // {new Date().getFullYear()} // NoZar PTY LTD // RSA
-          </p>
+          <p>© {new Date().getFullYear()} NoZar PTY LTD</p>
         </div>
       </div>
     </footer>

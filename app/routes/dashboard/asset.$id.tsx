@@ -182,10 +182,13 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
   const selectedItem = userInventory?.find((i: typeof listings.$inferSelect) => i.id === selectedOfferItemId);
   const listingValue = listing.estimatedValueZar ?? 0;
   const offerValue = selectedItem?.estimatedValueZar ?? 0;
-  const hasValueGap =
-    listingValue > 0 &&
-    offerValue > 0 &&
-    Math.abs(listingValue - offerValue) / Math.max(listingValue, offerValue) > 0.2;
+  const hasMeaningfulValues = listingValue > 0 && offerValue > 0;
+  const valueGapRatio = hasMeaningfulValues
+    ? Math.abs(listingValue - offerValue) / Math.max(listingValue, offerValue)
+    : 0;
+  const isUnderOffering = hasMeaningfulValues && offerValue < listingValue && valueGapRatio > 0.2;
+  const isOverOffering = hasMeaningfulValues && offerValue > listingValue && valueGapRatio > 0.2;
+  const hasValueGap = isUnderOffering || isOverOffering;
 
   useEffect(() => {
     if (!isLightboxOpen) return;
@@ -652,7 +655,9 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
                 <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl mb-4">
                   <span className="text-amber-400 mt-0.5">⚠</span>
                   <p className="text-xs text-amber-300">
-                    Value gap — you may need to top up or negotiate
+                    {isUnderOffering
+                      ? "Value gap — you may need to top up or negotiate"
+                      : "You're offering more than the asking value — confirm you're OK with this or negotiate"}
                   </p>
                 </div>
               )}

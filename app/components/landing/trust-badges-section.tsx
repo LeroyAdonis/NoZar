@@ -12,30 +12,27 @@ const TRUST_BADGES: TrustBadge[] = [
   {
     icon: Shield,
     title: "POPIA Compliant",
-    description:
-      "Your data processed per Protection of Personal Information Act",
+    description: "Your data is handled under SA's privacy law",
   },
   {
     icon: FileCheck,
     title: "ECTA Registered",
-    description:
-      "Compliant with Electronic Communications & Transactions Act",
+    description: "Compliant with SA's electronic transactions act",
   },
   {
     icon: Phone,
-    title: "Phone-Verified Users",
-    description: "Every trader verified via OTP before first trade",
+    title: "Phone-verified users",
+    description: "Every trader verified by SMS before their first swap",
   },
   {
     icon: Lock,
-    title: "5-Layer Security",
-    description:
-      "Blind chat → Handshake → Safe zone → Rating → Dispute resolution",
+    title: "5 safety steps",
+    description: "Private chat, mutual agreement, safe meetup, ratings, disputes",
   },
   {
     icon: Users,
-    title: "Community Guidelines",
-    description: "Enforced standards for respectful, safe trading",
+    title: "Community rules",
+    description: "Clear standards for respectful, safe trading",
   },
   {
     icon: Heart,
@@ -49,7 +46,7 @@ export function TrustBadgesSection() {
     <section className="relative z-10 py-16 bg-[#030712] overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <p className="text-center text-emerald-500 font-mono text-xs uppercase tracking-widest mb-10">
-          {"// Compliance.Verified"}
+          {"// Trust & safety"}
         </p>
 
         <ScrollReveal>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { data, Form, Link, useFetcher, useNavigation, useRevalidator } from "react-router";
+import { data, Form, Link, redirect, useFetcher, useNavigation, useRevalidator } from "react-router";
 import { AiServiceError, generateContent } from "~/lib/ai.server";
 import { eq, asc, and, or, count, avg } from "drizzle-orm";
 import {
@@ -338,7 +338,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         .update(trades)
         .set({ archived: true, updatedAt: new Date() })
         .where(eq(trades.id, tradeId));
-      return { ok: true };
+      return redirect("/dashboard/pings");
     }
 
     case "proposeHandshake": {

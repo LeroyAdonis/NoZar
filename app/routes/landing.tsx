@@ -32,11 +32,11 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export function meta(_args: Route.MetaArgs) {
   return [
-    { title: "NoZar — Trade Without Boundaries" },
+    { title: "NoZar — Trade Without Cash" },
     {
       name: "description",
       content:
-        "South Africa's barter platform. Keep your Rands in your pocket by swapping your stuff, skills, and services directly. No cash needed.",
+        "South Africa's barter platform. Swap your stuff, skills, and services with people near you. No money changes hands.",
     },
   ];
 }
@@ -122,8 +122,8 @@ export default function LandingPage({
       {/* MVP Beta Banner */}
       <div className="fixed top-0 w-full z-[60] bg-emerald-500/10 border-b border-emerald-500/20 py-2 text-center backdrop-blur-md">
         <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-emerald-400">
-          <span className="inline-block animate-pulse mr-2">●</span> 
-          Public MVP Beta — Currently focused on JHB & CPT Metropolitan Areas
+          <span className="inline-block animate-pulse mr-2">●</span>
+          Beta — live in Joburg &amp; Cape Town
         </p>
       </div>
 
@@ -153,9 +153,9 @@ export default function LandingPage({
           {/* Desktop Nav Links */}
           <div className="hidden md:flex items-center gap-10">
             {[
-              { label: "Platform", id: "how-it-works" as const },
-              { label: "Trade", id: "exchange" as const },
-              { label: "Safety Rules", id: "safety" as const },
+              { label: "How it works", id: "how-it-works" as const },
+              { label: "For you", id: "exchange" as const },
+              { label: "Safety", id: "safety" as const },
               { label: "Pricing", id: "pricing" as const },
               { label: "FAQ", id: "faq" as const },
             ].map((link) => {
@@ -201,10 +201,10 @@ export default function LandingPage({
             ) : (
               <>
                 <Link
-                  to="/register"
+                  to="/login"
                   className="text-xs font-mono uppercase tracking-widest text-slate-400 hover:text-white transition-colors px-4"
                 >
-                  [ Auth ]
+                  Log in
                 </Link>
                 <Link
                   to="/register"
@@ -231,9 +231,9 @@ export default function LandingPage({
         <div className="fixed inset-0 z-40 bg-[#030712]/95 backdrop-blur-2xl pt-28 px-6 md:hidden border-b border-white/10">
           <div className="flex flex-col gap-8 text-lg font-mono uppercase tracking-widest">
             {[
-              { num: "01", label: "Platform", id: "how-it-works" as const },
-              { num: "02", label: "Trade", id: "exchange" as const },
-              { num: "03", label: "Safety Rules", id: "safety" as const },
+              { num: "01", label: "How it works", id: "how-it-works" as const },
+              { num: "02", label: "For you", id: "exchange" as const },
+              { num: "03", label: "Safety", id: "safety" as const },
               { num: "04", label: "Pricing", id: "pricing" as const },
               { num: "05", label: "FAQ", id: "faq" as const },
             ].map((link) => {
@@ -270,8 +270,8 @@ export default function LandingPage({
               </Link>
             ) : (
               <>
-                <Link to="/register" className="w-full text-left text-slate-300">
-                  [ Authenticate ]
+                <Link to="/login" className="w-full text-left text-slate-300">
+                  Log in
                 </Link>
                 <Link
                   to="/register"
@@ -292,18 +292,18 @@ export default function LandingPage({
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
-          Network Status: Beta Active (CPT/JHB)
+          Beta — Joburg &amp; Cape Town
         </div>
         <h1 className="text-4xl sm:text-6xl md:text-8xl lg:text-[7.5rem] font-black tracking-tighter leading-[0.9] mb-6 sm:mb-8 uppercase text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50">
-          Decentralize <br />
+          Trade <br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">
-            Your Value.
+            Without Cash.
           </span>
         </h1>
         <p className="text-base sm:text-lg md:text-2xl text-slate-400 max-w-3xl mx-auto mb-8 sm:mb-12 leading-relaxed font-light">
-          South Africa's barter platform. Keep your Rands in your pocket by
-          swapping your stuff, skills, and services directly.{" "}
-          <span className="text-white font-medium">No cash needed.</span>
+          South Africa's barter platform. Swap your stuff, skills, and services
+          with people near you.{" "}
+          <span className="text-white font-medium">No money changes hands.</span>
         </p>
         <div className="flex flex-col items-center gap-4 w-full sm:w-auto">
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
@@ -321,7 +321,7 @@ export default function LandingPage({
               to="/dashboard"
               className="w-full sm:w-auto px-10 py-5 rounded-xl bg-white/5 text-white font-medium text-lg hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center gap-3 backdrop-blur-md"
             >
-              View Live Index
+              Browse listings
             </Link>
           </div>
           {/* TASK 10 COMPLETE */}
@@ -345,10 +345,10 @@ export default function LandingPage({
         <ScrollReveal>
           <div className="mb-12 sm:mb-16">
             <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
-              // System Architecture
+              // How it works
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase">
-              How The Matrix Works.
+              Fair swaps, locally matched.
             </h2>
           </div>
         </ScrollReveal>
@@ -361,14 +361,14 @@ export default function LandingPage({
             <div className="relative z-10">
               <Cpu className="w-10 h-10 text-emerald-400 mb-6" />
               <h3 className="text-3xl font-bold tracking-tight mb-4 text-white">
-                Value Parity Engine
+                Fair value matching
               </h3>
               <p className="text-slate-400 text-lg max-w-md">
-                Every listing is placed in a transparent value band anchored to real SA market conditions — from Micro (under R300) to Luxury (R75,000+). You see only trades at your band and one adjacent band, so every match is a fair exchange. You set your own declared value; the community keeps it honest.
+                Every listing sits in a value tier — from Micro (under R300) to
+                Luxury (R75,000+). You see trades at your tier and one nearby,
+                so swaps stay fair. You set the value; the community keeps it
+                honest.
               </p>
-              <a href="#value-bands" className="text-emerald-500 hover:text-emerald-400 text-sm font-mono mt-4 block">
-                [View Value Bands]
-              </a>
             </div>
             <div className="relative z-10 mt-10 grid grid-cols-3 gap-3">
               <div className="h-2 rounded-full bg-emerald-500/50 w-full" />
@@ -385,10 +385,12 @@ export default function LandingPage({
             <div className="relative z-10">
               <Globe className="w-10 h-10 text-cyan-400 mb-6" />
               <h3 className="text-2xl font-bold tracking-tight mb-4">
-                Hyper-Local Indexing
+                Matched nearby
               </h3>
               <p className="text-slate-400 text-sm">
-                Physical goods are matched within your chosen radius (default 15km, adjustable from 3km to 50km depending on your tier). Digital services are open to national exchange — no radius restriction.
+                Physical items match within your radius (15km by default,
+                adjustable 3–50km). Digital services and skills are open
+                nationwide.
               </p>
             </div>
             <div className="relative z-10 mt-8 flex items-center justify-center h-32 w-full border border-white/5 rounded-2xl bg-black/20">
@@ -407,17 +409,17 @@ export default function LandingPage({
         <ScrollReveal>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
             <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-3">
-              // Dual Economies
+              // For you
             </span>
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase">
-              Pick Your{" "}
+              For people.{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">
-                Channel.
+                For businesses.
               </span>
             </h2>
             <p className="text-slate-400 text-lg mt-4 max-w-2xl">
-              Same network. Two interfaces. Trade idle assets as a consumer, or
-              liquidate dead stock as a verified enterprise.
+              One platform. Swap personal items and skills, or move surplus
+              stock as a verified business.
             </p>
           </div>
         </ScrollReveal>
@@ -428,35 +430,35 @@ export default function LandingPage({
           className="relative rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-white/10 p-6 sm:p-10 hover:border-blue-500/30 transition-all duration-500"
         >
           <span className="text-blue-400 font-mono text-xs uppercase tracking-widest block mb-6">
-            // For Members: Consumer
+            // For people
           </span>
           <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-8 border border-blue-500/20">
             <User className="w-8 h-8 text-blue-400" />
           </div>
           <h3 className="text-3xl font-bold tracking-tight mb-4">
-            Swap With Your Neighbours
+            Swap with your neighbours
           </h3>
           <p className="text-slate-400 mb-10 text-lg">
-            Turn your stuff and spare time into the things you actually
-            need. 100% free to join and trade locally.
+            Turn your stuff and spare time into things you actually need.
+            Free to join. Free to trade.
           </p>
           <ul className="space-y-4 mb-12 font-mono text-sm text-slate-300">
             <li className="flex items-center gap-3">
-              <span className="text-blue-500">[+]</span> Zero transaction fees
+              <span className="text-blue-500">[+]</span> No transaction fees
             </li>
             <li className="flex items-center gap-3">
-              <span className="text-blue-500">[+]</span> Skill-for-Item trading
+              <span className="text-blue-500">[+]</span> Swap items for skills
             </li>
             <li className="flex items-center gap-3">
-              <span className="text-blue-500">[+]</span> Automated local radius
-              matching
+              <span className="text-blue-500">[+]</span> Matched to people near
+              you
             </li>
           </ul>
           <Link
             to="/dashboard"
             className="block w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 font-bold transition-colors text-center"
           >
-            Start Trading Free
+            Start trading free
           </Link>
         </div>
         </ScrollReveal>
@@ -467,36 +469,36 @@ export default function LandingPage({
           className="relative rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-white/10 p-6 sm:p-10 hover:border-emerald-500/30 transition-all duration-500"
         >
           <span className="text-emerald-400 font-mono text-xs uppercase tracking-widest block mb-6">
-            // For Members: Enterprise
+            // For businesses
           </span>
           <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center mb-8 border border-emerald-500/20">
             <Briefcase className="w-8 h-8 text-emerald-400" />
           </div>
           <h3 className="text-3xl font-bold tracking-tight mb-4">
-            Business-to-Business Swaps
+            Business-to-business swaps
           </h3>
           <p className="text-slate-400 mb-10 text-lg">
-            Liquidate dead stock and monetize idle equipment to preserve cash
-            flow. Dedicated tools for registered SA entities.
+            Move dead stock and put idle equipment to work — without touching
+            cash flow. Built for registered SA businesses.
           </p>
           <ul className="space-y-4 mb-12 font-mono text-sm text-slate-300">
             <li className="flex items-center gap-3">
-              <span className="text-emerald-500">[+]</span> Verified CIPC Badges
+              <span className="text-emerald-500">[+]</span> Verified CIPC badge
             </li>
             <li className="flex items-center gap-3">
-              <span className="text-emerald-500">[+]</span> Enterprise-only
+              <span className="text-emerald-500">[+]</span> Business-only
               filters
             </li>
             <li className="flex items-center gap-3">
-              <span className="text-emerald-500">[+]</span> SARS-compliant
-              ledger exports
+              <span className="text-emerald-500">[+]</span> SARS-ready ledger
+              exports
             </li>
           </ul>
           <Link
             to="/dashboard"
             className="block w-full py-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold transition-colors text-center"
           >
-            View Business Options
+            See business plans
           </Link>
         </div>
         </ScrollReveal>
@@ -513,15 +515,14 @@ export default function LandingPage({
           <ScrollReveal>
             <div className="text-center mb-12 sm:mb-20">
               <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
-                // Safety Rules
+                // Safety
               </span>
               <h2 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tighter uppercase mb-4 sm:mb-6">
-                How We Keep <br /> You Safe.
+                How we keep <br /> you safe.
               </h2>
               <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto">
-                Engineered specifically for the South African risk landscape. Your
-                identity and location remain sealed until mutual consensus is
-                achieved.
+                Built for South Africa. Your name and location stay private
+                until both of you agree to swap.
               </p>
             </div>
           </ScrollReveal>
@@ -531,15 +532,15 @@ export default function LandingPage({
             <ScrollReveal delay={0.1}>
             <div className="bg-[#0F172A] border border-white/10 p-6 sm:p-8 rounded-3xl relative">
               <div className="absolute top-0 left-8 -translate-y-1/2 bg-slate-900 border border-white/10 px-4 py-1 rounded-full font-mono text-xs text-slate-400">
-                STAGE_01
+                STEP 01
               </div>
               <Lock className="w-8 h-8 text-slate-500 mb-6 mt-4" />
               <h4 className="text-xl font-bold mb-3 text-white">
-                Encrypted Blind Chat
+                Private chat
               </h4>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Negotiate within our closed-loop system. Phone numbers and
-                emails are scrubbed and restricted.
+                Talk through NoZar. Phone numbers and emails are blocked
+                until both of you agree to share them.
               </p>
             </div>
             </ScrollReveal>
@@ -547,15 +548,15 @@ export default function LandingPage({
             <ScrollReveal delay={0.2}>
             <div className="bg-gradient-to-b from-[#0F172A] to-emerald-950/20 border border-emerald-500/20 p-6 sm:p-8 rounded-3xl relative sm:transform sm:-translate-y-4 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
               <div className="absolute top-0 left-8 -translate-y-1/2 bg-emerald-900 border border-emerald-500/30 px-4 py-1 rounded-full font-mono text-xs text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
-                STAGE_02
+                STEP 02
               </div>
               <ShieldCheck className="w-8 h-8 text-emerald-400 mb-6 mt-4" />
               <h4 className="text-xl font-bold mb-3 text-white">
-                The Digital Handshake
+                Both agree
               </h4>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Both parties execute a dual-consent digital signature. Only then
-                does the platform query our verification ledger.
+                Once you've agreed on the swap, both tap to confirm. Only then
+                do contact details unlock.
               </p>
             </div>
             </ScrollReveal>
@@ -563,14 +564,16 @@ export default function LandingPage({
             <ScrollReveal delay={0.3}>
             <div className="bg-[#0F172A] border border-white/10 p-6 sm:p-8 rounded-3xl relative">
               <div className="absolute top-0 left-8 -translate-y-1/2 bg-slate-900 border border-white/10 px-4 py-1 rounded-full font-mono text-xs text-slate-400">
-                STAGE_03
+                STEP 03
               </div>
               <MapPin className="w-8 h-8 text-slate-500 mb-6 mt-4" />
               <h4 className="text-xl font-bold mb-3 text-white">
-                Safe Zone Routing
+                Safe meetup spots
               </h4>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Our AI suggests 3 verified safe meetup options near both parties — forecourts, shopping centre entrances, and public spaces. Both parties confirm the location before any contact details are shared. For high-value exchanges, a buddy check-in SMS is triggered to your pre-registered trusted contact.
+                We suggest three public meetup spots near you both — petrol
+                forecourts, mall entrances, and busy public areas. For high-value
+                swaps, we can text a trusted contact when you're heading out.
               </p>
             </div>
             </ScrollReveal>
@@ -597,9 +600,9 @@ export default function LandingPage({
         <div className="max-w-5xl mx-auto px-4 sm:px-6 text-center relative z-10">
           <ScrollReveal>
             <h2 className="text-4xl sm:text-6xl md:text-8xl font-black tracking-tighter uppercase mb-6 sm:mb-8">
-              Trade Without <br />
+              Start swapping <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-600">
-                The Middleman.
+                today.
               </span>
             </h2>
           </ScrollReveal>

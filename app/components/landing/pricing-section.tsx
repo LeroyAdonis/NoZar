@@ -32,30 +32,30 @@ const tiers: PricingTier[] = [
     name: "Free",
     price: "R0",
     period: "/mo",
-    description: "Start bartering with zero commitment. Everything you need for local peer-to-peer exchange.",
+    description: "Everything you need to start swapping locally. No card required.",
     features: [
       { label: "5 active listings" },
-      { label: "Unlimited trades" },
+      { label: "Unlimited swaps" },
       { label: "Basic search" },
-      { label: "Local radius matching" },
+      { label: "Local matching" },
     ],
-    cta: "Start Trading",
+    cta: "Start trading",
     ctaLink: "/dashboard",
   },
   {
     name: "Trader Plus",
     price: "R29",
     period: "/mo",
-    description: "For power traders who want visibility and insights across the network.",
+    description: "For regular traders who want more reach and better tools.",
     features: [
       { label: "20 active listings" },
-      { label: "2 boost tokens/mo" },
-      { label: "Boost your listings' reach" },
-      { label: "Priority in feed" },
+      { label: "2 boosts a month" },
+      { label: "More visibility on your listings" },
+      { label: "Priority placement" },
       { label: "Advanced filters" },
-      { label: "Trade analytics" },
+      { label: "Trade stats" },
     ],
-    cta: "Upgrade Node",
+    cta: "Upgrade",
     ctaLink: "/dashboard",
     popular: true,
   },
@@ -63,33 +63,33 @@ const tiers: PricingTier[] = [
     name: "Business",
     price: "R99",
     period: "/mo",
-    description: "Built for registered SA entities. Liquidate surplus and manage B2B barter at scale.",
+    description: "For registered SA businesses moving stock and equipment.",
     features: [
       { label: "100 active listings" },
-      { label: "10 boost tokens/mo" },
-      { label: "Boost your listings' reach" },
-      { label: "CIPC verification badge (disclaimer applied)" },
-      { label: "Enterprise filters" },
-      { label: "SARS export" },
+      { label: "10 boosts a month" },
+      { label: "More visibility on your listings" },
+      { label: "CIPC verification badge" },
+      { label: "Business filters" },
+      { label: "SARS-ready exports" },
     ],
-    cta: "Initialize Business",
+    cta: "Start business plan",
     ctaLink: "/dashboard",
   },
   {
     name: "Enterprise",
     price: "R249",
     period: "/mo",
-    description: "Full protocol access with dedicated support and custom integrations for large operations. (CIPC disclaimer applied)",
+    description: "Dedicated support and custom integrations for larger operations.",
     features: [
       { label: "Unlimited listings" },
-      { label: "30 boost tokens/mo" },
-      { label: "Boost your listings' reach" },
+      { label: "30 boosts a month" },
+      { label: "More visibility on your listings" },
       { label: "Dedicated account manager" },
       { label: "API access" },
       { label: "Custom branding" },
       { label: "Priority support" },
     ],
-    cta: "Contact Sales",
+    cta: "Contact sales",
     ctaLink: "/dashboard",
   },
 ];
@@ -105,10 +105,10 @@ export function PricingSection() {
       <ScrollReveal>
         <div className="mb-16 text-center">
           <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
-            // Protocol.Pricing
+            // Pricing
           </span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase">
-            Choose Your Tier.
+            Pick a plan.
           </h2>
         </div>
       </ScrollReveal>
@@ -130,7 +130,7 @@ export function PricingSection() {
           >
             {tier.popular && (
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-500 text-slate-950 px-4 py-1 rounded-full font-mono text-xs font-bold uppercase tracking-widest shadow-[0_0_10px_rgba(16,185,129,0.3)]">
-                Most Popular
+                Most popular
               </div>
             )}
 

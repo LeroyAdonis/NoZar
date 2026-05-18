@@ -1,11 +1,10 @@
 import { useLoaderData } from "react-router";
-import { eq, count } from "drizzle-orm";
 import { CreditCard, Check, Lock, Bell, Zap, BarChart3, Shield, Layers } from "lucide-react";
 
 import type { Route } from "./+types/billing";
 import { requireAuth } from "~/lib/auth.server";
-import { db } from "~/lib/db.server";
-import { subscriptions, listings } from "~/lib/schema";
+import { getListingUsage } from "~/lib/tier-limits.server";
+import { LISTING_LIMITS } from "~/lib/tier-limits";
 
 // ─── Tier definitions ──────────────────────────────────────────
 
@@ -15,9 +14,9 @@ const TIERS = [
     label: "TIER_01",
     name: "Free",
     priceZar: null,
-    listingLimit: 5,
+    listingLimit: LISTING_LIMITS.free,
     features: [
-      { text: "5 active listings", included: true },
+      { text: `${LISTING_LIMITS.free} active listings`, included: true },
       { text: "Browse & trade", included: true },
       { text: "Basic search", included: true },
       { text: "Trade messaging", included: true },
@@ -31,9 +30,9 @@ const TIERS = [
     label: "TIER_02",
     name: "Plus",
     priceZar: 99,
-    listingLimit: 20,
+    listingLimit: LISTING_LIMITS.plus,
     features: [
-      { text: "20 active listings", included: true },
+      { text: `${LISTING_LIMITS.plus} active listings`, included: true },
       { text: "Browse & trade", included: true },
       { text: "Advanced filters", included: true },
       { text: "Trade messaging", included: true },
@@ -47,9 +46,9 @@ const TIERS = [
     label: "TIER_03",
     name: "Business",
     priceZar: 299,
-    listingLimit: 100,
+    listingLimit: LISTING_LIMITS.business,
     features: [
-      { text: "100 active listings", included: true },
+      { text: `${LISTING_LIMITS.business} active listings`, included: true },
       { text: "Browse & trade", included: true },
       { text: "Advanced filters", included: true },
       { text: "Trade messaging", included: true },
@@ -59,8 +58,6 @@ const TIERS = [
     ],
   },
 ] as const;
-
-type TierCode = (typeof TIERS)[number]["code"];
 
 // ─── Meta ──────────────────────────────────────────────────────
 
@@ -75,21 +72,11 @@ export function meta({}: Route.MetaArgs) {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
-
-  const [sub] = await db
-    .select()
-    .from(subscriptions)
-    .where(eq(subscriptions.userId, user.id))
-    .limit(1);
-
-  const [listingCountRow] = await db
-    .select({ value: count() })
-    .from(listings)
-    .where(eq(listings.userId, user.id));
+  const usage = await getListingUsage(user.id);
 
   return {
-    planCode: (sub?.planCode ?? "free") as TierCode,
-    listingCount: listingCountRow?.value ?? 0,
+    planCode: usage.planCode,
+    listingCount: usage.activeCount,
   };
 }
 
@@ -100,7 +87,10 @@ export default function BillingPage() {
 
   const currentTier = TIERS.find((t) => t.code === planCode) ?? TIERS[0];
   const usagePct = Math.min((listingCount / currentTier.listingLimit) * 100, 100);
-  const usageHigh = usagePct >= 80;
+  const overLimit = listingCount > currentTier.listingLimit;
+  const atLimit = listingCount >= currentTier.listingLimit;
+  const approaching = !atLimit && usagePct >= 80;
+  const usageWarn = approaching || atLimit;
 
   return (
     <div className="space-y-8 max-w-4xl">
@@ -148,7 +138,9 @@ export default function BillingPage() {
               Listings Usage
             </span>
             <span
-              className={`text-xs font-mono ${usageHigh ? "text-amber-400" : "text-slate-400"}`}
+              className={`text-xs font-mono ${
+                atLimit ? "text-rose-400" : approaching ? "text-amber-400" : "text-slate-400"
+              }`}
             >
               {listingCount} / {currentTier.listingLimit}
             </span>
@@ -156,14 +148,22 @@ export default function BillingPage() {
           <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
-                usageHigh ? "bg-amber-400" : "bg-emerald-500"
+                atLimit ? "bg-rose-500" : approaching ? "bg-amber-400" : "bg-emerald-500"
               }`}
               style={{ width: `${usagePct}%` }}
             />
           </div>
-          {usageHigh && (
-            <p className="text-[10px] font-mono text-amber-400/70">
-              Approaching listing limit — upgrade when billing launches
+          {usageWarn && (
+            <p
+              className={`text-[10px] font-mono ${
+                atLimit ? "text-rose-400/80" : "text-amber-400/70"
+              }`}
+            >
+              {overLimit
+                ? "Over listing limit — archive some listings or upgrade when billing launches"
+                : atLimit
+                ? "At listing limit — upgrade when billing launches to add more"
+                : "Approaching listing limit — upgrade when billing launches"}
             </p>
           )}
         </div>

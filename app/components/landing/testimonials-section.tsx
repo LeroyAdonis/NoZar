@@ -71,14 +71,13 @@ export function TestimonialsSection() {
       <ScrollReveal>
         <div className="mb-16">
           <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
-            // Network.Testimonials
+            // Stories
           </span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase">
-            Beta Pilot Cases.
+            Real swaps.
           </h2>
           <p className="text-slate-500 text-sm mt-4 max-w-xl font-mono">
-            // Real scenarios we're facilitating during our MVP phase.
-            No cash, pure value exchange.
+            // From our beta. No cash — just fair trades between people.
           </p>
         </div>
       </ScrollReveal>

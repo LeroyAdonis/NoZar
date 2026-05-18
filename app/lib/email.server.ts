@@ -82,9 +82,9 @@ export function newMessageEmail(params: {
   messageSnippet: string;
   tradeId: number;
   listingTitle: string;
-}): void {
+}): Promise<void> {
   const { to, recipientName, senderName, messageSnippet, tradeId, listingTitle } = params;
-  send({
+  return send({
     to,
     subject: `New message from ${senderName} on NoZar`,
     html: baseStyle(
@@ -103,9 +103,9 @@ export function tradeAcceptedEmail(params: {
   senderName: string;
   tradeId: number;
   listingTitle: string;
-}): void {
+}): Promise<void> {
   const { to, recipientName, senderName, tradeId, listingTitle } = params;
-  send({
+  return send({
     to,
     subject: `Trade accepted — ${listingTitle}`,
     html: baseStyle(
@@ -123,9 +123,9 @@ export function tradeCompletedEmail(params: {
   otherName: string;
   tradeId: number;
   listingTitle: string;
-}): void {
+}): Promise<void> {
   const { to, recipientName, otherName, tradeId, listingTitle } = params;
-  send({
+  return send({
     to,
     subject: `Trade complete — "${listingTitle}"`,
     html: baseStyle(
@@ -144,9 +144,9 @@ export function contactSharedEmail(params: {
   senderName: string;
   tradeId: number;
   listingTitle: string;
-}): void {
+}): Promise<void> {
   const { to, recipientName, senderName, tradeId, listingTitle } = params;
-  send({
+  return send({
     to,
     subject: `${senderName} shared contact details — ${listingTitle}`,
     html: baseStyle(

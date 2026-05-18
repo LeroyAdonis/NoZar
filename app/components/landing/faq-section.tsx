@@ -12,63 +12,62 @@ const faqItems: FaqItem[] = [
     id: "01",
     question: "What is NoZar?",
     answer:
-      "NoZar is a spatial barter network built for South Africa. It lets you bypass ZAR entirely — trade your idle assets, surplus inventory, and professional services directly with others in your area. No currency middleman, no inflation exposure. Our Value Parity Engine ensures every exchange is fair by mapping items and services to hidden value tiers.",
+      "NoZar is a barter platform for South Africa. Swap your stuff, skills, and services directly with people near you — no cash needed. Every listing sits in a value tier, so you only see fair swaps.",
   },
   {
     id: "02",
     question: "Is it really free?",
     answer:
-      "Yes — the free tier gives you 5 active listings with unlimited trades and local radius matching at zero cost. No transaction fees, ever. If you need more visibility or capacity, our Trader Plus (R29/mo) and Business (R99/mo) tiers unlock boost tokens, advanced filters, and enterprise tools for power users.",
+      "Yes. The Free plan gives you 5 active listings, unlimited swaps, and local matching — at no cost. No transaction fees, ever. If you want more visibility or capacity, Trader Plus (R29/mo) and Business (R99/mo) unlock boosts, filters, and business tools.",
   },
   {
     id: "03",
     question: "How do I stay safe?",
     answer:
-      "NoZar operates a 3-stage trust architecture. Stage 1: Blind Chat — communicate through our encrypted relay without revealing any personal info. Stage 2: Digital Handshake — both parties explicitly confirm the trade terms before any contact details are shared. Stage 3: Safe Zone Routing — for physical exchanges, we suggest verified public meetup points in your area. Your identity stays shielded until you choose otherwise.",
+      "Three steps. First, you chat privately on NoZar — phone numbers and emails are blocked. Then both of you confirm the swap. Only after that do contact details unlock, and we suggest safe public meetup spots. Your identity stays private until you both agree.",
   },
   {
     id: "04",
     question: "What can I trade?",
     answer:
-      "Anything legal with real value. Physical items include electronics, furniture, fashion, appliances, vehicles, and sporting goods. Services span design, development, tutoring, repairs, photography, consulting, and more. Our Value Parity Engine categorises everything so you see matches worth your asset — whether you're swapping a laptop for web design or a couch for guitar lessons.",
+      "Anything legal with real value. Items like electronics, furniture, clothes, appliances, vehicles, and sports gear. Services like design, dev, tutoring, repairs, photography, and more. We match things by value tier so you only see swaps that are worth your while.",
   },
   {
     id: "05",
     question: "How does contact exchange work?",
     answer:
-      "Contact details are never visible by default. Only after both parties complete a mutual Digital Handshake — confirming trade terms and intent — does selective info disclosure begin. You choose exactly which details to share (phone, email, or location). All shared contact data carries a 72-hour auto-expiry window, which can be extended by 48 hours once if both parties agree. If not completed, it's purged from the system.",
+      "Contact details are hidden by default. Only after you both confirm the swap do they unlock — and even then, you choose what to share (phone, email, or location). Shared details expire after 72 hours, with an optional 48-hour extension if you both agree.",
   },
   {
     id: "06",
-    question: "How are disputes resolved?",
+    question: "How are disputes handled?",
     answer:
-      "NoZar uses a community-led mediation process. If a trade goes wrong, open a dispute in your trade ledger. We then assign a neutral moderator from the local community to review the digital handshake records and chat history to propose a fair, binding resolution.",
+      "If a swap goes wrong, open a dispute from your trade page. A neutral moderator reviews the chat and confirmation history, then proposes a fair outcome.",
   },
   {
     id: "07",
-    question: "What areas do you cover?",
+    question: "Which areas do you cover?",
     answer:
-      "The NoZar network is currently in beta across Cape Town and Johannesburg, with hyper-local matching active in both metros. We're expanding to Durban, Pretoria, and Bloemfontein in the next rollout phase. Digital services (design, dev, tutoring) are already open for national exchange regardless of your location. Your local matching radius defaults to 15km from your home area and can be adjusted between 3km and 50km in your profile settings.",
+      "We're live in Johannesburg and Cape Town. Durban, Pretoria, and Bloemfontein are next. Digital services (design, dev, tutoring) are already open nationwide. Your local radius starts at 15km and you can adjust it between 3km and 50km in your profile.",
   },
   {
     id: "08",
     question: "Can businesses use NoZar?",
     answer:
-      "Absolutely. Our Enterprise Protocol is purpose-built for registered South African entities. Verify your company via CIPC integration to unlock a verified business badge, dedicated B2B filters, and SARS-compliant ledger exports for every trade. Liquidate dead stock, monetise idle equipment, and preserve cash flow — all within a structured barter framework.",
+      "Yes. The Business plan is built for registered SA companies. Verify with CIPC to get a business badge, business-only filters, and SARS-ready exports for every swap. Move dead stock and put idle equipment to work — without touching cash flow.",
   },
   {
     id: "09",
     question: "Is barter legal with SARS?",
     answer:
-      "Absolutely. SARS (South African Revenue Service) recognizes barter as a legitimate form of commerce. Under the VAT Act and Income Tax Act, you are required to account for the fair market value of items or services received as taxable income. NoZar provides a built-in 'Trade Ledger' export feature to help you keep accurate records for 5 years, ensuring you remain compliant with the Tax Administration Act while bypassing cash flow constraints.",
+      "Yes. SARS treats barter as legitimate trade. Under the VAT Act and Income Tax Act, you account for the fair market value of what you receive as taxable income. NoZar's trade ledger export helps you keep accurate records for the five years SARS requires.",
   },
   {
     id: "10",
     question: "How do ratings work?",
     answer:
-      "After every completed trade, both parties submit a mutual rating — ensuring accountability on both sides. Ratings are locked until both are submitted to prevent retaliation bias. Once you hit 10+ completed trades with a 4.5+ average rating, you earn the Trusted Trader badge, which boosts your visibility in search results and signals reliability to other network participants.",
+      "After every completed swap, both of you rate each other. Ratings are hidden until both are in, so no one can retaliate. Hit 10+ swaps with a 4.5+ average and you earn the Trusted Trader badge — it boosts you in search.",
   },
-  // TASK 06 & 07 COMPLETE
 ];
 
 export function FaqSection() {
@@ -86,10 +85,10 @@ export function FaqSection() {
       <ScrollReveal>
         <div className="mb-16">
           <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
-            // Frequently.Asked
+            // FAQ
           </span>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase">
-            Common Queries.
+            Common questions.
           </h2>
         </div>
       </ScrollReveal>

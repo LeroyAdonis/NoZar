@@ -8,9 +8,9 @@ type StatItem = {
 };
 
 const stats: StatItem[] = [
-  { target: 150, suffix: "+", label: "Early Beta Spots" },
-  { target: 2, label: "Core Hubs (JHB/CPT)" },
-  { target: 0, suffix: " ZAR", label: "Subscription Cost" },
+  { target: 150, suffix: "+", label: "Beta spots" },
+  { target: 2, label: "Cities live" },
+  { target: 0, suffix: " ZAR", label: "Free to start" },
 ];
 // TASK 01 COMPLETE
 
