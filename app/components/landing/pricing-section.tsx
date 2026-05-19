@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { Lock } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -11,6 +12,7 @@ import {
   StaggerChildren,
   StaggerItem,
 } from "~/components/motion/stagger-children";
+import { BUSINESS_PRODUCTS_LIVE } from "~/lib/tier-limits";
 
 type PricingFeature = {
   label: string;
@@ -25,6 +27,7 @@ type PricingTier = {
   cta: string;
   ctaLink: string;
   popular?: boolean;
+  businessProduct?: boolean;
 };
 
 const tiers: PricingTier[] = [
@@ -72,6 +75,7 @@ const tiers: PricingTier[] = [
     ],
     cta: "Start business plan",
     ctaLink: "/dashboard/billing",
+    businessProduct: true,
   },
   {
     name: "Enterprise",
@@ -87,8 +91,15 @@ const tiers: PricingTier[] = [
     ],
     cta: "Contact sales",
     ctaLink: "mailto:hello@nozar.co.za?subject=Enterprise%20plan%20inquiry",
+    businessProduct: true,
   },
 ];
+
+const visibleTiers = tiers.map((tier) =>
+  tier.businessProduct && !BUSINESS_PRODUCTS_LIVE
+    ? { ...tier, comingSoon: true as const }
+    : { ...tier, comingSoon: false as const },
+);
 
 // TASK 05 COMPLETE
 
@@ -113,7 +124,7 @@ export function PricingSection() {
         staggerDelay={0.12}
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"
       >
-        {tiers.map((tier) => (
+        {visibleTiers.map((tier) => (
           <StaggerItem key={tier.name}>
           <Card
             key={tier.name}
@@ -122,7 +133,7 @@ export function PricingSection() {
               tier.popular
                 ? "border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.1)] bg-gradient-to-b from-emerald-950/20 to-transparent"
                 : "hover:border-white/20"
-            }`}
+            } ${tier.comingSoon ? "opacity-60" : ""}`}
           >
             {tier.popular && (
               <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-500 text-slate-950 px-4 py-1 rounded-full font-mono text-xs font-bold uppercase tracking-widest shadow-[0_0_10px_rgba(16,185,129,0.3)]">
@@ -159,7 +170,17 @@ export function PricingSection() {
             </CardContent>
 
             <CardFooter>
-              {tier.ctaLink.startsWith("mailto:") ? (
+              {tier.comingSoon ? (
+                <div
+                  aria-disabled="true"
+                  className="block w-full py-3 rounded-xl font-bold text-center text-sm bg-white/[0.02] border border-white/10 text-slate-500 flex items-center justify-center gap-2"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  <span className="font-mono text-xs uppercase tracking-widest">
+                    Coming soon
+                  </span>
+                </div>
+              ) : tier.ctaLink.startsWith("mailto:") ? (
                 <a
                   href={tier.ctaLink}
                   className={`block w-full py-3 rounded-xl font-bold transition-colors text-center text-sm ${
