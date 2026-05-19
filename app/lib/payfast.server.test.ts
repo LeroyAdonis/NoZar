@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPayFastSignature } from "./payfast.server";
+import { buildPayFastSignature, verifyItnSignature } from "./payfast.server";
 
 describe("buildPayFastSignature", () => {
   it("produces MD5 of url-encoded ordered fields with passphrase", () => {
@@ -43,5 +43,45 @@ describe("buildPayFastSignature", () => {
     const sig = buildPayFastSignature(fields, "");
     expect(sig).toMatch(/^[a-f0-9]{32}$/);
     expect(sig).toEqual(buildPayFastSignature(fields, ""));
+  });
+});
+
+describe("verifyItnSignature", () => {
+  it("returns true for a self-built valid signature", () => {
+    const formData = new URLSearchParams();
+    formData.append("m_payment_id", "test-uuid");
+    formData.append("pf_payment_id", "PF-123");
+    formData.append("payment_status", "COMPLETE");
+    formData.append("amount_gross", "99.00");
+    const fields: Array<[string, string]> = [...formData.entries()] as Array<
+      [string, string]
+    >;
+    const sig = buildPayFastSignature(fields, "test-pass");
+    formData.append("signature", sig);
+
+    expect(verifyItnSignature(formData, "test-pass")).toBe(true);
+  });
+
+  it("returns false when signature has been tampered with", () => {
+    const formData = new URLSearchParams();
+    formData.append("m_payment_id", "test-uuid");
+    formData.append("amount_gross", "99.00");
+    formData.append("signature", "0".repeat(32));
+
+    expect(verifyItnSignature(formData, "test-pass")).toBe(false);
+  });
+
+  it("returns false when amount is tampered after signing", () => {
+    const formData = new URLSearchParams();
+    formData.append("m_payment_id", "test-uuid");
+    formData.append("amount_gross", "99.00");
+    const sig = buildPayFastSignature(
+      [...formData.entries()] as Array<[string, string]>,
+      "p",
+    );
+    formData.set("amount_gross", "999.00");
+    formData.append("signature", sig);
+
+    expect(verifyItnSignature(formData, "p")).toBe(false);
   });
 });

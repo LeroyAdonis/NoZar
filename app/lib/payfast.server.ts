@@ -36,3 +36,30 @@ export function buildPayFastSignature(
   const signatureString = parts.join("&");
   return crypto.createHash("md5").update(signatureString).digest("hex");
 }
+
+/**
+ * Verify an inbound PayFast ITN signature against the merchant passphrase.
+ *
+ * Uses the field order as received from PayFast (URLSearchParams preserves
+ * insertion order, matching the raw POST body order on Node 18+).
+ */
+export function verifyItnSignature(
+  formData: URLSearchParams,
+  passphrase: string,
+): boolean {
+  const provided = formData.get("signature");
+  if (!provided) return false;
+
+  const fields: Array<[string, string]> = [];
+  for (const [key, value] of formData.entries()) {
+    if (key === "signature") continue;
+    fields.push([key, value]);
+  }
+
+  const expected = buildPayFastSignature(fields, passphrase);
+  if (provided.length !== expected.length) return false;
+  return crypto.timingSafeEqual(
+    Buffer.from(provided, "utf8"),
+    Buffer.from(expected, "utf8"),
+  );
+}
