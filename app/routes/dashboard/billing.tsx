@@ -4,7 +4,7 @@ import { CreditCard, Check, Lock, Bell, Zap, BarChart3, Shield, Layers } from "l
 import type { Route } from "./+types/billing";
 import { requireAuth } from "~/lib/auth.server";
 import { getListingUsage } from "~/lib/tier-limits.server";
-import { LISTING_LIMITS } from "~/lib/tier-limits";
+import { LISTING_LIMITS, BUSINESS_PRODUCTS_LIVE } from "~/lib/tier-limits";
 
 // ─── Tier definitions ──────────────────────────────────────────
 
@@ -58,6 +58,10 @@ const TIERS = [
     ],
   },
 ] as const;
+
+const VISIBLE_TIERS = BUSINESS_PRODUCTS_LIVE
+  ? TIERS
+  : TIERS.filter((t) => t.code !== "business");
 
 // ─── Meta ──────────────────────────────────────────────────────
 
@@ -185,7 +189,7 @@ export default function BillingPage() {
           // Tier Comparison
         </span>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {TIERS.map((tier) => {
+          {VISIBLE_TIERS.map((tier) => {
             const isCurrent = tier.code === planCode;
             return (
               <div
@@ -276,6 +280,27 @@ export default function BillingPage() {
           })}
         </div>
       </section>
+
+      {!BUSINESS_PRODUCTS_LIVE && (
+        <div className="flex items-start gap-3 bg-amber-500/5 border border-amber-500/20 rounded-xl px-4 py-3.5">
+          <Lock className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-amber-400 mb-0.5">
+              Business plans — coming soon
+            </p>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Trading for a registered business? Drop us a note at{" "}
+              <a
+                href="mailto:hello@nozar.co.za?subject=Business%20plan%20waitlist"
+                className="text-amber-300 underline underline-offset-2"
+              >
+                hello@nozar.co.za
+              </a>{" "}
+              to join the waitlist.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── Feature highlights ── */}
       <section className="bg-[#0F172A] border border-white/5 rounded-2xl p-5">
