@@ -20,8 +20,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Register — Nozar" },
-    { name: "description", content: "Create your Nozar account" },
+    { title: "Register — NoZar" },
+    { name: "description", content: "Create your NoZar account" },
   ];
 }
 
@@ -112,6 +112,7 @@ export default function RegisterPage() {
           <Input
             label="Display Name"
             type="text"
+            autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Zanele A."
@@ -120,6 +121,7 @@ export default function RegisterPage() {
           <Input
             label="Email"
             type="email"
+            autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
@@ -128,6 +130,7 @@ export default function RegisterPage() {
           <Input
             label="Password"
             type="password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Min 8 characters"

@@ -45,7 +45,7 @@ function getSavedLocationLabel(savedLocation: SavedLocation, currentRegion: Regi
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Map — Nozar" },
+    { title: "Map — NoZar" },
     { name: "description", content: "Find swaps near your saved radar location" },
   ];
 }
@@ -238,7 +238,7 @@ export default function Map({ loaderData }: Route.ComponentProps) {
         </span>
         <h2 className="text-xl font-bold uppercase tracking-tight text-white">Map</h2>
         <p className="mt-2 max-w-2xl text-sm text-slate-400">
-          Nozar stays hyper-local. Nearby listings are scoped from your saved radar centre, and
+          NoZar stays hyper-local. Nearby listings are scoped from your saved radar centre, and
           only the radius changes locally on this page.
         </p>
       </div>

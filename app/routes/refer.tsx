@@ -43,7 +43,7 @@ export default function ReferPage() {
 
   return (
     <div className="max-w-4xl mx-auto py-6 px-0">
-      <h1 className="text-3xl font-bold mb-8">Invite to Nozar</h1>
+      <h1 className="text-3xl font-bold mb-8">Invite to NoZar</h1>
       <div className="p-6 bg-[#0F172A] rounded-xl border border-white/10">
         <h2 className="text-xl mb-4 font-bold">Your Referral Link</h2>
         <div className="flex gap-2">
@@ -56,7 +56,7 @@ export default function ReferPage() {
           </button>
         </div>
         <button
-            onClick={() => window.open(`https://wa.me/?text=Join%20Nozar!%20${referralLink}`)}
+            onClick={() => window.open(`https://wa.me/?text=Join%20NoZar!%20${referralLink}`)}
             className="mt-4 px-6 py-2 bg-green-600 hover:bg-green-500 rounded text-white font-bold transition-all"
         >
             Share on WhatsApp

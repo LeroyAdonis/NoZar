@@ -22,7 +22,7 @@ import { Globe, MapPin, AlertCircle } from "lucide-react";
 export function meta({ data: loaderData }: Route.MetaArgs) {
   const title = loaderData?.listing?.title ?? "Asset";
   return [
-    { title: `${title} — Nozar` },
+    { title: `${title} — NoZar` },
     { name: "description", content: "View asset details" },
   ];
 }
@@ -258,7 +258,7 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
           to="/dashboard"
           className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-slate-400 hover:text-white transition-colors"
         >
-          <ChevronLeft className="w-4 h-4" /> Return to Index
+          <ChevronLeft className="w-4 h-4" /> Return to Home
         </Link>
         {isOwner && (
           <Link
@@ -494,11 +494,11 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
               <h4 className="font-bold text-sm text-white">{owner.name}</h4>
               {owner.emailVerified ? (
                 <span className="flex items-center gap-1 text-[9px] font-mono text-emerald-400 uppercase">
-                  <ShieldCheck className="w-3 h-3" /> Node Verified
+                  <ShieldCheck className="w-3 h-3" /> Verified
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-[9px] font-mono text-slate-500 uppercase">
-                  Unverified Node
+                  Unverified
                 </span>
               )}
             </div>

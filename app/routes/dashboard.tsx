@@ -112,9 +112,24 @@ function getActiveTab(pathname: string): string {
   if (pathname.startsWith("/dashboard/pings")) return "messages";
   if (pathname.startsWith("/dashboard/profile")) return "profile";
   if (pathname.startsWith("/dashboard/refer")) return "refer";
+  if (pathname.startsWith("/dashboard/notifications")) return "notifications";
+  if (pathname.startsWith("/dashboard/billing")) return "billing";
+  if (pathname.startsWith("/dashboard/verify-phone")) return "verify-phone";
   // home, asset detail, and any unknown sub-routes default to "home"
   return "home";
 }
+
+const SECTION_LABELS: Record<string, string> = {
+  home: "Home",
+  map: "Explore",
+  add: "Add item",
+  messages: "Chats",
+  profile: "Profile",
+  refer: "Invite Friends",
+  notifications: "Notifications",
+  billing: "Billing",
+  "verify-phone": "Verify Phone",
+};
 
 const SIDEBAR_LINKS = [
   { id: "home",     label: "Home",     href: "/dashboard",          icon: Home },
@@ -356,15 +371,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
         {/* Desktop: section label replacing logo */}
         <div className="hidden md:flex items-center gap-4">
           <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">
-            {activeTab === "home"
-              ? "Home"
-              : activeTab === "map"
-              ? "Explore"
-              : activeTab === "add"
-              ? "Add item"
-              : activeTab === "messages"
-              ? "Chats"
-              : "Profile"}
+            {SECTION_LABELS[activeTab] ?? "Dashboard"}
           </span>
           {needsLocation && isLocationDismissed && (
             <button

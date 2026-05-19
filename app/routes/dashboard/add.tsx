@@ -68,7 +68,7 @@ const textareaStyles =
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Add Asset — Nozar" },
+    { title: "Add Asset — NoZar" },
     { name: "description", content: "List a new item or service for barter" },
   ];
 }
@@ -128,7 +128,7 @@ export async function action({ request }: Route.ActionArgs) {
     title: string,
     category: string,
   ): Promise<string> {
-    const prompt = `Write a compelling 2-3 sentence listing description for Nozar, a South African barter platform.
+    const prompt = `Write a compelling 2-3 sentence listing description for NoZar, a South African barter platform.
 Item title: "${title}"
 Category: ${category}
 

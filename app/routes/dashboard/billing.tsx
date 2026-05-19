@@ -63,8 +63,8 @@ const TIERS = [
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Billing — Nozar" },
-    { name: "description", content: "Manage your Nozar subscription and tier" },
+    { title: "Billing — NoZar" },
+    { name: "description", content: "Manage your NoZar subscription and tier" },
   ];
 }
 

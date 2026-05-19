@@ -13,7 +13,7 @@ import { timeAgo } from "~/lib/utils";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Notifications — Nozar" },
+    { title: "Notifications — NoZar" },
     {
       name: "description",
       content: "Your trade notifications and unread messages",

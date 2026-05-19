@@ -61,8 +61,8 @@ const DELIVERY_METHODS = ["Pickup", "Delivery", "Either"] as const;
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Profile — Nozar" },
-    { name: "description", content: "Your Nozar profile and settings" },
+    { title: "Profile — NoZar" },
+    { name: "description", content: "Your NoZar profile and settings" },
   ];
 }
 
@@ -750,7 +750,7 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
           <div className="p-4 bg-[#0F172A] border border-white/10 rounded-2xl flex items-center justify-between">
             <span className="text-sm text-slate-400">Free plan — 5 listings</span>
             <Link
-              to="/dashboard/refer"
+              to="/dashboard/billing"
               className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest hover:text-emerald-300"
             >
               Upgrade →

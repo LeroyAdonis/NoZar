@@ -55,7 +55,7 @@ import { BalancePile } from "~/components/ui/balance-pile";
 export function meta({ data: loaderData }: Route.MetaArgs) {
   const title = loaderData?.listing?.title ?? "Ping";
   return [
-    { title: `${title} — Nozar` },
+    { title: `${title} — NoZar` },
     { name: "description", content: "View ping conversation" },
   ];
 }

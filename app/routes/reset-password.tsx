@@ -149,6 +149,7 @@ export default function ResetPasswordPage(_props: Route.ComponentProps) {
           <Input
             label="New Password"
             type="password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Min 8 characters"
@@ -158,6 +159,7 @@ export default function ResetPasswordPage(_props: Route.ComponentProps) {
           <Input
             label="Confirm Password"
             type="password"
+            autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Re-enter your password"

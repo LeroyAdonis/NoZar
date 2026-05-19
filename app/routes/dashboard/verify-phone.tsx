@@ -20,7 +20,7 @@ import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Verify Phone — Nozar" },
+    { title: "Verify Phone — NoZar" },
     { name: "description", content: "Add and verify your phone number" },
   ];
 }

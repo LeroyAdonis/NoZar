@@ -15,8 +15,8 @@ import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Dashboard — Nozar" },
-    { name: "description", content: "Your Nozar dashboard" },
+    { title: "Dashboard — NoZar" },
+    { name: "description", content: "Your NoZar dashboard" },
   ];
 }
 
@@ -282,7 +282,7 @@ export async function action({ request }: Route.ActionArgs) {
     )
     .join("\n");
 
-  const prompt = `You are a trade matching assistant for a South African barter platform called Nozar.
+  const prompt = `You are a trade matching assistant for a South African barter platform called NoZar.
 
 A user has the following items/services available for trade:
 ${userProfile}

@@ -12,7 +12,7 @@ import { PingThread } from "~/components/ui/ping-thread";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Chats — Nozar" },
+    { title: "Chats — NoZar" },
     { name: "description", content: "Your swap conversations" },
   ];
 }

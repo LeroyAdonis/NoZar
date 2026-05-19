@@ -44,7 +44,7 @@ export function LocationPromptModal({
       : {
           title: "Initialize Radar",
           description:
-            "To use Nozar's radar feature and discover swaps nearby, enable location services. You can still browse by region without it, but exact distances and the radar map will stay limited.",
+            "To use NoZar's radar feature and discover swaps nearby, enable location services. You can still browse by region without it, but exact distances and the radar map will stay limited.",
           ctaLabel: "ENABLE LOCATION & START RADAR",
           secondaryLabel: "Maybe Later",
         };

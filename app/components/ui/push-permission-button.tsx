@@ -24,11 +24,13 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array<ArrayBuffer> {
 }
 
 export function PushPermissionButton({ vapidPublicKey }: Props) {
+  const [mounted, setMounted] = useState(false);
   const [state, setState] = useState<
     "idle" | "subscribed" | "denied" | "loading"
   >("idle");
 
   useEffect(() => {
+    setMounted(true);
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
     if (Notification.permission === "denied") {
       setState("denied");
@@ -81,8 +83,7 @@ export function PushPermissionButton({ vapidPublicKey }: Props) {
     }
   }
 
-  // SSR guard — APIs are browser-only
-  if (typeof window === "undefined") return null;
+  if (!mounted) return null;
   if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
   if (state === "denied") return null;
 

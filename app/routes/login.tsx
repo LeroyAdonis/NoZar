@@ -18,8 +18,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Login — Nozar" },
-    { name: "description", content: "Sign in to your Nozar account" },
+    { title: "Login — NoZar" },
+    { name: "description", content: "Sign in to your NoZar account" },
   ];
 }
 
@@ -110,6 +110,7 @@ export default function LoginPage() {
             <Input
               label="Email"
               type="email"
+              autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
@@ -118,6 +119,7 @@ export default function LoginPage() {
             <Input
               label="Password"
               type="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
