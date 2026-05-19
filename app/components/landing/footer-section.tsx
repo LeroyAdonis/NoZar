@@ -102,15 +102,9 @@ export default function FooterSection() {
               </li>
               <li>
                 <span className="text-sm text-slate-400">
-                  Follow us on X (Twitter)
-                </span>
-              </li>
-              <li>
-                <span className="text-sm text-slate-400">
                   Cape Town &amp; Johannesburg, RSA
                 </span>
               </li>
-              {/* TASK 08 COMPLETE */}
               <li>
                 <span className="text-sm text-slate-500 italic">
                   Mobile apps coming soon
@@ -124,7 +118,7 @@ export default function FooterSection() {
         {/* Bottom Bar */}
         <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 font-mono text-xs text-slate-600 uppercase tracking-widest">
           <p>Made with ❤️ in Mzansi 🇿🇦</p>
-          <p>© {new Date().getFullYear()} NoZar PTY LTD</p>
+          <p>© {new Date().getFullYear()} NoZar</p>
         </div>
       </div>
     </footer>

@@ -14,10 +14,8 @@ import {
   Cpu,
 } from "lucide-react";
 
-import { StatsBar } from "~/components/landing/stats-bar";
 import { TrustBadgesSection } from "~/components/landing/trust-badges-section";
 import { PricingSection } from "~/components/landing/pricing-section";
-import { TestimonialsSection } from "~/components/landing/testimonials-section";
 import { FaqSection } from "~/components/landing/faq-section";
 import FooterSection from "~/components/landing/footer-section";
 import type { Route } from "./+types/landing";
@@ -334,9 +332,6 @@ export default function LandingPage({
         </div>
       </main>
 
-      {/* Stats Bar */}
-      <StatsBar />
-
       {/* The Bento Grid: How It Works */}
       <section
         id="how-it-works"
@@ -587,9 +582,6 @@ export default function LandingPage({
 
       {/* Pricing Tiers */}
       <PricingSection />
-
-      {/* Testimonials */}
-      <TestimonialsSection />
 
       {/* FAQ */}
       <FaqSection />

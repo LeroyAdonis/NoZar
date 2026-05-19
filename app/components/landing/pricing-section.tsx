@@ -43,54 +43,50 @@ const tiers: PricingTier[] = [
     ctaLink: "/dashboard",
   },
   {
-    name: "Trader Plus",
-    price: "R29",
+    name: "Plus",
+    price: "R99",
     period: "/mo",
     description: "For regular traders who want more reach and better tools.",
     features: [
       { label: "20 active listings" },
-      { label: "2 boosts a month" },
-      { label: "More visibility on your listings" },
-      { label: "Priority placement" },
       { label: "Advanced filters" },
-      { label: "Trade stats" },
+      { label: "AI match" },
+      { label: "Trade messaging" },
+      { label: "Priority support" },
     ],
     cta: "Upgrade",
-    ctaLink: "/dashboard",
+    ctaLink: "/dashboard/billing",
     popular: true,
   },
   {
     name: "Business",
-    price: "R99",
+    price: "R299",
     period: "/mo",
     description: "For registered SA businesses moving stock and equipment.",
     features: [
       { label: "100 active listings" },
-      { label: "10 boosts a month" },
-      { label: "More visibility on your listings" },
-      { label: "CIPC verification badge" },
-      { label: "Business filters" },
-      { label: "SARS-ready exports" },
+      { label: "Advanced filters" },
+      { label: "AI match + insights" },
+      { label: "Dedicated support" },
+      { label: "Analytics dashboard" },
     ],
     cta: "Start business plan",
-    ctaLink: "/dashboard",
+    ctaLink: "/dashboard/billing",
   },
   {
     name: "Enterprise",
-    price: "R249",
-    period: "/mo",
+    price: "Custom",
+    period: "",
     description: "Dedicated support and custom integrations for larger operations.",
     features: [
       { label: "Unlimited listings" },
-      { label: "30 boosts a month" },
-      { label: "More visibility on your listings" },
       { label: "Dedicated account manager" },
       { label: "API access" },
       { label: "Custom branding" },
       { label: "Priority support" },
     ],
     cta: "Contact sales",
-    ctaLink: "/dashboard",
+    ctaLink: "mailto:hello@nozar.co.za?subject=Enterprise%20plan%20inquiry",
   },
 ];
 
@@ -163,16 +159,29 @@ export function PricingSection() {
             </CardContent>
 
             <CardFooter>
-              <Link
-                to={tier.ctaLink}
-                className={`block w-full py-3 rounded-xl font-bold transition-colors text-center text-sm ${
-                  tier.popular
-                    ? "bg-emerald-500 text-slate-950 hover:bg-emerald-400"
-                    : "bg-white/5 border border-white/10 hover:bg-white/10"
-                }`}
-              >
-                {tier.cta}
-              </Link>
+              {tier.ctaLink.startsWith("mailto:") ? (
+                <a
+                  href={tier.ctaLink}
+                  className={`block w-full py-3 rounded-xl font-bold transition-colors text-center text-sm ${
+                    tier.popular
+                      ? "bg-emerald-500 text-slate-950 hover:bg-emerald-400"
+                      : "bg-white/5 border border-white/10 hover:bg-white/10"
+                  }`}
+                >
+                  {tier.cta}
+                </a>
+              ) : (
+                <Link
+                  to={tier.ctaLink}
+                  className={`block w-full py-3 rounded-xl font-bold transition-colors text-center text-sm ${
+                    tier.popular
+                      ? "bg-emerald-500 text-slate-950 hover:bg-emerald-400"
+                      : "bg-white/5 border border-white/10 hover:bg-white/10"
+                  }`}
+                >
+                  {tier.cta}
+                </Link>
+              )}
             </CardFooter>
           </Card>
           </StaggerItem>

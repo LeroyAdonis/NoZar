@@ -31,7 +31,7 @@ Navigate to **Settings → Help → File a Complaint**. This is the fastest way 
 
 ### 3.2. Email
 
-Send your complaint to **complaints@bartersa.co.za**. We monitor this inbox during business hours (Monday to Friday, 08:00–17:00 SAST).
+Send your complaint to **hello@nozar.co.za**. We monitor this inbox during business hours (Monday to Friday, 08:00–17:00 SAST).
 
 ### 3.3. What to Include
 
@@ -144,8 +144,8 @@ We encourage you to use our internal process first, but you are not required to 
 
 Our Information Officer is responsible for handling POPIA-related complaints and ensuring compliance with data protection legislation.
 
-- **Name:** Digital Wave Tech
-- **Email:** privacy@bartersa.co.za
+- **Name:** Leroy Adonis
+- **Email:** hello@nozar.co.za
 - **Responsibilities:** Receiving and responding to data access requests, POPIA complaints, and queries about how NoZar processes personal information.
 
 If your complaint relates to your personal data — including access requests, correction, deletion, or objection to processing — please direct it to our Information Officer.
@@ -172,8 +172,7 @@ If your complaint relates to your personal data — including access requests, c
 
 For any questions about this complaints process:
 
-[Your Legal Entity Name]
-Information Officer: Digital Wave Tech
-Email: complaints@bartersa.co.za
-Physical Address: [SA address required by ECTA]
-CIPC Registration: [Number]
+**NoZar** (operated as a sole proprietorship)
+Information Officer: Leroy Adonis
+Email: hello@nozar.co.za
+Postal address: available on request via hello@nozar.co.za

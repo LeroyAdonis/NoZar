@@ -18,7 +18,7 @@ const faqItems: FaqItem[] = [
     id: "02",
     question: "Is it really free?",
     answer:
-      "Yes. The Free plan gives you 5 active listings, unlimited swaps, and local matching — at no cost. No transaction fees, ever. If you want more visibility or capacity, Trader Plus (R29/mo) and Business (R99/mo) unlock boosts, filters, and business tools.",
+      "Yes. The Free plan gives you 5 active listings, unlimited swaps, and local matching — at no cost. No transaction fees, ever. If you want more capacity, Plus (R99/mo) and Business (R299/mo) unlock advanced filters, AI match, priority support, and business tools.",
   },
   {
     id: "03",

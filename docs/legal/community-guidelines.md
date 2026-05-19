@@ -53,7 +53,7 @@ See the full [Prohibited Items list](/legal/terms-of-service#prohibited-items--s
 | 3rd minor violation | Permanent ban |
 | Severe violation (fraud, threats, prohibited items, harassment) | Immediate permanent ban |
 
-We review reports within 48 hours. If you believe an action was taken in error, email community@bartersa.co.za to appeal.
+We review reports within 48 hours. If you believe an action was taken in error, email hello@nozar.co.za to appeal.
 
 ## Reporting
 

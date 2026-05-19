@@ -1,4 +1,4 @@
-import { Shield, FileCheck, Phone, Lock, Users, Heart } from "lucide-react";
+import { Shield, EyeOff, MapPin, Lock, Users, Heart } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { ScrollReveal } from "~/components/motion/scroll-reveal";
 
@@ -11,27 +11,27 @@ interface TrustBadge {
 const TRUST_BADGES: TrustBadge[] = [
   {
     icon: Shield,
-    title: "POPIA Compliant",
+    title: "POPIA-aligned",
     description: "Your data is handled under SA's privacy law",
   },
   {
-    icon: FileCheck,
-    title: "ECTA Registered",
-    description: "Compliant with SA's electronic transactions act",
+    icon: EyeOff,
+    title: "Dual-blind contact reveal",
+    description: "Names and contacts unlock only after both of you confirm",
   },
   {
-    icon: Phone,
-    title: "Phone-verified users",
-    description: "Every trader verified by SMS before their first swap",
+    icon: MapPin,
+    title: "Safe meetup suggestions",
+    description: "Three public, well-lit spots suggested near you both",
   },
   {
     icon: Lock,
-    title: "5 safety steps",
-    description: "Private chat, mutual agreement, safe meetup, ratings, disputes",
+    title: "In-app private chat",
+    description: "Phone numbers and emails are blocked until both agree",
   },
   {
     icon: Users,
-    title: "Community rules",
+    title: "Community guidelines",
     description: "Clear standards for respectful, safe trading",
   },
   {

@@ -3,18 +3,17 @@
 **Effective Date:** 13 April 2026
 
 NoZar is currently in **Public MVP Beta**. This means our data processing activities are under active development. While we maintain POPIA compliance, we may occasionally update our processing methods as we refine the platform.
-**Information Officer:** Digital Wave Tech — privacy@bartersa.co.za
+**Information Officer:** Leroy Adonis — hello@nozar.co.za
 
 This Privacy Policy complies with the Protection of Personal Information Act 4 of 2013 ("POPIA") and the Electronic Communications and Transactions Act 25 of 2002 ("ECTA").
 
 ## 1. Responsible Party
 
-Digital Wave Tech is the "responsible party" as defined in POPIA.
+NoZar (operated as a sole proprietorship) is the "responsible party" as defined in POPIA.
 
-- **Information Officer:** Digital Wave Tech
-- **Contact:** privacy@bartersa.co.za
-- **Physical Address:** Unit 10 Villa Fiorentina, 12 Boundary Road, Johannesburg, Gauteng, 2194, South Africa
-- **Deputy Information Officer:** Digital Wave Tech (if applicable)
+- **Information Officer:** Leroy Adonis
+- **Contact:** hello@nozar.co.za
+- **Postal address:** Available on request via hello@nozar.co.za
 
 ## 2. Personal Information We Collect
 
@@ -89,7 +88,7 @@ You have the right to:
 - **Withdraw consent** where processing is based on consent
 - **Lodge a complaint** with the Information Regulator (https://inforegulator.org.za)
 
-To exercise any right, email: privacy@bartersa.co.za
+To exercise any right, email: hello@nozar.co.za
 
 We will respond within 30 days as required by POPIA.
 

@@ -5,7 +5,7 @@
 
 ## 1. Introduction
 
-Welcome to NoZar ("the Platform"), operated by Digital Wave Tech (Registration No. 2023/629766/07), a company registered in the Republic of South Africa ("we", "us", "our").
+Welcome to NoZar ("the Platform"), operated as a sole proprietorship in the Republic of South Africa ("we", "us", "our").
 
 These Terms of Service ("Terms") govern your use of the NoZar progressive web application and all related services. By creating an account or using the Platform, you agree to these Terms in full.
 
@@ -156,8 +156,7 @@ The following may NOT be listed on the Platform:
 
 ## 17. Contact
 
-**Digital Wave Tech**
-Information Officer: Digital Wave Tech
-Email: legal@bartersa.co.za
-Physical Address: Unit 10 Villa Fiorentina, 12 Boundary Road, Johannesburg, Gauteng, 2194, South Africa
-CIPC Registration: 2023/629766/07
+**NoZar** (operated as a sole proprietorship)
+Information Officer: Leroy Adonis
+Email: hello@nozar.co.za
+Postal address: available on request via hello@nozar.co.za
