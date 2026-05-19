@@ -1,8 +1,11 @@
-import { useLoaderData } from "react-router";
+import { Form, useLoaderData } from "react-router";
+import { eq } from "drizzle-orm";
 import { CreditCard, Check, Lock, Bell, Zap, BarChart3, Shield, Layers } from "lucide-react";
 
 import type { Route } from "./+types/billing";
 import { requireAuth } from "~/lib/auth.server";
+import { db } from "~/lib/db.server";
+import { subscriptions } from "~/lib/schema";
 import { getListingUsage } from "~/lib/tier-limits.server";
 import { LISTING_LIMITS, BUSINESS_PRODUCTS_LIVE } from "~/lib/tier-limits";
 
@@ -78,16 +81,36 @@ export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
   const usage = await getListingUsage(user.id);
 
+  const [sub] = await db
+    .select({
+      status: subscriptions.status,
+      nextPaymentDate: subscriptions.nextPaymentDate,
+    })
+    .from(subscriptions)
+    .where(eq(subscriptions.userId, user.id))
+    .limit(1);
+
+  const url = new URL(request.url);
+  const isProduction = process.env.VERCEL_ENV === "production";
+  const testpayOn = url.searchParams.get("testpay") === "1";
+  const isSandbox = process.env.PAYFAST_MODE === "sandbox";
+  const upgradeEnabled = isProduction || testpayOn || isSandbox;
+
   return {
     planCode: usage.planCode,
     listingCount: usage.activeCount,
+    subscription: sub
+      ? { status: sub.status, nextPaymentDate: sub.nextPaymentDate }
+      : null,
+    upgradeEnabled,
   };
 }
 
 // ─── Component ─────────────────────────────────────────────────
 
 export default function BillingPage() {
-  const { planCode, listingCount } = useLoaderData<typeof loader>();
+  const { planCode, listingCount, subscription, upgradeEnabled } =
+    useLoaderData<typeof loader>();
 
   const currentTier = TIERS.find((t) => t.code === planCode) ?? TIERS[0];
   const usagePct = Math.min((listingCount / currentTier.listingLimit) * 100, 100);
@@ -109,20 +132,52 @@ export default function BillingPage() {
         </h1>
       </div>
 
-      {/* ── Coming-soon banner ── */}
-      <div className="flex items-start gap-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-4 py-3.5">
-        <Bell className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
-        <div>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-0.5">
-            Coming Soon
-          </p>
-          <p className="text-xs text-slate-400 leading-relaxed">
-            Billing &amp; subscriptions are launching soon — powered by{" "}
-            <span className="text-slate-300 font-mono">PayFast</span>.
-            You&apos;ll be notified when upgrades become available.
-          </p>
+      {/* ── Coming-soon banner (hidden when upgrade is enabled) ── */}
+      {!upgradeEnabled && (
+        <div className="flex items-start gap-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-4 py-3.5">
+          <Bell className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-0.5">
+              Coming Soon
+            </p>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Billing &amp; subscriptions are launching soon — powered by{" "}
+              <span className="text-slate-300 font-mono">PayFast</span>.
+              You&apos;ll be notified when upgrades become available.
+            </p>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* ── Active subscription / Cancel section ── */}
+      {subscription?.status === "active" && (
+        <section className="bg-[#0F172A] border border-emerald-500/20 rounded-2xl p-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
+                Active subscription
+              </p>
+              {subscription.nextPaymentDate && (
+                <p className="text-xs text-slate-400 mt-1">
+                  Next charge:{" "}
+                  {new Date(subscription.nextPaymentDate).toLocaleDateString(
+                    "en-ZA",
+                    { year: "numeric", month: "short", day: "numeric" },
+                  )}
+                </p>
+              )}
+            </div>
+            <Form method="post" action="/api/pay/cancel">
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-lg text-[10px] font-mono uppercase tracking-widest text-rose-400 border border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10 transition-colors"
+              >
+                Cancel subscription
+              </button>
+            </Form>
+          </div>
+        </section>
+      )}
 
       {/* ── Current plan card ── */}
       <section className="bg-[#0F172A] border border-white/10 rounded-2xl p-5 space-y-4">
@@ -256,6 +311,16 @@ export default function BillingPage() {
                   <div className="w-full py-2 rounded-xl text-[10px] font-mono uppercase tracking-widest text-center text-emerald-400 border border-emerald-500/20 bg-emerald-500/5">
                     Current Plan
                   </div>
+                ) : tier.code === "plus" && upgradeEnabled ? (
+                  <Form method="post" action="/api/pay/upgrade">
+                    <input type="hidden" name="planCode" value="plus" />
+                    <button
+                      type="submit"
+                      className="w-full py-2 rounded-xl text-[10px] font-mono uppercase tracking-widest text-center text-slate-950 bg-emerald-500 hover:bg-emerald-400 transition-colors"
+                    >
+                      Upgrade to Plus
+                    </button>
+                  </Form>
                 ) : (
                   <div className="relative group">
                     <button
