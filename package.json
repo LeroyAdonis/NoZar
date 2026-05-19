@@ -10,6 +10,8 @@
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
     "test": "playwright test",
+    "test:unit": "vitest run --passWithNoTests",
+    "test:unit:watch": "vitest",
     "test:auth": "playwright test auth.spec.ts",
     "test:landing": "playwright test landing.spec.ts",
     "test:dashboard": "playwright test dashboard.spec.ts",
@@ -54,6 +56,7 @@
     "@types/react-dom": "^19.2.3",
     "@types/web-push": "^3.6.4",
     "@vercel/node": "^4.0.0",
+    "@vitest/coverage-v8": "^4.1.6",
     "autoprefixer": "^10.4.27",
     "context-mode": "file:context-mode",
     "dotenv": "^17.3.1",
@@ -64,6 +67,7 @@
     "tailwindcss": "^4.2.1",
     "typescript": "^5.9.2",
     "vite": "^7.1.7",
-    "vite-tsconfig-paths": "^5.1.4"
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^4.1.6"
   }
 }
