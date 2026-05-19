@@ -162,3 +162,55 @@ export async function cancelSubscription(token: string): Promise<void> {
     throw new Error(`PayFast cancel failed: ${res.status} ${body}`);
   }
 }
+
+export type PlusSubscriptionInput = {
+  userId: string;
+  email: string;
+  firstName: string;
+  mPaymentId: string;
+  baseUrl: string;
+  todayISO: string;
+};
+
+export type PayFastFormPayload = {
+  actionUrl: string;
+  fields: Array<[string, string]>;
+};
+
+export function buildPlusSubscriptionFields(
+  input: PlusSubscriptionInput,
+): PayFastFormPayload {
+  const merchantId = process.env.PAYFAST_MERCHANT_ID;
+  const merchantKey = process.env.PAYFAST_MERCHANT_KEY;
+  if (!merchantId || !merchantKey) {
+    throw new Error(
+      "PAYFAST_MERCHANT_ID and PAYFAST_MERCHANT_KEY must be set",
+    );
+  }
+
+  const fields: Array<[string, string]> = [
+    ["merchant_id", merchantId],
+    ["merchant_key", merchantKey],
+    ["return_url", `${input.baseUrl}/dashboard/billing?pf=success`],
+    ["cancel_url", `${input.baseUrl}/dashboard/billing?pf=cancel`],
+    ["notify_url", `${input.baseUrl}/api/pay/webhook`],
+    ["name_first", input.firstName],
+    ["email_address", input.email],
+    ["m_payment_id", input.mPaymentId],
+    ["amount", "99.00"],
+    ["item_name", "NoZar Plus (monthly)"],
+    ["item_description", "Monthly Plus subscription"],
+    ["custom_str1", input.userId],
+    ["custom_str2", "plus"],
+    ["subscription_type", "1"],
+    ["billing_date", input.todayISO],
+    ["recurring_amount", "99.00"],
+    ["frequency", "3"],
+    ["cycles", "0"],
+  ];
+
+  return {
+    actionUrl: `${payFastHost()}/eng/process`,
+    fields,
+  };
+}

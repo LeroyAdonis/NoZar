@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildPayFastSignature, verifyItnSignature } from "./payfast.server";
+import {
+  buildPayFastSignature,
+  buildPlusSubscriptionFields,
+  verifyItnSignature,
+} from "./payfast.server";
 
 describe("buildPayFastSignature", () => {
   it("produces MD5 of url-encoded ordered fields with passphrase", () => {
@@ -83,5 +87,48 @@ describe("verifyItnSignature", () => {
     formData.append("signature", sig);
 
     expect(verifyItnSignature(formData, "p")).toBe(false);
+  });
+});
+
+describe("buildPlusSubscriptionFields", () => {
+  it("produces the field set required for a Plus monthly subscription", () => {
+    process.env.PAYFAST_MERCHANT_ID = "10000100";
+    process.env.PAYFAST_MERCHANT_KEY = "46f0cd694581a";
+
+    const result = buildPlusSubscriptionFields({
+      userId: "user-123",
+      email: "alice@example.com",
+      firstName: "Alice",
+      mPaymentId: "uuid-1",
+      baseUrl: "https://nozar.co.za",
+      todayISO: "2026-05-19",
+    });
+
+    const keys = result.fields.map(([k]) => k);
+    expect(keys[0]).toBe("merchant_id");
+    expect(keys[1]).toBe("merchant_key");
+    expect(keys).toContain("subscription_type");
+    expect(keys).toContain("recurring_amount");
+    expect(keys).toContain("frequency");
+    expect(keys).toContain("cycles");
+
+    const fieldMap = Object.fromEntries(result.fields);
+    expect(fieldMap.merchant_id).toBe("10000100");
+    expect(fieldMap.amount).toBe("99.00");
+    expect(fieldMap.recurring_amount).toBe("99.00");
+    expect(fieldMap.subscription_type).toBe("1");
+    expect(fieldMap.frequency).toBe("3");
+    expect(fieldMap.cycles).toBe("0");
+    expect(fieldMap.m_payment_id).toBe("uuid-1");
+    expect(fieldMap.custom_str1).toBe("user-123");
+    expect(fieldMap.custom_str2).toBe("plus");
+    expect(fieldMap.notify_url).toBe("https://nozar.co.za/api/pay/webhook");
+    expect(fieldMap.return_url).toBe(
+      "https://nozar.co.za/dashboard/billing?pf=success",
+    );
+    expect(fieldMap.cancel_url).toBe(
+      "https://nozar.co.za/dashboard/billing?pf=cancel",
+    );
+    expect(result.actionUrl).toMatch(/^https:\/\/(www|sandbox)\.payfast\.co\.za\/eng\/process$/);
   });
 });
