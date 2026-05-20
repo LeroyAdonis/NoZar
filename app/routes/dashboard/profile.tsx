@@ -797,7 +797,7 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
               <button
                 type="button"
                 onClick={() => setShowEditSheet(false)}
-                className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+                className="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
               >
                 <X className="w-4 h-4 text-slate-400" />
               </button>
@@ -1185,7 +1185,7 @@ function ListingCard({
                 type="submit"
                 disabled={isSubmitting || activationBlocked}
                 aria-disabled={isSubmitting || activationBlocked}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-widest border transition-all disabled:opacity-50 ${
+                className={`flex items-center gap-1 px-2.5 py-2 rounded-lg text-[10px] font-mono uppercase tracking-widest border transition-all disabled:opacity-50 ${
                   activationBlocked
                     ? "text-slate-500 border-white/10 cursor-not-allowed"
                     : "text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 border-emerald-500/20"
@@ -1210,7 +1210,7 @@ function ListingCard({
               <button
                 type="button"
                 onClick={onEditToggle}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-mono uppercase tracking-widest transition-all ${
+                className={`flex items-center gap-1 px-2.5 py-2 rounded-lg text-[10px] font-mono uppercase tracking-widest transition-all ${
                   isEditingThis
                     ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20"
                     : "text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/5 border border-transparent"
@@ -1575,10 +1575,10 @@ function StatCard({
   value: string | number;
 }) {
   return (
-    <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-4 text-center">
-      <div className="flex justify-center mb-2">{icon}</div>
-      <div className="text-lg font-bold text-white">{value}</div>
-      <div className="text-[9px] font-mono text-slate-500 uppercase tracking-widest mt-1">
+    <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-2 sm:p-4 text-center">
+      <div className="flex justify-center mb-1.5 sm:mb-2">{icon}</div>
+      <div className="text-base sm:text-lg font-bold text-white leading-tight">{value}</div>
+      <div className="text-[8px] sm:text-[9px] font-mono text-slate-500 uppercase tracking-widest mt-1 leading-tight">
         {label}
       </div>
     </div>

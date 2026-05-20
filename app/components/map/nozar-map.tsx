@@ -384,9 +384,9 @@ export function NozarMap({
         </div>
       )}
 
-      {/* Radar radius selector — bottom-left */}
+      {/* Radar radius selector — bottom-left, tighter on mobile */}
       {onRadiusChange !== undefined && radarRadiusKm !== undefined && (
-        <div className="absolute bottom-6 left-6 z-10 rounded-xl border border-white/10 bg-[#0F172A]/90 p-2 shadow-lg backdrop-blur">
+        <div className="absolute bottom-4 left-3 z-10 rounded-xl border border-white/10 bg-[#0F172A]/90 p-2 shadow-lg backdrop-blur sm:bottom-6 sm:left-6">
           <p className="mb-1.5 px-1 font-mono text-[10px] uppercase tracking-widest text-slate-500">
             Local radius
           </p>
@@ -398,8 +398,8 @@ export function NozarMap({
                 onClick={() => onRadiusChange(km)}
                 className={
                   radarRadiusKm === km
-                    ? "rounded-lg bg-emerald-500 px-2.5 py-1.5 font-mono text-xs font-semibold text-[#030712] transition-colors"
-                    : "rounded-lg px-2.5 py-1.5 font-mono text-xs font-semibold text-slate-300 transition-colors hover:bg-white/10"
+                    ? "rounded-lg bg-emerald-500 px-2 py-1.5 font-mono text-xs font-semibold text-[#030712] transition-colors sm:px-2.5"
+                    : "rounded-lg px-2 py-1.5 font-mono text-xs font-semibold text-slate-300 transition-colors hover:bg-white/10 active:bg-white/10 sm:px-2.5"
                 }
               >
                 {km}km

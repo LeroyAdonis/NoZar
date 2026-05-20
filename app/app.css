@@ -8,6 +8,14 @@
   --color-nz-surface: var(--nz-surface);
   --color-nz-emerald: var(--nz-emerald);
   --color-nz-cyan: var(--nz-cyan);
+
+  /* South African flag palette — used by MapPinTooltip and Ndebele accents */
+  --color-sa-green: #007A4D;
+  --color-sa-gold: #FFB612;
+  --color-sa-black: #111827;
+  --color-sa-red: #DE3831;
+  --color-sa-blue: #002395;
+  --color-sa-white: #F8FAFC;
 }
 
 html,
