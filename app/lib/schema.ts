@@ -215,9 +215,9 @@ export const transactions = pgTable("transactions", {
   userId: text("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
-  listingId: integer("listing_id")
-    .notNull()
-    .references(() => listings.id, { onDelete: "cascade" }),
+  listingId: integer("listing_id").references(() => listings.id, {
+    onDelete: "cascade",
+  }),
   amount: integer("amount").notNull(),
   currency: text("currency").notNull().default("ZAR"),
   status: text("status").notNull().default("pending"),
@@ -350,6 +350,7 @@ export const subscriptions = pgTable("subscriptions", {
   planCode: text("plan_code").notNull(), // plus | business | enterprise
   status: text("status").notNull(), // active | cancelled | expired
   subscriptionCode: text("subscription_code"),
+  subscriptionToken: text("subscription_token"),
   email: text("email"),
   nextPaymentDate: timestamp("next_payment_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -396,6 +397,21 @@ export const reputation = pgTable("reputation", {
   comment: text("comment"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const paymentEvents = pgTable(
+  "payment_events",
+  {
+    id: serial("id").primaryKey(),
+    mPaymentId: text("m_payment_id").notNull(),
+    pfPaymentId: text("pf_payment_id"),
+    userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
+    paymentStatus: text("payment_status").notNull(),
+    amountGrossCents: integer("amount_gross_cents").notNull(),
+    rawPayload: jsonb("raw_payload").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [unique("payment_events_dedup_uq").on(t.mPaymentId, t.pfPaymentId)],
+);
 
 // ─── Web Push Tables ──────────────────────────────────────────
 

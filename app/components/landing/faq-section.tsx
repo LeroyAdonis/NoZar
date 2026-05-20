@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { ScrollReveal } from "~/components/motion/scroll-reveal";
+import { BUSINESS_PRODUCTS_LIVE } from "~/lib/tier-limits";
 
 type FaqItem = {
   id: string;
@@ -7,7 +8,7 @@ type FaqItem = {
   answer: string;
 };
 
-const faqItems: FaqItem[] = [
+const buildFaqItems = (): FaqItem[] => [
   {
     id: "01",
     question: "What is NoZar?",
@@ -17,8 +18,9 @@ const faqItems: FaqItem[] = [
   {
     id: "02",
     question: "Is it really free?",
-    answer:
-      "Yes. The Free plan gives you 5 active listings, unlimited swaps, and local matching — at no cost. No transaction fees, ever. If you want more capacity, Plus (R99/mo) and Business (R299/mo) unlock advanced filters, AI match, priority support, and business tools.",
+    answer: BUSINESS_PRODUCTS_LIVE
+      ? "Yes. The Free plan gives you 5 active listings, unlimited swaps, and local matching — at no cost. No transaction fees, ever. If you want more capacity, Plus (R99/mo) and Business (R299/mo) unlock advanced filters, AI match, priority support, and business tools."
+      : "Yes. The Free plan gives you 5 active listings, unlimited swaps, and local matching — at no cost. No transaction fees, ever. If you want more capacity, Plus (R99/mo) unlocks advanced filters, AI match, and priority support.",
   },
   {
     id: "03",
@@ -53,8 +55,9 @@ const faqItems: FaqItem[] = [
   {
     id: "08",
     question: "Can businesses use NoZar?",
-    answer:
-      "Yes. The Business plan is built for registered SA companies. Verify with CIPC to get a business badge, business-only filters, and SARS-ready exports for every swap. Move dead stock and put idle equipment to work — without touching cash flow.",
+    answer: BUSINESS_PRODUCTS_LIVE
+      ? "Yes. The Business plan is built for registered SA companies. Verify with CIPC to get a business badge, business-only filters, and SARS-ready exports for every swap. Move dead stock and put idle equipment to work — without touching cash flow."
+      : "Business plans are launching soon. For now NoZar is open to individual traders. Drop us a note at hello@nozar.co.za if you want to be on the waitlist when business features go live.",
   },
   {
     id: "09",
@@ -69,6 +72,8 @@ const faqItems: FaqItem[] = [
       "After every completed swap, both of you rate each other. Ratings are hidden until both are in, so no one can retaliate. Hit 10+ swaps with a 4.5+ average and you earn the Trusted Trader badge — it boosts you in search.",
   },
 ];
+
+const faqItems = buildFaqItems();
 
 export function FaqSection() {
   const [openId, setOpenId] = useState<string | null>(null);

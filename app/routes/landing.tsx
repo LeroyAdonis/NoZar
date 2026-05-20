@@ -22,6 +22,7 @@ import type { Route } from "./+types/landing";
 import { ScrollReveal } from "~/components/motion/scroll-reveal";
 import { MagneticButton } from "~/components/motion/magnetic-button";
 import { getOptionalSession } from "~/lib/auth.server";
+import { BUSINESS_PRODUCTS_LIVE } from "~/lib/tier-limits";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const session = await getOptionalSession(request);
@@ -463,6 +464,11 @@ export default function LandingPage({
         <div
           className="relative rounded-3xl bg-gradient-to-b from-[#0F172A] to-[#030712] border border-white/10 p-6 sm:p-10 hover:border-emerald-500/30 transition-all duration-500"
         >
+          {!BUSINESS_PRODUCTS_LIVE && (
+            <span className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-300 font-mono text-[10px] uppercase tracking-widest">
+              Coming soon
+            </span>
+          )}
           <span className="text-emerald-400 font-mono text-xs uppercase tracking-widest block mb-6">
             // For businesses
           </span>
@@ -473,8 +479,9 @@ export default function LandingPage({
             Business-to-business swaps
           </h3>
           <p className="text-slate-400 mb-10 text-lg">
-            Move dead stock and put idle equipment to work — without touching
-            cash flow. Built for registered SA businesses.
+            {BUSINESS_PRODUCTS_LIVE
+              ? "Move dead stock and put idle equipment to work — without touching cash flow. Built for registered SA businesses."
+              : "Move dead stock and put idle equipment to work — without touching cash flow. Built for registered SA businesses. Launching soon."}
           </p>
           <ul className="space-y-4 mb-12 font-mono text-sm text-slate-300">
             <li className="flex items-center gap-3">
@@ -489,12 +496,21 @@ export default function LandingPage({
               exports
             </li>
           </ul>
-          <Link
-            to="/dashboard"
-            className="block w-full py-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold transition-colors text-center"
-          >
-            See business plans
-          </Link>
+          {BUSINESS_PRODUCTS_LIVE ? (
+            <Link
+              to="/dashboard"
+              className="block w-full py-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 font-bold transition-colors text-center"
+            >
+              See business plans
+            </Link>
+          ) : (
+            <a
+              href="mailto:hello@nozar.co.za?subject=Business%20plan%20waitlist"
+              className="block w-full py-4 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 font-bold transition-colors text-center"
+            >
+              Notify me at launch
+            </a>
+          )}
         </div>
         </ScrollReveal>
       </div>
