@@ -18,6 +18,8 @@ body {
 
 button, a {
   cursor: pointer;
+  touch-action: manipulation; /* remove 300ms tap delay on mobile */
+  -webkit-tap-highlight-color: transparent; /* remove tap flash on iOS */
 }
 
 ::selection {

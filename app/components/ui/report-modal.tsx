@@ -38,12 +38,14 @@ export function ReportModal({ isOpen, onClose, onSubmit, isSubmitting }: Props) 
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-[#111827] border border-white/10 rounded-t-3xl p-6"
+        className="w-full max-w-md bg-[#111827] border border-white/10 rounded-t-3xl p-6 pb-safe"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* drag handle */}
+        <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-5" />
         <div className="flex items-center justify-between mb-6">
           <h3 className="font-bold text-white">Report this trade</h3>
-          <button onClick={onClose} className="p-1 text-slate-400 hover:text-white">
+          <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -87,14 +89,14 @@ export function ReportModal({ isOpen, onClose, onSubmit, isSubmitting }: Props) 
         <div className="flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-sm font-medium text-slate-300 hover:bg-white/10"
+            className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-sm font-medium text-slate-300 hover:bg-white/10 active:scale-95 transition-all"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={!selected || isSubmitting}
-            className="flex-1 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30 text-sm font-bold text-red-400 hover:bg-red-500/20 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex-1 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-sm font-bold text-red-400 hover:bg-red-500/20 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100"
           >
             {isSubmitting ? <><Spinner /> Freezing...</> : "Freeze & Report"}
           </button>

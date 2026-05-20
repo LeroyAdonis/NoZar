@@ -286,14 +286,14 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
               <>
                 <button
                   onClick={prevImage}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/60"
+                  className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:bg-black/60 active:bg-black/70"
                   aria-label="Previous image"
                 >
                   <ChevronLeft className="w-6 h-6" />
                 </button>
                 <button
                   onClick={nextImage}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/60"
+                  className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/40 backdrop-blur-md border border-white/10 flex items-center justify-center text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity hover:bg-black/60 active:bg-black/70"
                   aria-label="Next image"
                 >
                   <ChevronRight className="w-6 h-6" />
@@ -387,7 +387,7 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.8 }}
               onClick={() => setIsLightboxOpen(false)}
-              className="absolute top-6 right-6 w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all z-[110] group"
+              className="absolute top-4 right-4 sm:top-6 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all z-[110] group"
             >
               <X className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" />
             </motion.button>
@@ -399,7 +399,7 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   onClick={prevImage}
-                  className="absolute left-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all z-[110] group"
+                  className="absolute left-2 sm:left-6 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all z-[110] group"
                   aria-label="Previous image"
                 >
                   <ChevronLeft className="w-8 h-8 group-hover:-translate-x-1 transition-transform" />
@@ -409,7 +409,7 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   onClick={nextImage}
-                  className="absolute right-6 top-1/2 -translate-y-1/2 w-14 h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all z-[110] group"
+                  className="absolute right-2 sm:right-6 top-1/2 -translate-y-1/2 w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white hover:bg-emerald-500/20 hover:border-emerald-500/40 transition-all z-[110] group"
                   aria-label="Next image"
                 >
                   <ChevronRight className="w-8 h-8 group-hover:translate-x-1 transition-transform" />
@@ -452,7 +452,7 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
 
       {/* Title & exchange request */}
       <div>
-        <h1 className="text-3xl font-black uppercase tracking-tight text-white mb-2">
+        <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white mb-2">
           {listing.title}
         </h1>
         {listing.seekingDescription && (

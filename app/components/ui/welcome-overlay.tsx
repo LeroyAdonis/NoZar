@@ -24,7 +24,7 @@ export function WelcomeOverlay({ onDismiss }: WelcomeOverlayProps) {
         <div>
           <h2
             id="welcome-dialog-title"
-            className="text-3xl font-black uppercase tracking-tighter text-white mb-3"
+            className="text-2xl sm:text-3xl font-black uppercase tracking-tighter text-white mb-3"
           >
             Welcome to NoZar
           </h2>

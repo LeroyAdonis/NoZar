@@ -1576,14 +1576,14 @@ export default function PingDetail({
               </Form>
             )}
           </div>
-          <div className="text-center">
-            <div className="flex items-center gap-2 justify-center">
-              <h3 className="font-bold text-sm text-white">
+          <div className="text-center min-w-0 flex-1 px-2">
+            <div className="flex items-center gap-2 justify-center flex-wrap">
+              <h3 className="font-bold text-sm text-white truncate max-w-[120px] sm:max-w-none">
                 {counterparty.name}
               </h3>
               <TrustBadge level={myTrust.level} completedTrades={myTrust.completedTrades} averageRating={null} />
             </div>
-            <span className="text-[10px] font-mono text-slate-500 uppercase">
+            <span className="text-[10px] font-mono text-slate-500 uppercase truncate block max-w-[140px] sm:max-w-none mx-auto">
               {listing.title}
             </span>
           </div>
@@ -2245,7 +2245,7 @@ function MessageInput({
           placeholder="Encrypted transmission..."
           required
           autoComplete="off"
-          className="flex-1 bg-[#0F172A] border border-white/10 rounded-xl px-4 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+          className="flex-1 bg-[#0F172A] border border-white/10 rounded-xl px-3 sm:px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 min-w-0"
         />
         <button
           type="submit"

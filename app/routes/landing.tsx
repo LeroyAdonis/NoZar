@@ -285,21 +285,21 @@ export default function LandingPage({
       )}
 
       {/* Hero Section */}
-      <main className="relative z-10 pt-28 sm:pt-40 pb-14 sm:pb-20 lg:pt-56 lg:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <div data-testid="network-status" className="inline-flex items-center gap-3 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-mono uppercase tracking-widest text-emerald-400 mb-10 backdrop-blur-md">
+      <main className="relative z-10 pt-32 sm:pt-40 pb-14 sm:pb-20 lg:pt-56 lg:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
+        <div data-testid="network-status" className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] sm:text-xs font-mono uppercase tracking-widest text-emerald-400 mb-8 sm:mb-10 backdrop-blur-md">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
           Beta — Joburg &amp; Cape Town
         </div>
-        <h1 className="text-4xl sm:text-6xl md:text-8xl lg:text-[7.5rem] font-black tracking-tighter leading-[0.9] mb-6 sm:mb-8 uppercase text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50">
+        <h1 className="text-[2.5rem] sm:text-6xl md:text-8xl lg:text-[7.5rem] font-black tracking-tighter leading-[0.9] mb-6 sm:mb-8 uppercase text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50">
           Trade <br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500">
             Without Cash.
           </span>
         </h1>
-        <p className="text-base sm:text-lg md:text-2xl text-slate-400 max-w-3xl mx-auto mb-8 sm:mb-12 leading-relaxed font-light">
+        <p className="text-sm sm:text-lg md:text-2xl text-slate-400 max-w-3xl mx-auto mb-8 sm:mb-12 leading-relaxed font-light">
           South Africa's barter platform. Swap your stuff, skills, and services
           with people near you.{" "}
           <span className="text-white font-medium">No money changes hands.</span>
@@ -310,7 +310,7 @@ export default function LandingPage({
               <Link
                 data-testid="hero-cta"
                 to={isLoggedIn ? "/dashboard" : "/register"}
-                className="w-full sm:w-auto px-10 py-5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-lg hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-3"
+                className="w-full sm:w-auto px-6 sm:px-10 py-4 sm:py-5 rounded-xl bg-emerald-500 text-slate-950 font-bold text-base sm:text-lg hover:bg-emerald-400 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-3"
               >
                 {isLoggedIn ? "Go to Dashboard" : "Get Started Free"}{" "}
                 <ArrowRight className="w-5 h-5" />
@@ -318,7 +318,7 @@ export default function LandingPage({
             </MagneticButton>
             <Link
               to="/dashboard"
-              className="w-full sm:w-auto px-10 py-5 rounded-xl bg-white/5 text-white font-medium text-lg hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center gap-3 backdrop-blur-md"
+              className="w-full sm:w-auto px-6 sm:px-10 py-4 sm:py-5 rounded-xl bg-white/5 text-white font-medium text-base sm:text-lg hover:bg-white/10 border border-white/10 transition-all flex items-center justify-center gap-3 backdrop-blur-md"
             >
               Browse listings
             </Link>
