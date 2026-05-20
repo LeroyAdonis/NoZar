@@ -94,7 +94,11 @@ export async function loader({ request }: Route.LoaderArgs) {
   const isProduction = process.env.VERCEL_ENV === "production";
   const testpayOn = url.searchParams.get("testpay") === "1";
   const isSandbox = process.env.PAYFAST_MODE === "sandbox";
-  const upgradeEnabled = isProduction || testpayOn || isSandbox;
+  const hasCreds = Boolean(
+    process.env.PAYFAST_MERCHANT_ID && process.env.PAYFAST_MERCHANT_KEY,
+  );
+  const upgradeEnabled =
+    hasCreds && (isProduction || testpayOn || isSandbox);
 
   return {
     planCode: usage.planCode,
