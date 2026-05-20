@@ -244,21 +244,21 @@ export default function Map({ loaderData }: Route.ComponentProps) {
       </div>
 
       <div className="grid gap-3 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-        <section className="rounded-3xl border border-white/10 bg-[#0F172A] p-5">
+        <section className="rounded-3xl border border-white/10 bg-[#0F172A] p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <span className="block font-mono text-[10px] uppercase tracking-widest text-slate-400">
                 {usesFallbackLocation ? "// Region preview" : "// Saved radar centre"}
               </span>
-              <h3 className="text-lg font-bold text-white">{savedLocationLabel}</h3>
-              <p className="max-w-2xl text-sm leading-relaxed text-slate-400">
+              <h3 className="text-base sm:text-lg font-bold text-white">{savedLocationLabel}</h3>
+              <p className="text-sm leading-relaxed text-slate-400">
                 {usesFallbackLocation
                   ? "You have not saved coordinates yet, so the map stays in MVP preview mode. Pick a region to browse nearby listings, then save your current location to anchor the radar."
                   : "Your search centre is anchored to the coordinates saved on your profile. Pan and zoom freely, but only a persisted profile/location update can move the actual radar centre."}
               </p>
             </div>
             <span
-              className={`rounded-full border px-3 py-1 text-[11px] font-semibold ${
+              className={`rounded-full border px-3 py-1 text-[11px] font-semibold shrink-0 ${
                 usesFallbackLocation
                   ? "border-amber-500/30 bg-amber-500/10 text-amber-300"
                   : "border-emerald-500/20 bg-emerald-500/10 text-emerald-200"
@@ -306,7 +306,7 @@ export default function Map({ loaderData }: Route.ComponentProps) {
           </div>
         </section>
 
-        <section className="rounded-3xl border border-white/10 bg-[#0F172A] p-5">
+        <section className="rounded-3xl border border-white/10 bg-[#0F172A] p-4 sm:p-5">
           <span className="block font-mono text-[10px] uppercase tracking-widest text-slate-400">
             // Active radius
           </span>
@@ -344,7 +344,8 @@ export default function Map({ loaderData }: Route.ComponentProps) {
             zoom={12}
           />
 
-          <div className="absolute left-6 top-6 z-10 max-w-xs rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 shadow-lg backdrop-blur">
+          {/* Top info card — full-width on mobile, constrained on sm+ */}
+          <div className="absolute left-3 right-3 top-3 z-10 rounded-2xl border border-white/10 bg-slate-900/90 px-4 py-3 shadow-lg backdrop-blur sm:left-6 sm:top-6 sm:right-auto sm:max-w-xs">
             <p className="font-mono text-[10px] uppercase tracking-widest text-slate-400">
               {usesFallbackLocation ? "Region preview" : "Locked to saved centre"}
             </p>
@@ -353,18 +354,19 @@ export default function Map({ loaderData }: Route.ComponentProps) {
                 ? `Exploring ${MVP_REGIONS[currentRegion].label} within ${radiusKm}km`
                 : `Searching within ${radiusKm}km of your saved radar location`}
             </p>
-            <p className="mt-1 text-xs leading-relaxed text-slate-400">
+            <p className="mt-1 hidden text-xs leading-relaxed text-slate-400 sm:block">
               {usesFallbackLocation
                 ? "Save your current location to turn this into a profile-anchored search."
                 : "Moving the map does not change the actual search centre. Save a new location first."}
             </p>
           </div>
 
-          <div className="absolute bottom-6 right-6 z-10 flex flex-col gap-3">
+          {/* FAB — bottom-right, icon-only on mobile */}
+          <div className="absolute bottom-4 right-4 z-10 sm:bottom-6 sm:right-6">
             <button
               type="button"
               onClick={handleMapLocationClick}
-              className="flex items-center gap-2 rounded-full bg-slate-800/90 px-5 py-3 text-sm font-bold text-emerald-400 shadow-xl ring-1 ring-emerald-500/50 backdrop-blur transition-all hover:bg-slate-700/90 hover:scale-105 active:scale-95"
+              className="flex items-center gap-2 rounded-full bg-slate-800/90 px-3 py-3 text-sm font-bold text-emerald-400 shadow-xl ring-1 ring-emerald-500/50 backdrop-blur transition-all hover:bg-slate-700/90 hover:scale-105 active:scale-95 sm:px-5"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -374,7 +376,7 @@ export default function Map({ loaderData }: Route.ComponentProps) {
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="h-5 w-5"
+                className="h-5 w-5 shrink-0"
               >
                 <circle cx="12" cy="12" r="10" />
                 <circle cx="12" cy="12" r="7" />
@@ -384,19 +386,22 @@ export default function Map({ loaderData }: Route.ComponentProps) {
                 <path d="M2 12h2" />
                 <path d="M20 12h2" />
               </svg>
-              {usesFallbackLocation ? "SAVE LOCATION" : "UPDATE LOCATION"}
+              <span className="hidden sm:inline">
+                {usesFallbackLocation ? "SAVE LOCATION" : "UPDATE LOCATION"}
+              </span>
             </button>
           </div>
 
+          {/* Listings count / no-listings — below info card on mobile, top-right on sm+ */}
           {filteredPins.length === 0 ? (
-            <div className="absolute right-6 top-28 z-10 max-w-xs rounded-2xl border border-white/10 bg-[#0F172A]/90 px-4 py-3 shadow-lg backdrop-blur">
+            <div className="absolute bottom-20 left-3 right-3 z-10 rounded-2xl border border-white/10 bg-[#0F172A]/90 px-4 py-3 shadow-lg backdrop-blur sm:bottom-auto sm:left-auto sm:right-6 sm:top-28 sm:max-w-xs">
               <p className="text-sm font-semibold text-slate-100">No listings within {radiusKm}km</p>
               <p className="mt-1 text-xs text-slate-400">
                 Try a larger local radius or add your own listing to start the neighbourhood loop.
               </p>
             </div>
           ) : (
-            <div className="absolute right-6 top-28 z-10 rounded-full border border-white/10 bg-slate-900/90 px-3 py-1.5 text-xs font-medium text-slate-300 shadow-lg backdrop-blur">
+            <div className="absolute bottom-20 right-4 z-10 rounded-full border border-white/10 bg-slate-900/90 px-3 py-1.5 text-xs font-medium text-slate-300 shadow-lg backdrop-blur sm:bottom-auto sm:right-6 sm:top-28">
               {filteredPins.length} {filteredPins.length === 1 ? "listing" : "listings"} in range
             </div>
           )}
