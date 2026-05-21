@@ -100,6 +100,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   const upgradeEnabled =
     hasCreds && (isProduction || testpayOn || isSandbox);
 
+  const error = url.searchParams.get("error");
+
   return {
     planCode: usage.planCode,
     listingCount: usage.activeCount,
@@ -107,13 +109,14 @@ export async function loader({ request }: Route.LoaderArgs) {
       ? { status: sub.status, nextPaymentDate: sub.nextPaymentDate }
       : null,
     upgradeEnabled,
+    error,
   };
 }
 
 // ─── Component ─────────────────────────────────────────────────
 
 export default function BillingPage() {
-  const { planCode, listingCount, subscription, upgradeEnabled } =
+  const { planCode, listingCount, subscription, upgradeEnabled, error } =
     useLoaderData<typeof loader>();
 
   const currentTier = TIERS.find((t) => t.code === planCode) ?? TIERS[0];
@@ -135,6 +138,29 @@ export default function BillingPage() {
           Billing &amp; Subscription
         </h1>
       </div>
+
+      {/* ── Payment error banner ── */}
+      {error === "payment_failed" && (
+        <div className="flex items-start gap-3 bg-rose-500/5 border border-rose-500/30 rounded-xl px-4 py-3.5">
+          <Lock className="w-4 h-4 text-rose-400 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-rose-400 mb-0.5">
+              Payment failed
+            </p>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              Something went wrong while connecting to PayFast. Please try
+              again, or contact{" "}
+              <a
+                href="mailto:hello@nozar.co.za"
+                className="text-rose-300 underline underline-offset-2"
+              >
+                hello@nozar.co.za
+              </a>{" "}
+              if the problem persists.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* ── Coming-soon banner (hidden when upgrade is enabled) ── */}
       {!upgradeEnabled && (
@@ -316,7 +342,7 @@ export default function BillingPage() {
                     Current Plan
                   </div>
                 ) : tier.code === "plus" && upgradeEnabled ? (
-                  <Form method="post" action="/api/pay/upgrade">
+                  <form method="post" action="/api/pay/upgrade">
                     <input type="hidden" name="planCode" value="plus" />
                     <button
                       type="submit"
@@ -324,7 +350,7 @@ export default function BillingPage() {
                     >
                       Upgrade to Plus
                     </button>
-                  </Form>
+                  </form>
                 ) : (
                   <div className="relative group">
                     <button
