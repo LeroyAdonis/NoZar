@@ -1,0 +1,164 @@
+<h2>Design Section 4 of 7 — Add Item Wizard</h2>
+<p class="subtitle">The current 9-field single-page form becomes a focused 2-step wizard. Required fields up front, optional details tucked behind "More details".</p>
+
+<div class="section">
+  <h3>Step 1 of 2 — What are you offering?</h3>
+  <div class="split" style="gap:20px; align-items:flex-start;">
+
+    <div style="flex:1;">
+      <div class="label" style="color:#ef4444; margin-bottom:10px;">Before (current form — all 9 fields at once)</div>
+      <div style="background:#030712;border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;">
+        <div style="font-size:14px;font-weight:900;color:#fff;margin-bottom:4px;">Add Asset</div>
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;"><div style="font-size:9px;font-family:monospace;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Type</div><div style="font-size:12px;color:#94a3b8;">Item / Service toggle</div></div>
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;"><div style="font-size:9px;font-family:monospace;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Title</div><div style="font-size:12px;color:#94a3b8;">e.g. Samsung Galaxy S24 Ultra</div></div>
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;"><div style="font-size:9px;font-family:monospace;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Description + AI Assist</div><div style="font-size:12px;color:#94a3b8;">Brand, model, condition…</div></div>
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;"><div style="font-size:9px;font-family:monospace;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Category (8 tiles)</div></div>
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;"><div style="font-size:9px;font-family:monospace;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Estimated Value (ZAR)</div></div>
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;"><div style="font-size:9px;font-family:monospace;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Image URLs (up to 5)</div></div>
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;"><div style="font-size:9px;font-family:monospace;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Condition</div></div>
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;"><div style="font-size:9px;font-family:monospace;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Delivery Method</div></div>
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;"><div style="font-size:9px;font-family:monospace;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">Suburb / Area</div></div>
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;"><div style="font-size:9px;font-family:monospace;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;">What are you looking for in exchange?</div></div>
+        <div style="background:#10b981;border-radius:8px;padding:11px;text-align:center;margin-top:4px;"><span style="font-size:13px;font-weight:700;color:#000;">List Asset</span></div>
+      </div>
+    </div>
+
+    <div style="flex:1;">
+      <div class="label" style="color:#10b981; margin-bottom:10px;">After — Step 1 of 2 (4 required fields)</div>
+      <div style="background:#030712;border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px;">
+
+        <!-- Progress -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+          <div style="flex:1;height:3px;background:#10b981;border-radius:2px;"></div>
+          <div style="flex:1;height:3px;background:#1e293b;border-radius:2px;"></div>
+          <span style="font-size:11px;color:#64748b;">Step 1 of 2</span>
+        </div>
+
+        <div style="font-size:16px;font-weight:900;color:#fff;margin-bottom:4px;">What are you offering?</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:16px;">An item, a skill, or a service — anything goes.</div>
+
+        <!-- Item / Service toggle -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;">
+          <div style="flex:1;background:#10b981;border-radius:10px;padding:10px;text-align:center;"><span style="font-size:13px;font-weight:700;color:#000;">Item</span></div>
+          <div style="flex:1;background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px;text-align:center;"><span style="font-size:13px;color:#64748b;">Service / Skill</span></div>
+        </div>
+
+        <!-- Name -->
+        <div style="margin-bottom:12px;">
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;font-weight:600;">Name <span style="color:#ef4444;">*</span></div>
+          <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 14px;font-size:13px;color:#475569;">e.g. Samsung Galaxy S24</div>
+        </div>
+
+        <!-- Description + AI -->
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:12px;color:#94a3b8;font-weight:600;">Description <span style="color:#ef4444;">*</span></div>
+            <div style="font-size:11px;color:#a78bfa;cursor:pointer;">✨ Write it for me</div>
+          </div>
+          <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 14px;font-size:12px;color:#475569;min-height:60px;">Good condition, barely used…</div>
+        </div>
+
+        <!-- Category -->
+        <div style="margin-bottom:12px;">
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;font-weight:600;">Category <span style="color:#ef4444;">*</span></div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+            <div style="background:#10b981;border-radius:8px;padding:8px 4px;text-align:center;"><div style="font-size:16px;margin-bottom:2px;">💻</div><div style="font-size:9px;color:#000;font-weight:700;">Electronics</div></div>
+            <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 4px;text-align:center;"><div style="font-size:16px;margin-bottom:2px;">🏠</div><div style="font-size:9px;color:#64748b;">Home</div></div>
+            <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 4px;text-align:center;"><div style="font-size:16px;margin-bottom:2px;">👕</div><div style="font-size:9px;color:#64748b;">Fashion</div></div>
+            <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 4px;text-align:center;"><div style="font-size:16px;margin-bottom:2px;">🔧</div><div style="font-size:9px;color:#64748b;">More…</div></div>
+          </div>
+        </div>
+
+        <!-- Photo -->
+        <div style="margin-bottom:16px;">
+          <div style="font-size:12px;color:#94a3b8;margin-bottom:6px;font-weight:600;">Photo <span style="font-size:11px;color:#475569;font-weight:400;">(optional but recommended)</span></div>
+          <div style="background:#0f172a;border:2px dashed rgba(255,255,255,0.1);border-radius:10px;padding:16px;text-align:center;">
+            <div style="font-size:20px;margin-bottom:4px;">📷</div>
+            <div style="font-size:12px;color:#64748b;">Tap to add a photo</div>
+          </div>
+        </div>
+
+        <!-- More details toggle -->
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;">
+          <div>
+            <div style="font-size:12px;color:#94a3b8;font-weight:600;">More details</div>
+            <div style="font-size:11px;color:#475569;">Condition, delivery, approx. value, suburb</div>
+          </div>
+          <span style="color:#64748b;font-size:14px;">▸</span>
+        </div>
+
+        <div style="background:#10b981;border-radius:10px;padding:13px;text-align:center;">
+          <span style="font-size:14px;font-weight:700;color:#000;">Next: What do you want? →</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Step 2 of 2 — What do you want in return?</h3>
+  <div style="max-width:380px;">
+    <div style="background:#030712;border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px;">
+
+      <!-- Progress -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">
+        <div style="flex:1;height:3px;background:#10b981;border-radius:2px;"></div>
+        <div style="flex:1;height:3px;background:#10b981;border-radius:2px;"></div>
+        <span style="font-size:11px;color:#64748b;">Step 2 of 2</span>
+      </div>
+
+      <div style="font-size:16px;font-weight:900;color:#fff;margin-bottom:4px;">What do you want in return?</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:16px;">Be specific or broad — whatever you're open to.</div>
+
+      <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:11px 14px;font-size:13px;color:#475569;min-height:80px;margin-bottom:14px;">e.g. A laptop, guitar lessons, plumbing work…</div>
+
+      <div style="display:flex;gap:8px;margin-bottom:4px;">
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:8px 12px;font-size:11px;color:#64748b;cursor:pointer;">← Back</div>
+        <div style="flex:1;background:#10b981;border-radius:10px;padding:13px;text-align:center;cursor:pointer;"><span style="font-size:14px;font-weight:700;color:#000;">Post listing</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>What changes and what stays</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div style="background:#0f172a;border:1px solid rgba(16,185,129,0.2);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#10b981;margin-bottom:6px;">✓ Moved to "More details" (collapsible)</div>
+      <ul style="font-size:12px;color:#94a3b8;margin:0;padding-left:16px;line-height:1.8;">
+        <li>Condition</li>
+        <li>Approx. value in Rands</li>
+        <li>Delivery method</li>
+        <li>Suburb / area (for map pin)</li>
+      </ul>
+    </div>
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:6px;">Step 1 — required fields only</div>
+      <ul style="font-size:12px;color:#94a3b8;margin:0;padding-left:16px;line-height:1.8;">
+        <li>Item or service toggle</li>
+        <li>Name</li>
+        <li>Description (+ AI write button)</li>
+        <li>Category</li>
+        <li>Photo (optional label)</li>
+      </ul>
+    </div>
+  </div>
+  <div style="margin-top:10px;background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:14px;">
+    <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;">Nothing is removed from the database</div>
+    <p style="font-size:12px;color:#94a3b8;margin:0;">All existing fields still get saved. "More details" just tucks them out of the way for users who want a quick listing. Power users can still fill everything in.</p>
+  </div>
+</div>
+
+<div style="margin-top:20px;">
+  <h3>Does this section look right?</h3>
+  <div class="options">
+    <div class="option" data-choice="approved" onclick="toggleSelect(this)">
+      <div class="letter" style="background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.4);color:#10b981;">✓</div>
+      <div class="content"><h3>Approved — move to next section</h3></div>
+    </div>
+    <div class="option" data-choice="changes" onclick="toggleSelect(this)">
+      <div class="letter">✎</div>
+      <div class="content"><h3>I want to change something</h3><p>Tell me what in the terminal</p></div>
+    </div>
+  </div>
+</div>

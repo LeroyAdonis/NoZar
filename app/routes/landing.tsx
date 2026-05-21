@@ -26,17 +26,31 @@ import { BUSINESS_PRODUCTS_LIVE } from "~/lib/tier-limits";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const session = await getOptionalSession(request);
-  return { isLoggedIn: !!session };
+  const { origin } = new URL(request.url);
+  return { isLoggedIn: !!session, origin };
 }
 
-export function meta(_args: Route.MetaArgs) {
+export function meta({ data }: Route.MetaArgs) {
+  const origin = data?.origin ?? "https://nozar.co.za";
+  const ogImage = `${origin}/og.png`;
+  const title = "NoZar — Trade Without Cash";
+  const description =
+    "South Africa's barter platform. Swap your stuff, skills, and services with people near you. No money changes hands.";
   return [
-    { title: "NoZar — Trade Without Cash" },
-    {
-      name: "description",
-      content:
-        "South Africa's barter platform. Swap your stuff, skills, and services with people near you. No money changes hands.",
-    },
+    { title },
+    { name: "description", content: description },
+    { property: "og:type", content: "website" },
+    { property: "og:site_name", content: "NoZar" },
+    { property: "og:title", content: title },
+    { property: "og:description", content: description },
+    { property: "og:image", content: ogImage },
+    { property: "og:image:width", content: "1200" },
+    { property: "og:image:height", content: "630" },
+    { property: "og:url", content: origin },
+    { name: "twitter:card", content: "summary_large_image" },
+    { name: "twitter:title", content: title },
+    { name: "twitter:description", content: description },
+    { name: "twitter:image", content: ogImage },
   ];
 }
 

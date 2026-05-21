@@ -14,6 +14,7 @@ import { HapticProvider } from "~/components/ui/haptic-provider";
 
 export const links: Route.LinksFunction = () => [
   { rel: "icon", href: "/logo.svg", type: "image/svg+xml" },
+  { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
     rel: "preconnect",
@@ -32,6 +33,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="theme-color" content="#10B981" />
         <Meta />
         <Links />
       </head>

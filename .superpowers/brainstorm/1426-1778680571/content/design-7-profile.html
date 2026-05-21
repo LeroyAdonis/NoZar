@@ -1,0 +1,183 @@
+<h2>Design Section 7 of 7 — Profile</h2>
+<p class="subtitle">The current profile is one long page mixing account info, avatar editing, stats, listings, and settings. It gets split into two clear tabs: "My Listings" and "Account".</p>
+
+<div class="section">
+  <h3>Two tabs — one clear purpose each</h3>
+  <div class="split" style="gap:20px; align-items:flex-start;">
+
+    <!-- BEFORE -->
+    <div style="flex:1;">
+      <div class="label" style="color:#ef4444; margin-bottom:10px;">Before — one long scroll</div>
+      <div style="background:#030712;border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px;">
+        <div style="font-size:9px;font-family:monospace;color:#10b981;letter-spacing:3px;margin-bottom:2px;">// Your Profile</div>
+        <div style="font-size:16px;font-weight:900;color:#fff;text-transform:uppercase;margin-bottom:14px;">Account</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px;font-size:11px;color:#64748b;">📷 Profile Photo — Upload / URL / Remove</div>
+          <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px;font-size:11px;color:#64748b;">👤 Profile card — Name, bio, location, email badge</div>
+          <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px;font-size:11px;color:#64748b;">📊 Stats grid — Total trades / Completed / Avg rating</div>
+          <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px;font-size:11px;color:#64748b;">✏️ Edit profile form (toggled inline)</div>
+          <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px;font-size:11px;color:#64748b;">📋 Active listings (with edit / archive inline)</div>
+          <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px;font-size:11px;color:#64748b;">🗄️ Archived listings</div>
+          <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px;font-size:11px;color:#64748b;">🚪 Sign out button</div>
+        </div>
+        <div style="margin-top:8px;text-align:center;font-size:10px;color:#475569;">↕ All mixed together, very long scroll</div>
+      </div>
+    </div>
+
+    <!-- AFTER -->
+    <div style="flex:1;">
+      <div class="label" style="color:#10b981; margin-bottom:10px;">After — two tabs</div>
+      <div style="background:#030712;border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px;">
+
+        <!-- Tab bar -->
+        <div style="display:flex;gap:0;margin-bottom:16px;background:#0f172a;border-radius:10px;padding:3px;">
+          <div style="flex:1;background:#10b981;border-radius:8px;padding:9px;text-align:center;">
+            <span style="font-size:12px;font-weight:700;color:#000;">My listings</span>
+          </div>
+          <div style="flex:1;padding:9px;text-align:center;">
+            <span style="font-size:12px;color:#64748b;">Account</span>
+          </div>
+        </div>
+
+        <!-- My listings tab content -->
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <div style="font-size:13px;font-weight:700;color:#fff;">2 active</div>
+            <div style="background:#10b981;border-radius:20px;padding:6px 14px;font-size:11px;font-weight:700;color:#000;cursor:pointer;">+ Add item</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;display:flex;gap:10px;align-items:center;">
+              <div style="width:36px;height:36px;background:#1e293b;border-radius:8px;flex-shrink:0;"></div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:1px;">Samsung Galaxy S24</div>
+                <div style="font-size:10px;color:#64748b;">Electronics · Worth ~R12,000</div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <div style="font-size:10px;color:#94a3b8;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:4px 8px;cursor:pointer;">Edit</div>
+                <div style="font-size:10px;color:#ef4444;border:1px solid rgba(239,68,68,0.2);border-radius:6px;padding:4px 8px;cursor:pointer;">Hide</div>
+              </div>
+            </div>
+            <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;display:flex;gap:10px;align-items:center;">
+              <div style="width:36px;height:36px;background:#1e293b;border-radius:8px;flex-shrink:0;"></div>
+              <div style="flex:1;min-width:0;">
+                <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:1px;">Guitar Lessons (10 hrs)</div>
+                <div style="font-size:10px;color:#64748b;">Skills · Worth ~R3,500</div>
+              </div>
+              <div style="display:flex;gap:6px;">
+                <div style="font-size:10px;color:#94a3b8;border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:4px 8px;cursor:pointer;">Edit</div>
+                <div style="font-size:10px;color:#ef4444;border:1px solid rgba(239,68,68,0.2);border-radius:6px;padding:4px 8px;cursor:pointer;">Hide</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Account tab — clean and focused</h3>
+  <div style="max-width:400px;">
+    <div style="background:#030712;border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px;">
+
+      <!-- Tab bar -->
+      <div style="display:flex;gap:0;margin-bottom:16px;background:#0f172a;border-radius:10px;padding:3px;">
+        <div style="flex:1;padding:9px;text-align:center;">
+          <span style="font-size:12px;color:#64748b;">My listings</span>
+        </div>
+        <div style="flex:1;background:#1e293b;border-radius:8px;padding:9px;text-align:center;">
+          <span style="font-size:12px;font-weight:700;color:#fff;">Account</span>
+        </div>
+      </div>
+
+      <!-- Avatar + name -->
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;">
+        <div style="width:52px;height:52px;border-radius:50%;background:#1e293b;border:2px solid rgba(16,185,129,0.3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;color:#10b981;">L</div>
+        <div>
+          <div style="font-size:15px;font-weight:700;color:#fff;">Leroy Adonis</div>
+          <div style="font-size:11px;color:#64748b;">Cape Town · ✓ Email verified</div>
+        </div>
+        <div style="margin-left:auto;font-size:11px;color:#10b981;cursor:pointer;">Edit</div>
+      </div>
+
+      <!-- Stats — plain labels -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px;">
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:16px;font-weight:900;color:#fff;">7</div>
+          <div style="font-size:9px;color:#64748b;margin-top:2px;">Swaps started</div>
+        </div>
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:16px;font-weight:900;color:#fff;">5</div>
+          <div style="font-size:9px;color:#64748b;margin-top:2px;">Completed</div>
+        </div>
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:16px;font-weight:900;color:#fff;">4.8 ⭐</div>
+          <div style="font-size:9px;color:#64748b;margin-top:2px;">Your rating</div>
+        </div>
+      </div>
+
+      <!-- Verification -->
+      <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;margin-bottom:12px;">
+        <div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:8px;">Verification</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-size:11px;color:#94a3b8;">📧 Email</span>
+          <span style="font-size:10px;color:#10b981;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:20px;padding:2px 8px;">Verified</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:11px;color:#94a3b8;">📱 Phone</span>
+          <span style="font-size:10px;color:#fbbf24;cursor:pointer;">+ Add &amp; verify →</span>
+        </div>
+      </div>
+
+      <!-- Upgrade -->
+      <div style="background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.2);border-radius:10px;padding:12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:#fff;">Free plan — 5 listings</div>
+          <div style="font-size:10px;color:#64748b;">Upgrade for more</div>
+        </div>
+        <div style="font-size:11px;color:#a78bfa;cursor:pointer;">Upgrade →</div>
+      </div>
+
+      <!-- Sign out -->
+      <div style="border:1px solid rgba(239,68,68,0.2);border-radius:10px;padding:11px;text-align:center;cursor:pointer;">
+        <span style="font-size:12px;color:#f87171;">Sign out</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Key changes</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;">Two tabs replace one long scroll</div>
+      <p style="font-size:12px;color:#94a3b8;margin:0;">"My listings" and "Account" — each has one clear job. Finding your listings no longer means scrolling past avatar controls and stats.</p>
+    </div>
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;">"Archive" → "Hide"</div>
+      <p style="font-size:12px;color:#94a3b8;margin:0;">"Archive" is a technical term. "Hide" is what it actually does — removes the listing from public view without deleting it.</p>
+    </div>
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;">Stats in plain English</div>
+      <p style="font-size:12px;color:#94a3b8;margin:0;">"Total Trades" / "Completed" / "Avg Rating" → "Swaps started" / "Completed" / "Your rating". Same data, words a first-timer understands.</p>
+    </div>
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;">Verification grouped in one place</div>
+      <p style="font-size:12px;color:#94a3b8;margin:0;">Email and phone verification sit together in one "Verification" card, not scattered across the page. Adding a phone number is a single clear action.</p>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:20px;">
+  <h3>Does this section look right?</h3>
+  <div class="options">
+    <div class="option" data-choice="approved" onclick="toggleSelect(this)">
+      <div class="letter" style="background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.4);color:#10b981;">✓</div>
+      <div class="content"><h3>Approved — design complete, write the spec</h3></div>
+    </div>
+    <div class="option" data-choice="changes" onclick="toggleSelect(this)">
+      <div class="letter">✎</div>
+      <div class="content"><h3>I want to change something</h3><p>Tell me what in the terminal</p></div>
+    </div>
+  </div>
+</div>

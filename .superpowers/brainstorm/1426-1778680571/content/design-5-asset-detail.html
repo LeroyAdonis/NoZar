@@ -1,0 +1,136 @@
+<h2>Design Section 5 of 7 — Item Detail & "Offer a Swap"</h2>
+<p class="subtitle">When someone taps an item card, they land here. The key moment: going from "I want this" to starting a conversation. Currently confusing — now it's one clear action.</p>
+
+<div class="section">
+  <h3>Item detail page — before vs. after</h3>
+  <div class="split" style="gap:20px; align-items:flex-start;">
+
+    <!-- BEFORE -->
+    <div style="flex:1;">
+      <div class="label" style="color:#ef4444; margin-bottom:10px;">Before</div>
+      <div style="background:#030712;border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px;">
+        <div style="background:#1e293b;border-radius:10px;height:140px;margin-bottom:14px;display:flex;align-items:center;justify-content:center;"><span style="color:#475569;font-size:12px;">[ photo ]</span></div>
+        <div style="font-size:16px;font-weight:900;color:#fff;margin-bottom:4px;">Samsung Galaxy S24</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <span style="font-size:9px;font-family:monospace;color:#10b981;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:20px;padding:2px 8px;">~R12,000</span>
+          <span style="font-size:9px;font-family:monospace;color:#64748b;border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:2px 8px;">Electronics</span>
+          <span style="font-size:9px;font-family:monospace;color:#64748b;border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:2px 8px;">Like New</span>
+        </div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:10px;line-height:1.5;">Good condition, barely used. Original box included. Seeking a laptop or tablet in return.</div>
+        <div style="font-size:10px;font-family:monospace;color:#64748b;margin-bottom:14px;">Seeking: Laptop or tablet</div>
+        <!-- Two buttons, unclear hierarchy -->
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;background:#10b981;border-radius:10px;padding:12px;text-align:center;"><span style="font-size:13px;font-weight:700;color:#000;">Ping</span></div>
+          <div style="flex:1;background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;text-align:center;"><span style="font-size:13px;color:#64748b;">Propose Trade</span></div>
+        </div>
+        <div style="margin-top:8px;text-align:center;"><span style="font-size:10px;font-family:monospace;color:#475569;">Report</span></div>
+      </div>
+    </div>
+
+    <!-- AFTER -->
+    <div style="flex:1;">
+      <div class="label" style="color:#10b981; margin-bottom:10px;">After</div>
+      <div style="background:#030712;border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:16px;">
+        <div style="background:#1e293b;border-radius:10px;height:140px;margin-bottom:14px;display:flex;align-items:center;justify-content:center;"><span style="color:#475569;font-size:12px;">[ photo ]</span></div>
+
+        <div style="font-size:16px;font-weight:900;color:#fff;margin-bottom:2px;">Samsung Galaxy S24</div>
+        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">Listed by Thabo · 2.3km away · 3h ago</div>
+
+        <div style="display:flex;gap:6px;margin-bottom:12px;">
+          <span style="font-size:10px;color:#10b981;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:20px;padding:3px 10px;">Worth ~R12,000</span>
+          <span style="font-size:10px;color:#64748b;border:1px solid rgba(255,255,255,0.08);border-radius:20px;padding:3px 10px;">Like New</span>
+        </div>
+
+        <div style="font-size:13px;color:#94a3b8;margin-bottom:12px;line-height:1.6;">Good condition, barely used. Original box included.</div>
+
+        <!-- Wants section — plain -->
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;margin-bottom:16px;">
+          <div style="font-size:10px;color:#64748b;margin-bottom:4px;">Looking to swap for</div>
+          <div style="font-size:13px;color:#fff;">A laptop or tablet</div>
+        </div>
+
+        <!-- Single clear CTA -->
+        <div style="background:#10b981;border-radius:12px;padding:14px;text-align:center;margin-bottom:10px;cursor:pointer;">
+          <span style="font-size:15px;font-weight:700;color:#000;">Offer a swap</span>
+        </div>
+        <div style="text-align:center;"><span style="font-size:11px;color:#475569;cursor:pointer;">Report this listing</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>"Offer a swap" — confirmation sheet</h3>
+  <p style="font-size:13px;color:#94a3b8;margin-bottom:16px;">Tapping "Offer a swap" slides up a bottom sheet before opening the chat. It tells the user exactly what's about to happen — no surprises.</p>
+
+  <div style="max-width:400px;">
+    <div style="background:#0f172a;border:1px solid rgba(16,185,129,0.25);border-radius:20px 20px 0 0;padding:24px;">
+
+      <div style="width:40px;height:4px;background:#334155;border-radius:2px;margin:0 auto 20px;"></div>
+
+      <div style="font-size:16px;font-weight:900;color:#fff;margin-bottom:16px;">Your swap offer</div>
+
+      <!-- Trade summary -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+        <div style="flex:1;background:#030712;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:10px;color:#64748b;margin-bottom:4px;">You're offering</div>
+          <div style="font-size:13px;font-weight:700;color:#fff;">Your iPhone 14</div>
+          <div style="font-size:11px;color:#10b981;">~R9,000</div>
+        </div>
+        <div style="font-size:20px;color:#10b981;">⇄</div>
+        <div style="flex:1;background:#030712;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px;text-align:center;">
+          <div style="font-size:10px;color:#64748b;margin-bottom:4px;">You want</div>
+          <div style="font-size:13px;font-weight:700;color:#fff;">Samsung Galaxy S24</div>
+          <div style="font-size:11px;color:#10b981;">~R12,000</div>
+        </div>
+      </div>
+
+      <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:10px 14px;margin-bottom:16px;">
+        <div style="font-size:11px;color:#fbbf24;">⚠ Value gap — you may need to top up or negotiate</div>
+      </div>
+
+      <div style="font-size:12px;color:#64748b;margin-bottom:16px;line-height:1.6;">Tapping "Start chatting" opens a conversation with Thabo. You can agree on the details before anything is finalised.</div>
+
+      <div style="background:#10b981;border-radius:12px;padding:14px;text-align:center;margin-bottom:10px;cursor:pointer;">
+        <span style="font-size:14px;font-weight:700;color:#000;">Start chatting</span>
+      </div>
+      <div style="text-align:center;"><span style="font-size:12px;color:#64748b;cursor:pointer;">Cancel</span></div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Key changes</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;">"Ping" + "Propose Trade" → one button</div>
+      <p style="font-size:12px;color:#94a3b8;margin:0;">Two confusing buttons become one clear action: "Offer a swap". No ambiguity about which to tap.</p>
+    </div>
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;">Confirmation sheet explains what happens next</div>
+      <p style="font-size:12px;color:#94a3b8;margin:0;">Before the chat opens, users see what they're offering, what they want, and a value comparison. No blind leap into a conversation.</p>
+    </div>
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;">Value gap warning</div>
+      <p style="font-size:12px;color:#94a3b8;margin:0;">If estimated values differ significantly, a quiet amber notice appears. Sets expectations before the chat, reducing awkward first messages.</p>
+    </div>
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;">"Seeking:" → "Looking to swap for"</div>
+      <p style="font-size:12px;color:#94a3b8;margin:0;">The want field gets its own card with a plain label. Not buried in the description or shown as a raw database field label.</p>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:20px;">
+  <h3>Does this section look right?</h3>
+  <div class="options">
+    <div class="option" data-choice="approved" onclick="toggleSelect(this)">
+      <div class="letter" style="background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.4);color:#10b981;">✓</div>
+      <div class="content"><h3>Approved — move to next section</h3></div>
+    </div>
+    <div class="option" data-choice="changes" onclick="toggleSelect(this)">
+      <div class="letter">✎</div>
+      <div class="content"><h3>I want to change something</h3><p>Tell me what in the terminal</p></div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,52 @@
+<h2>3 approaches to simplification</h2>
+<p class="subtitle">Each builds on your answers: plain language, 2-step listing wizard, welcome overlay. They differ in how deep the changes go.</p>
+
+<div class="options" style="margin-top:28px;">
+
+  <div class="option" data-choice="language-only" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Language-first <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:6px;">~2 days of work</span></h3>
+      <p style="margin-bottom:8px;">Fix what users read, not how the app is structured. Every label, button, and header becomes plain English. Nav becomes Home / Map / + / Chats / Profile. "Ping" becomes "Offer a swap". "Asset" becomes "item". Code-style section headers like <code>// Local Index</code> become "Swaps near you". The add form stays one page but fields are relabelled and required vs. optional is made clear. Welcome overlay added. No screens are restructured.</p>
+      <div style="display:flex;gap:16px;font-size:11px;">
+        <span style="color:#6ee7b7;">✓ Fast to ship</span>
+        <span style="color:#6ee7b7;">✓ Low risk</span>
+        <span style="color:#fca5a5;">✗ Form still 9 fields</span>
+        <span style="color:#fca5a5;">✗ Doesn't fix flow confusion</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="progressive" onclick="toggleSelect(this)">
+    <div class="letter" style="background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.4);color:#10b981;">B</div>
+    <div class="content">
+      <h3>Progressive disclosure <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:6px;">~1 week of work</span> <span style="font-size:10px;background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.3);border-radius:20px;padding:2px 8px;margin-left:4px;">Recommended</span></h3>
+      <p style="margin-bottom:8px;">Language-first changes PLUS structural simplification where it matters most. Add listing becomes the 2-step wizard. Welcome overlay greets first-timers. The "Offer a swap" button on asset cards opens a bottom sheet with a clear summary — "You're offering to swap [your item] for [their item]. Start a chat to agree the details." — before entering the conversation. The home feed gets a persistent "You have nothing listed yet" nudge until the user posts. Advanced options (value, delivery, suburb) move to an expandable "More details" section in the listing wizard, visible but not in the way. Profile becomes "Your listings + account", not a single cluttered screen.</p>
+      <div style="display:flex;gap:16px;font-size:11px;">
+        <span style="color:#6ee7b7;">✓ Covers every confused moment</span>
+        <span style="color:#6ee7b7;">✓ Nothing removed, just revealed when needed</span>
+        <span style="color:#6ee7b7;">✓ Brand/visual identity stays intact</span>
+        <span style="color:#fca5a5;">✗ More files to change</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="full-redesign" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Full UX redesign <span style="font-size:11px;font-weight:400;color:#64748b;margin-left:6px;">~2–3 weeks of work</span></h3>
+      <p style="margin-bottom:8px;">Everything in B, plus rethinking the information architecture. Home and Map merge into a single screen with a toggle. Profile is split into two tabs: "My listings" and "Settings". The trade flow gets a visual status tracker (Offered → Chatting → Agreed → Done) so users always know where a swap stands. The notifications screen becomes "What's happening" with grouped activity. The handshake flow gets a step-by-step wizard with plain confirmations at each stage. Biggest change: a persistent bottom banner guides new users through 3 milestones ("List 1 item → Offer a swap → Complete your first trade") and disappears once done.</p>
+      <div style="display:flex;gap:16px;font-size:11px;flex-wrap:wrap;">
+        <span style="color:#6ee7b7;">✓ Best possible non-technical experience</span>
+        <span style="color:#6ee7b7;">✓ Trade flow becomes crystal clear</span>
+        <span style="color:#fca5a5;">✗ Significant refactor</span>
+        <span style="color:#fca5a5;">✗ Higher risk of regressions</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:28px;padding:16px;background:rgba(16,185,129,0.05);border:1px solid rgba(16,185,129,0.15);border-radius:12px;">
+  <p style="font-size:12px;color:#94a3b8;margin:0;"><strong style="color:#6ee7b7;">My recommendation:</strong> Option B. It solves every friction point a non-technical user hits — the jargon, the form, the first-time confusion, the "what happens after I offer a swap?" moment — without touching the underlying architecture or risking regressions. It's the highest-impact work that can ship in a week.</p>
+</div>

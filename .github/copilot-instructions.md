@@ -18,14 +18,16 @@
 
 ## What is Nozar
 
-Nozar is a South African barter/swap platform ("No ZAR" — no cash needed). Users list assets (goods or services), browse nearby listings, "ping" each other to negotiate, and complete swaps via a handshake flow. The app uses a tier system (TIER_01, TIER_02, TIER_03) for asset valuation and trust. See `prototype.jsx` for the full UI prototype with mock data covering the landing page, dashboard, feed, pings/messaging, and handshake flows.
+Nozar is a South African barter/swap platform ("No ZAR" — no cash needed). Users list assets (goods or services), browse nearby listings, "ping" each other to negotiate, and complete swaps via a handshake flow. The app uses a subscription tier system (`free` → `plus` → `business` → `enterprise`) gating listing counts and features. MVP is limited to two regions: Cape Town (Western Cape) and Johannesburg (Gauteng), defined in `app/lib/regions.ts`.
+
+**Trade lifecycle**: `proposed` → `negotiating` → `agreed` → `contact_shared` → `completed` (or `cancelled`/`disputed`). "Pings" is the user-facing term for trade conversations.
 
 ## Commands
 
 - `npm run dev` — Start the app locally (React Router dev server at `http://localhost:5173`)
 - `npm run build` — Build production server/client bundles
 - `npm run start` — Serve built app from `./build/server/index.js`
-- `npm run typecheck` — Generate route types + run TypeScript checks
+- `npm run typecheck` — Generate route types + run TypeScript checks (must pass before committing)
 
 ### Testing (Playwright E2E)
 
@@ -36,10 +38,26 @@ Nozar is a South African barter/swap platform ("No ZAR" — no cash needed). Use
 - Single spec by name: `npx playwright test landing.spec.ts -g "test name"`
 - `npm run test:report` — Open Playwright HTML report
 
+Tests auto-start the dev server (`webServer` in `playwright.config.ts`). Test files live in `e2e/`, not `tests/` or `__tests__/`.
+
+### Unit Tests (Vitest)
+
+- `npm run test:unit` — Run Vitest unit tests (pass-through if none exist)
+- `npm run test:unit:watch` — Vitest watch mode
+
 ### Linting
 
-- There is currently no dedicated lint script in `package.json`.
-- Use `npm run typecheck` as the required static validation command.
+No dedicated lint script. Use `npm run typecheck` as the required static validation command.
+
+### Database (Drizzle + Neon)
+
+```bash
+npx drizzle-kit generate  # Generate migration from schema changes
+npx drizzle-kit migrate   # Apply migrations
+npx drizzle-kit push      # Push schema directly (dev only)
+```
+
+Edit `app/lib/schema.ts` first, then generate migrations. History lives in `drizzle/*.sql`.
 
 ## Architecture
 
@@ -47,8 +65,13 @@ Nozar is a South African barter/swap platform ("No ZAR" — no cash needed). Use
 - **Routing model**: Central route config in `app/routes.ts` (not file-based conventions). This defines public auth/legal routes plus nested `/dashboard/*` and `/api/*` endpoints.
 - **Data layer**: Neon PostgreSQL over `@neondatabase/serverless`, queried via Drizzle ORM (`app/lib/db.server.ts`, `app/lib/schema.ts`).
 - **Auth stack**: Better Auth with Drizzle adapter (`app/lib/auth.server.ts`), supporting Google OAuth and email/password; auth routes are under `api/auth/*`.
-- **Client/server boundary**: `.server.ts` modules hold server-only integrations (db/auth/email/payments/blob/AI). Route loaders/actions call these modules.
+- **Client/server boundary**: `.server.ts` modules hold server-only integrations (db/auth/email/payments/blob/AI/push/OTP). Route loaders/actions call these modules; never import them from client code.
 - **Styling/build**: Tailwind v4 via `@tailwindcss/vite`, React Router Vite plugin, and `vite-tsconfig-paths` aliasing `~/` to `app/`.
+- **Real-time**: SSE via native `ReadableStream` + `new Response(stream, { headers: { 'Content-Type': 'text/event-stream' } })`. React Router v7 does **not** export `eventStream` — do not use it.
+- **Payments**: PayFast integration (`app/lib/payfast.server.ts`). Subscription tiers: `free` | `plus` | `business` | `enterprise`. `BUSINESS_PRODUCTS_LIVE` flag in `app/lib/tier-limits.ts` gates business/enterprise UI (currently `false`).
+- **Notifications**: Web Push via `web-push` library; OTP via Africa's Talking (`app/lib/otp.server.ts`); email via Resend (`app/lib/email.server.ts`).
+- **AI**: Google Gemini (safe meetup spot suggestions) + NVIDIA API for chat; `app/lib/ai.server.ts` and `app/lib/nvidia.server.ts`.
+- **File storage**: Vercel Blob (`app/lib/blob.server.ts`).
 - **E2E test setup**: Playwright tests in `e2e/`; config auto-starts `npm run dev` through `webServer`.
 
 ### Route Structure
@@ -59,25 +82,28 @@ Nozar is a South African barter/swap platform ("No ZAR" — no cash needed). Use
 /forgot-password      → app/routes/forgot-password.tsx
 /reset-password       → app/routes/reset-password.tsx
 /register             → app/routes/register.tsx
-/refer                → app/routes/refer.tsx
 /r/:referralCode      → app/routes/r.$referralCode.tsx
 /api/auth/*           → app/routes/api.auth.$.ts
-/api/messages/:tradeId → app/routes/api.messages.$tradeId.ts
+/api/messages/:tradeId      → app/routes/api.messages.$tradeId.ts
+/api/chat-stream/:tradeId   → app/routes/api.chat-stream.$tradeId.ts (SSE)
 /api/pay/upgrade      → app/routes/api.pay.upgrade.ts
 /api/pay/webhook      → app/routes/api.pay.webhook.ts
 /api/refer            → app/routes/api.refer.ts
 /api/upload           → app/routes/api.upload.ts
-/dashboard            → app/routes/dashboard.tsx (layout with header + bottom nav)
+/api/push-subscribe   → app/routes/api.push-subscribe.ts
+/dashboard            → app/routes/dashboard.tsx (layout: auth gate, header, bottom nav, LocationPromptModal)
   /dashboard          → app/routes/dashboard/home.tsx (asset feed)
   /dashboard/asset/:id → app/routes/dashboard/asset.$id.tsx (asset detail)
   /dashboard/pings    → app/routes/dashboard/pings.tsx (conversation list)
   /dashboard/pings/:id → app/routes/dashboard/pings.$id.tsx (chat + handshake)
   /dashboard/notifications → app/routes/dashboard/notifications.tsx
-  /dashboard/map      → app/routes/dashboard/map.tsx (stub)
-  /dashboard/add      → app/routes/dashboard/add.tsx (stub)
+  /dashboard/map      → app/routes/dashboard/map.tsx
+  /dashboard/add      → app/routes/dashboard/add.tsx
   /dashboard/trade/:id → app/routes/dashboard/trade.$id.tsx
-  /dashboard/profile  → app/routes/dashboard/profile.tsx (stub)
+  /dashboard/profile  → app/routes/dashboard/profile.tsx
+  /dashboard/billing  → app/routes/dashboard/billing.tsx
   /dashboard/verify-phone → app/routes/dashboard/verify-phone.tsx
+  /dashboard/refer    → app/routes/refer.tsx
 /legal                → app/routes/legal.tsx
   /legal/terms        → app/routes/legal/terms.tsx
   /legal/privacy      → app/routes/legal/privacy.tsx
@@ -88,22 +114,28 @@ Nozar is a South African barter/swap platform ("No ZAR" — no cash needed). Use
 
 ### Key Directories
 
-- `app/lib/` — Shared types (`types.ts`) and mock data (`mock-data.ts`)
-- `app/lib/*.server.ts` — Server-only modules (auth, db, email, payments, blob, AI, OTP, notifications)
-- `app/components/ui/` — Reusable UI components (AssetCard, BottomNav, TierBadge, VerificationBadge, PingThread)
+- `app/lib/` — Shared types (`types.ts`), utils, and mock data (`mock-data.ts`)
+- `app/lib/*.server.ts` — Server-only modules (auth, db, email, payments, blob, AI, OTP, notifications, webpush)
+- `app/lib/auth.client.ts` — Browser-side Better Auth client
+- `app/components/ui/` — Reusable UI components (AssetCard, BottomNav, TierBadge, VerificationBadge, ChatWindow, HandshakeFlow, etc.)
 - `app/routes/` — Route modules
-- `prototype.jsx` — Full UI prototype with mock data (reference only, not imported by the app)
+- `drizzle/` — Migration SQL files + meta journal
 
 ## Conventions
 
 - TypeScript strict mode. Use `type` imports (`import type { ... }`) — `verbatimModuleSyntax` is enabled.
+- `~/` is the path alias for `app/` (configured via `vite-tsconfig-paths`).
 - Route modules follow React Router v7 conventions: named exports for `meta`, `loader`, `action`, `links`, `ErrorBoundary`, and a default component export.
 - Route type safety is generated per route under `./+types/*`; keep `npm run typecheck` green after route changes.
-- Use `requireAuth(request)` for protected loaders/actions and `getOptionalSession(request)` when rendering should work for guests and logged-in users.
+- Use `requireAuth(request)` for protected loaders/actions and `getOptionalSession(request)` when rendering should work for guests and logged-in users. Both retry once on Neon cold-start errors.
+- Multi-intent actions: use a hidden `intent` field in forms and switch on it in the action handler (see `dashboard.tsx` action).
 - Keep DB schema changes in `app/lib/schema.ts`, then generate/apply migrations via Drizzle (`drizzle/*.sql` is migration history).
 - Always-dark theme: `#030712` base, `#0F172A` card backgrounds, emerald-500 primary accent, slate text. No light mode.
 - Brutalist typography: `font-mono uppercase tracking-widest text-[10px]` for labels, `font-black uppercase tracking-tighter` for headings.
 - Inter font is loaded from Google Fonts in `app/root.tsx`.
+- Dashboard layout (`app/routes/dashboard.tsx`) always renders a full-screen `LocationPromptModal` for authenticated users without `profile.lat`/`profile.lng`, blocking child routes until dismissed.
+- `BUSINESS_PRODUCTS_LIVE` in `app/lib/tier-limits.ts` is currently `false`; flip it when business/enterprise tier UI is ready to ship. It gates pricing cards, billing page tier visibility, and FAQ items.
+- SSE endpoints use native `ReadableStream` + `new Response(stream, { headers: { 'Content-Type': 'text/event-stream' } })` — react-router 7 does not export `eventStream`.
 
 <!-- GSD Configuration — managed by get-shit-done installer -->
 # Instructions for GSD

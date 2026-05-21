@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+* { margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body {
+  background: linear-gradient(135deg, #0F172A 0%, #030712 100%);
+  display: flex; align-items: center; justify-content: center;
+  position: relative;
+}
+.n {
+  font-family: 'Courier New', monospace;
+  font-size: 108px; font-weight: 900;
+  color: #10B981;
+  letter-spacing: -4px;
+  line-height: 1;
+}
+.dot {
+  position: absolute;
+  bottom: 28px; right: 26px;
+  width: 16px; height: 16px;
+  background: #10B981;
+  border-radius: 50%;
+}
+.border {
+  position: absolute; inset: 0;
+  border: 1.5px solid rgba(16,185,129,0.4);
+}
+</style>
+</head>
+<body>
+  <span class="n">N</span>
+  <div class="dot"></div>
+  <div class="border"></div>
+</body>
+</html>
