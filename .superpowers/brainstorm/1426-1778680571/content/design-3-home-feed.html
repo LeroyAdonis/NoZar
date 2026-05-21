@@ -1,0 +1,149 @@
+<h2>Design Section 3 of 7 — Home Feed</h2>
+<p class="subtitle">The main screen after login. Plain headers, a nudge strip for new users, clearer item cards, and a better AI match button.</p>
+
+<div class="section">
+  <h3>Full feed — before vs. after</h3>
+  <div class="split" style="gap:20px; align-items:flex-start;">
+
+    <!-- BEFORE -->
+    <div style="flex:1;">
+      <div class="label" style="color:#ef4444; margin-bottom:10px;">Before</div>
+      <div style="background:#030712; border-radius:14px; padding:16px; border:1px solid rgba(255,255,255,0.07);">
+
+        <!-- Header -->
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:14px;">
+          <div>
+            <div style="font-size:9px;font-family:monospace;color:#10b981;letter-spacing:3px;margin-bottom:3px;">// Local Index</div>
+            <div style="font-size:17px;font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:-1px;">Nearby Assets</div>
+          </div>
+          <div style="font-size:9px;font-family:monospace;color:#a78bfa;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:20px;padding:5px 10px;">✦ AI Match</div>
+        </div>
+
+        <!-- Search -->
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#475569;">🔍 Search by title or description…</div>
+
+        <!-- Category pills -->
+        <div style="display:flex;gap:6px;overflow:hidden;margin-bottom:12px;">
+          <span style="font-size:9px;font-family:monospace;color:#10b981;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:20px;padding:4px 10px;white-space:nowrap;">All</span>
+          <span style="font-size:9px;font-family:monospace;color:#64748b;background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:4px 10px;white-space:nowrap;">Electronics</span>
+          <span style="font-size:9px;font-family:monospace;color:#64748b;background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:4px 10px;white-space:nowrap;">Furniture</span>
+          <span style="font-size:9px;font-family:monospace;color:#64748b;background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:4px 10px;white-space:nowrap;">Service</span>
+        </div>
+
+        <!-- Cards -->
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px;">
+            <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;">Samsung Galaxy S24</div>
+            <div style="font-size:10px;font-family:monospace;color:#64748b;margin-bottom:8px;">Seeking: Laptop or tablet</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span style="font-size:9px;color:#10b981;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:20px;padding:2px 8px;">~R12,000</span>
+              <span style="font-size:9px;color:#64748b;font-family:monospace;">2.3km</span>
+              <span style="font-size:9px;color:#64748b;font-family:monospace;">• 3h ago</span>
+            </div>
+          </div>
+          <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px;">
+            <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;">Guitar Lessons (10 hrs)</div>
+            <div style="font-size:10px;font-family:monospace;color:#64748b;margin-bottom:8px;">Seeking: Home repairs</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span style="font-size:9px;color:#10b981;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:20px;padding:2px 8px;">~R3,500</span>
+              <span style="font-size:9px;color:#64748b;font-family:monospace;">5.1km</span>
+              <span style="font-size:9px;color:#64748b;font-family:monospace;">• 1d ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AFTER -->
+    <div style="flex:1;">
+      <div class="label" style="color:#10b981; margin-bottom:10px;">After</div>
+      <div style="background:#030712; border-radius:14px; padding:16px; border:1px solid rgba(255,255,255,0.07);">
+
+        <!-- Nudge strip (new users only) -->
+        <div style="background:rgba(16,185,129,0.07);border:1px solid rgba(16,185,129,0.2);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:12px;color:#94a3b8;">Nothing listed yet</span>
+          <span style="font-size:12px;color:#10b981;font-weight:600;">Add your first item →</span>
+        </div>
+
+        <!-- Header -->
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:14px;">
+          <div>
+            <div style="font-size:11px;color:#64748b;margin-bottom:3px;">Near you in Cape Town</div>
+            <div style="font-size:17px;font-weight:900;color:#fff;">Swaps available</div>
+          </div>
+          <div style="font-size:11px;color:#a78bfa;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.3);border-radius:20px;padding:6px 12px;white-space:nowrap;">✦ Best matches</div>
+        </div>
+
+        <!-- Search -->
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#475569;">🔍 Search swaps…</div>
+
+        <!-- Category pills -->
+        <div style="display:flex;gap:6px;overflow:hidden;margin-bottom:12px;">
+          <span style="font-size:10px;color:#10b981;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:20px;padding:4px 10px;white-space:nowrap;">All</span>
+          <span style="font-size:10px;color:#64748b;background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:4px 10px;white-space:nowrap;">Electronics</span>
+          <span style="font-size:10px;color:#64748b;background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:4px 10px;white-space:nowrap;">Furniture</span>
+          <span style="font-size:10px;color:#64748b;background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:20px;padding:4px 10px;white-space:nowrap;">Services</span>
+        </div>
+
+        <!-- Cards -->
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px;">
+            <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:3px;">Samsung Galaxy S24</div>
+            <div style="font-size:11px;color:#64748b;margin-bottom:8px;">Looking to swap for: Laptop or tablet</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span style="font-size:10px;color:#10b981;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:20px;padding:2px 8px;">Worth ~R12,000</span>
+              <span style="font-size:10px;color:#64748b;">2.3km away</span>
+              <span style="font-size:10px;color:#64748b;">· 3h ago</span>
+            </div>
+          </div>
+          <div style="background:#0f172a;border:1px solid rgba(16,185,129,0.25);border-radius:12px;padding:12px;position:relative;">
+            <div style="position:absolute;top:-8px;right:10px;background:#10b981;border-radius:20px;padding:2px 8px;font-size:9px;font-weight:700;color:#000;">You have something they want</div>
+            <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:3px;">Guitar Lessons (10 hrs)</div>
+            <div style="font-size:11px;color:#64748b;margin-bottom:8px;">Looking to swap for: Home repairs</div>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span style="font-size:10px;color:#10b981;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:20px;padding:2px 8px;">Worth ~R3,500</span>
+              <span style="font-size:10px;color:#64748b;">5.1km away</span>
+              <span style="font-size:10px;color:#64748b;">· 1d ago</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>Key changes summary</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;">Nudge strip</div>
+      <p style="font-size:12px;color:#94a3b8;margin:0;">Shows only when the user has zero listings. Disappears once they list their first item. Not a banner — just a quiet single-line strip.</p>
+    </div>
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;">Header copy</div>
+      <p style="font-size:12px;color:#94a3b8;margin:0;"><code style="font-size:10px;background:#1e293b;padding:1px 4px;border-radius:3px;">// Local Index</code> + "Nearby Assets" → "Near you in [city]" + "Swaps available". Location-aware and human.</p>
+    </div>
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;">Card copy</div>
+      <p style="font-size:12px;color:#94a3b8;margin:0;">"Seeking:" → "Looking to swap for:". "~R12,000" → "Worth ~R12,000". "2.3km" → "2.3km away". Every field reads as a sentence fragment, not a database column.</p>
+    </div>
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:4px;">"You have something they want" badge</div>
+      <p style="font-size:12px;color:#94a3b8;margin:0;">Replaces the awkward "You Have Match" badge. Same logic, plain English. High-signal — tells the user exactly why this card is highlighted.</p>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:20px;">
+  <h3>Does this section look right?</h3>
+  <div class="options">
+    <div class="option" data-choice="approved" onclick="toggleSelect(this)">
+      <div class="letter" style="background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.4);color:#10b981;">✓</div>
+      <div class="content"><h3>Approved — move to next section</h3></div>
+    </div>
+    <div class="option" data-choice="changes" onclick="toggleSelect(this)">
+      <div class="letter">✎</div>
+      <div class="content"><h3>I want to change something</h3><p>Tell me what in the terminal</p></div>
+    </div>
+  </div>
+</div>

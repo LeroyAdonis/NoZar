@@ -1,0 +1,110 @@
+<h2>First time in the app — what do they see?</h2>
+<p class="subtitle">A new user opens the app for the first time. They have no listings. No swaps. They don't know what to do. What guides them?</p>
+
+<div class="cards" style="margin-top:24px;">
+
+  <div class="card" data-choice="card" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#030712; padding:16px; min-height:320px;">
+      <!-- Nav -->
+      <div style="display:flex;justify-content:space-around;border-bottom:1px solid rgba(255,255,255,0.07);padding-bottom:10px;margin-bottom:14px;">
+        <span style="font-size:10px;color:#10b981;font-weight:700;">Home</span>
+        <span style="font-size:10px;color:#475569;">Map</span>
+        <div style="width:28px;height:28px;background:#10b981;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:-8px;"><span style="color:#000;font-size:14px;font-weight:900;">+</span></div>
+        <span style="font-size:10px;color:#475569;">Chats</span>
+        <span style="font-size:10px;color:#475569;">Profile</span>
+      </div>
+      <!-- Welcome card -->
+      <div style="background:#0f172a;border:1px solid rgba(16,185,129,0.25);border-radius:14px;padding:14px;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:900;color:#fff;margin-bottom:4px;">👋 Welcome to NoZar</div>
+        <div style="font-size:11px;color:#94a3b8;margin-bottom:12px;line-height:1.5;">Swap what you have for what you need. No cash needed.</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px;">
+          <div style="display:flex;gap:8px;align-items:flex-start;">
+            <div style="width:20px;height:20px;border-radius:6px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:9px;color:#10b981;font-weight:900;">1</span></div>
+            <div><div style="font-size:10px;font-weight:700;color:#fff;">List what you have</div><div style="font-size:9px;color:#64748b;">An old phone, your skills, anything</div></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:flex-start;">
+            <div style="width:20px;height:20px;border-radius:6px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:9px;color:#10b981;font-weight:900;">2</span></div>
+            <div><div style="font-size:10px;font-weight:700;color:#fff;">Browse nearby swaps</div><div style="font-size:9px;color:#64748b;">See what others are offering</div></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:flex-start;">
+            <div style="width:20px;height:20px;border-radius:6px;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span style="font-size:9px;color:#10b981;font-weight:900;">3</span></div>
+            <div><div style="font-size:10px;font-weight:700;color:#fff;">Offer a swap</div><div style="font-size:9px;color:#64748b;">Chat, agree, and exchange</div></div>
+          </div>
+        </div>
+        <div style="background:#10b981;border-radius:8px;padding:10px;text-align:center;">
+          <span style="font-size:12px;font-weight:700;color:#000;">List your first item →</span>
+        </div>
+      </div>
+      <!-- Greyed feed below -->
+      <div style="opacity:0.3;">
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:8px;">Swaps near you</div>
+        <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.05);border-radius:10px;height:40px;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Welcome card above the feed</h3>
+      <p>A friendly 3-step explainer sits at the top of the home screen with a clear CTA. Disappears once they list their first item. Current approach, just with plain language and a warmer tone.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="overlay" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#030712; padding:16px; min-height:320px; position:relative;">
+      <!-- Dimmed background -->
+      <div style="position:absolute;inset:0;background:rgba(3,7,18,0.85);z-index:2;border-radius:12px;display:flex;align-items:center;justify-content:center;">
+        <div style="background:#0f172a;border:1px solid rgba(16,185,129,0.3);border-radius:16px;padding:20px;max-width:220px;text-align:center;">
+          <div style="font-size:22px;margin-bottom:8px;">🔄</div>
+          <div style="font-size:14px;font-weight:900;color:#fff;margin-bottom:8px;">Swap. Don't spend.</div>
+          <div style="font-size:11px;color:#94a3b8;line-height:1.5;margin-bottom:16px;">NoZar lets you trade your stuff, skills, and services directly with people nearby. No money involved.</div>
+          <div style="background:#10b981;border-radius:8px;padding:10px;margin-bottom:8px;">
+            <span style="font-size:12px;font-weight:700;color:#000;">List my first item</span>
+          </div>
+          <div style="font-size:10px;color:#475569;">or <span style="color:#10b981;text-decoration:underline;">browse first</span></div>
+        </div>
+      </div>
+      <!-- Background content (blurred) -->
+      <div style="opacity:0.15;">
+        <div style="display:flex;justify-content:space-around;border-bottom:1px solid rgba(255,255,255,0.07);padding-bottom:10px;margin-bottom:14px;">
+          <span style="font-size:10px;color:#10b981;font-weight:700;">Home</span>
+          <span style="font-size:10px;color:#475569;">Map</span>
+          <span style="font-size:10px;color:#475569;">Chats</span>
+          <span style="font-size:10px;color:#475569;">Profile</span>
+        </div>
+        <div style="background:#0f172a;border-radius:10px;height:50px;margin-bottom:8px;"></div>
+        <div style="background:#0f172a;border-radius:10px;height:50px;"></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Welcome overlay on first login</h3>
+      <p>A full-screen modal greets them once, explains the concept in 2 sentences, and gives them a clear choice: list first, or browse first. Never shows again.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="action" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#030712; padding:16px; min-height:320px;">
+      <!-- Nav -->
+      <div style="display:flex;justify-content:space-around;border-bottom:1px solid rgba(255,255,255,0.07);padding-bottom:10px;margin-bottom:14px;">
+        <span style="font-size:10px;color:#10b981;font-weight:700;">Home</span>
+        <span style="font-size:10px;color:#475569;">Map</span>
+        <div style="width:28px;height:28px;background:#10b981;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:-8px;"><span style="color:#000;font-size:14px;font-weight:900;">+</span></div>
+        <span style="font-size:10px;color:#475569;">Chats</span>
+        <span style="font-size:10px;color:#475569;">Profile</span>
+      </div>
+
+      <!-- Big action prompt replaces feed -->
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:220px;text-align:center;padding:10px;">
+        <div style="font-size:32px;margin-bottom:12px;">📦</div>
+        <div style="font-size:15px;font-weight:900;color:#fff;margin-bottom:6px;">What do you have to swap?</div>
+        <div style="font-size:11px;color:#64748b;margin-bottom:20px;max-width:200px;line-height:1.5;">List something first so others can see what you're offering and reach out.</div>
+        <div style="background:#10b981;border-radius:10px;padding:12px 24px;margin-bottom:12px;">
+          <span style="font-size:13px;font-weight:700;color:#000;">List an item</span>
+        </div>
+        <div style="font-size:10px;color:#475569;text-decoration:underline;cursor:pointer;">Browse without listing</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Skip explanations, go straight to action</h3>
+      <p>No tutorial, no steps. Just a clear prompt: "What do you have to swap?" with one big button. People learn by doing. Browsing without listing is still possible via a small text link.</p>
+    </div>
+  </div>
+
+</div>

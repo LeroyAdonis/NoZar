@@ -1,0 +1,173 @@
+<h2>Design Section 6 of 7 — Chats (revised with Safe Meetup)</h2>
+<p class="subtitle">Safety at handover is non-negotiable in South Africa. The AI meetup suggestion moves from a hidden stub to a prominent, required step before any swap is confirmed.</p>
+
+<div class="section">
+  <h3>Where meetup safety fits in the flow</h3>
+  <div style="display:flex;gap:0;align-items:stretch;margin:16px 0;">
+    <div style="flex:1;background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:12px 0 0 12px;padding:14px;text-align:center;">
+      <div style="font-size:20px;margin-bottom:6px;">💬</div>
+      <div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:3px;">Chatting</div>
+      <div style="font-size:10px;color:#64748b;">Negotiate the terms</div>
+    </div>
+    <div style="display:flex;align-items:center;padding:0 6px;background:#0a0f1e;"><span style="color:#10b981;font-size:14px;">→</span></div>
+    <div style="flex:1;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);padding:14px;text-align:center;">
+      <div style="font-size:20px;margin-bottom:6px;">🛡️</div>
+      <div style="font-size:11px;font-weight:700;color:#10b981;margin-bottom:3px;">Pick a safe spot</div>
+      <div style="font-size:10px;color:#64748b;">AI suggests, both vote</div>
+    </div>
+    <div style="display:flex;align-items:center;padding:0 6px;background:#0a0f1e;"><span style="color:#10b981;font-size:14px;">→</span></div>
+    <div style="flex:1;background:#0f172a;border:1px solid rgba(255,255,255,0.08);padding:14px;text-align:center;">
+      <div style="font-size:20px;margin-bottom:6px;">🤝</div>
+      <div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:3px;">Confirm swap</div>
+      <div style="font-size:10px;color:#64748b;">Both sides lock it in</div>
+    </div>
+    <div style="display:flex;align-items:center;padding:0 6px;background:#0a0f1e;"><span style="color:#10b981;font-size:14px;">→</span></div>
+    <div style="flex:1;background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:0 12px 12px 0;padding:14px;text-align:center;">
+      <div style="font-size:20px;margin-bottom:6px;">⭐</div>
+      <div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:3px;">Done</div>
+      <div style="font-size:10px;color:#64748b;">Leave a rating</div>
+    </div>
+  </div>
+  <p style="font-size:12px;color:#94a3b8;background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;margin:0;">"Pick a safe spot" is a required step — <strong style="color:#fff;">you cannot reach "Confirm swap" without both parties agreeing on a meetup location.</strong> This mirrors how real South African traders think: location safety comes before handshake.</p>
+</div>
+
+<div class="section">
+  <h3>What the "Pick a safe spot" step looks like in chat</h3>
+  <div class="split" style="gap:20px;align-items:flex-start;">
+
+    <!-- Suggesting state -->
+    <div style="flex:1;">
+      <div class="label" style="color:#94a3b8;margin-bottom:10px;">Step 1 — AI suggests spots</div>
+      <div style="background:#030712;border:1px solid rgba(255,255,255,0.07);border-radius:14px;overflow:hidden;">
+        <div style="background:#0a0f1e;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.06);">
+          <div style="font-size:12px;font-weight:700;color:#fff;">Thabo M.</div>
+          <div style="font-size:10px;color:#64748b;">About: Samsung Galaxy S24 · <span style="color:#fbbf24;">Pick a safe spot</span></div>
+        </div>
+        <div style="padding:14px;">
+          <!-- Safety card -->
+          <div style="background:#0f172a;border:1px solid rgba(16,185,129,0.25);border-radius:12px;overflow:hidden;margin-bottom:10px;">
+            <div style="background:rgba(16,185,129,0.08);padding:10px 14px;border-bottom:1px solid rgba(16,185,129,0.15);display:flex;align-items:center;gap:8px;">
+              <span style="font-size:14px;">🛡️</span>
+              <div>
+                <div style="font-size:11px;font-weight:700;color:#10b981;">Choose a safe meetup spot</div>
+                <div style="font-size:10px;color:#64748b;">AI found 3 public places near both of you</div>
+              </div>
+            </div>
+            <!-- Spot 1 selected -->
+            <div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.05);background:rgba(16,185,129,0.05);border-left:3px solid #10b981;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+                <div style="width:14px;height:14px;border-radius:50%;background:#10b981;border:2px solid #10b981;flex-shrink:0;"></div>
+                <div style="font-size:12px;font-weight:700;color:#fff;">Sandton City Mall</div>
+              </div>
+              <div style="font-size:10px;color:#64748b;padding-left:22px;">Sandton Dr, entrance near Woolworths</div>
+              <div style="font-size:10px;color:#10b981;padding-left:22px;margin-top:2px;">→ Well-lit, busy, security on-site</div>
+            </div>
+            <!-- Spot 2 -->
+            <div style="padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.05);">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+                <div style="width:14px;height:14px;border-radius:50%;border:2px solid #475569;flex-shrink:0;"></div>
+                <div style="font-size:12px;font-weight:600;color:#94a3b8;">Sandton Police Station</div>
+              </div>
+              <div style="font-size:10px;color:#64748b;padding-left:22px;">Rivonia Rd, Sandhurst</div>
+              <div style="font-size:10px;color:#475569;padding-left:22px;margin-top:2px;">→ Maximum safety, camera coverage</div>
+            </div>
+            <!-- Spot 3 -->
+            <div style="padding:10px 14px;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+                <div style="width:14px;height:14px;border-radius:50%;border:2px solid #475569;flex-shrink:0;"></div>
+                <div style="font-size:12px;font-weight:600;color:#94a3b8;">Rosebank Mall</div>
+              </div>
+              <div style="font-size:10px;color:#64748b;padding-left:22px;">Bath Ave, Rosebank</div>
+              <div style="font-size:10px;color:#475569;padding-left:22px;margin-top:2px;">→ Central, easy parking, busy</div>
+            </div>
+            <div style="padding:10px 14px;border-top:1px solid rgba(255,255,255,0.05);">
+              <div style="background:#10b981;border-radius:8px;padding:10px;text-align:center;cursor:pointer;">
+                <span style="font-size:12px;font-weight:700;color:#000;">Vote for Sandton City Mall</span>
+              </div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:#475569;text-align:center;">Thabo also needs to vote — you'll both see the result</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirmed state -->
+    <div style="flex:1;">
+      <div class="label" style="color:#10b981;margin-bottom:10px;">Step 2 — Both voted, spot confirmed</div>
+      <div style="background:#030712;border:1px solid rgba(255,255,255,0.07);border-radius:14px;overflow:hidden;">
+        <div style="background:#0a0f1e;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.06);">
+          <div style="font-size:12px;font-weight:700;color:#fff;">Thabo M.</div>
+          <div style="font-size:10px;color:#64748b;">About: Samsung Galaxy S24 · <span style="color:#fbbf24;">Agreed</span></div>
+        </div>
+        <div style="padding:14px;">
+          <!-- Confirmed spot card -->
+          <div style="background:linear-gradient(to bottom, #0f172a, #030712);border:1px solid rgba(16,185,129,0.4);border-radius:12px;overflow:hidden;margin-bottom:12px;box-shadow:0 0 24px rgba(16,185,129,0.1);">
+            <div style="background:rgba(16,185,129,0.1);padding:10px 14px;border-bottom:1px solid rgba(16,185,129,0.2);display:flex;align-items:center;gap:6px;">
+              <span style="font-size:12px;">🛡️</span>
+              <span style="font-size:10px;font-weight:700;color:#10b981;letter-spacing:1px;">SAFE SPOT CONFIRMED</span>
+            </div>
+            <div style="padding:14px;">
+              <div style="font-size:15px;font-weight:900;color:#fff;margin-bottom:4px;">📍 Sandton City Mall</div>
+              <div style="font-size:12px;color:#64748b;margin-bottom:8px;">Sandton Dr, entrance near Woolworths</div>
+              <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px;">
+                <div style="font-size:10px;color:#10b981;">✓ Both parties agreed on this location</div>
+              </div>
+            </div>
+          </div>
+          <!-- Now confirm the swap -->
+          <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;">
+            <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:10px;">Ready to finalise?</div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+              <div style="flex:1;text-align:center;"><div style="font-size:10px;color:#64748b;">You give</div><div style="font-size:12px;font-weight:700;color:#fff;">iPhone 14</div></div>
+              <div style="color:#10b981;">⇄</div>
+              <div style="flex:1;text-align:center;"><div style="font-size:10px;color:#64748b;">You get</div><div style="font-size:12px;font-weight:700;color:#fff;">Galaxy S24</div></div>
+            </div>
+            <div style="background:#10b981;border-radius:10px;padding:11px;text-align:center;cursor:pointer;">
+              <span style="font-size:13px;font-weight:700;color:#000;">Confirm swap</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="section">
+  <h3>Implementation note — what's already built vs. what needs work</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+    <div style="background:#0f172a;border:1px solid rgba(16,185,129,0.2);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#10b981;margin-bottom:6px;">✓ Already built</div>
+      <ul style="font-size:12px;color:#94a3b8;margin:0;padding-left:16px;line-height:1.8;">
+        <li>SafeZonePicker component (full UI)</li>
+        <li>API: add spot, vote, finalize</li>
+        <li>DB tables: meetupSpots, meetupVotes</li>
+        <li>Confirmed state display</li>
+      </ul>
+    </div>
+    <div style="background:#0f172a;border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:14px;">
+      <div style="font-size:12px;font-weight:700;color:#fbbf24;margin-bottom:6px;">⚡ Needs building</div>
+      <ul style="font-size:12px;color:#94a3b8;margin:0;padding-left:16px;line-height:1.8;">
+        <li>MeetupPlanner component (stub → real UI)</li>
+        <li>Wire SafeZonePicker into chat screen</li>
+        <li>AI spot generation (call AI with both users' suburbs)</li>
+        <li>Gate "Confirm swap" until spot is agreed</li>
+        <li>Real-time spot reveal when other user votes</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:20px;">
+  <h3>Does this section look right?</h3>
+  <div class="options">
+    <div class="option" data-choice="approved" onclick="toggleSelect(this)">
+      <div class="letter" style="background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.4);color:#10b981;">✓</div>
+      <div class="content"><h3>Approved — move to final section</h3></div>
+    </div>
+    <div class="option" data-choice="changes" onclick="toggleSelect(this)">
+      <div class="letter">✎</div>
+      <div class="content"><h3>I want to change something</h3><p>Tell me what in the terminal</p></div>
+    </div>
+  </div>
+</div>

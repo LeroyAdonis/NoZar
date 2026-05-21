@@ -1,0 +1,84 @@
+<h2>Design Section 2 of 7 — Welcome Overlay (First Login)</h2>
+<p class="subtitle">Shows once on first login. Two sentences. Two buttons. Never appears again.</p>
+
+<div class="section">
+  <h3>What the user sees</h3>
+
+  <!-- Full-width overlay mockup -->
+  <div style="background:#030712; border-radius:16px; overflow:hidden; border:1px solid rgba(255,255,255,0.08); position:relative; min-height:380px; display:flex; align-items:center; justify-content:center;">
+
+    <!-- Blurred background feed hint -->
+    <div style="position:absolute;inset:0;padding:24px;opacity:0.15;">
+      <div style="height:32px;background:#0f172a;border-radius:8px;margin-bottom:10px;"></div>
+      <div style="height:64px;background:#0f172a;border-radius:8px;margin-bottom:10px;"></div>
+      <div style="height:64px;background:#0f172a;border-radius:8px;margin-bottom:10px;"></div>
+      <div style="height:64px;background:#0f172a;border-radius:8px;"></div>
+    </div>
+
+    <!-- Dark scrim -->
+    <div style="position:absolute;inset:0;background:rgba(3,7,18,0.85);"></div>
+
+    <!-- Overlay card -->
+    <div style="position:relative;z-index:2;background:#0f172a;border:1px solid rgba(16,185,129,0.3);border-radius:20px;padding:32px 36px;max-width:400px;width:90%;text-align:center;">
+
+      <div style="width:56px;height:56px;background:rgba(16,185,129,0.1);border:2px solid rgba(16,185,129,0.3);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;font-size:26px;">🔄</div>
+
+      <div style="font-size:22px;font-weight:900;color:#fff;margin-bottom:10px;line-height:1.2;">Trade without spending money</div>
+
+      <div style="font-size:14px;color:#94a3b8;line-height:1.65;margin-bottom:24px;">Swap your stuff, skills, and services directly with people nearby. No cash needed — just agree on a fair trade.</div>
+
+      <div style="background:#10b981;border-radius:12px;padding:15px;margin-bottom:12px;cursor:pointer;">
+        <span style="font-size:15px;font-weight:700;color:#000;">List my first item</span>
+      </div>
+
+      <div style="padding:10px;cursor:pointer;">
+        <span style="font-size:13px;color:#64748b;">Browse what's available first</span>
+      </div>
+
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);font-size:11px;color:#475569;">
+        🔒 Safe handover process &nbsp;·&nbsp; Verified users
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>How it behaves</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;">
+      <div class="label" style="margin-bottom:6px;">When it appears</div>
+      <p style="font-size:13px;color:#94a3b8;margin:0;line-height:1.5;">First login only. A <code style="font-size:11px;background:#1e293b;padding:1px 5px;border-radius:4px;">hasSeenWelcome</code> flag is saved to the user's profile. Never shown again after dismissal.</p>
+    </div>
+
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;">
+      <div class="label" style="margin-bottom:6px;">Primary button</div>
+      <p style="font-size:13px;color:#94a3b8;margin:0;line-height:1.5;">"List my first item" → opens the new 2-step listing wizard. Flag is marked seen.</p>
+    </div>
+
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;">
+      <div class="label" style="margin-bottom:6px;">Secondary button</div>
+      <p style="font-size:13px;color:#94a3b8;margin:0;line-height:1.5;">"Browse what's available first" → dismisses overlay, lands on home feed. Flag is marked seen.</p>
+    </div>
+
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:16px;">
+      <div class="label" style="margin-bottom:6px;">If they browse without listing</div>
+      <p style="font-size:13px;color:#94a3b8;margin:0;line-height:1.5;">A quiet nudge strip stays at the top of the home feed: "Nothing listed yet — <span style="color:#10b981;">add your first item</span>".</p>
+    </div>
+
+  </div>
+</div>
+
+<div style="margin-top:20px;">
+  <h3>Does this section look right?</h3>
+  <div class="options">
+    <div class="option" data-choice="approved" onclick="toggleSelect(this)">
+      <div class="letter" style="background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.4);color:#10b981;">✓</div>
+      <div class="content"><h3>Approved — move to next section</h3></div>
+    </div>
+    <div class="option" data-choice="changes" onclick="toggleSelect(this)">
+      <div class="letter">✎</div>
+      <div class="content"><h3>I want to change something</h3><p>Tell me what in the terminal</p></div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,120 @@
+<h2>The "Add Item" form — how simple should it go?</h2>
+<p class="subtitle">Right now the form has 9 fields. Non-technical users may abandon it. How far do we simplify?</p>
+
+<div class="cards" style="margin-top:24px;">
+
+  <div class="card" data-choice="minimal" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a; padding:16px; min-height:260px;">
+      <div style="margin-bottom:12px;">
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:6px;font-weight:600;">STEP 1 OF 2 — What are you offering?</div>
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;margin-bottom:8px;">
+          <div style="font-size:10px;color:#64748b;margin-bottom:3px;">Name</div>
+          <div style="font-size:12px;color:#94a3b8;">e.g. Samsung Galaxy S24</div>
+        </div>
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;margin-bottom:8px;">
+          <div style="font-size:10px;color:#64748b;margin-bottom:3px;">Describe it in a sentence or two</div>
+          <div style="font-size:12px;color:#94a3b8;">Good condition, barely used...</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
+          <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;">
+            <div style="font-size:10px;color:#64748b;margin-bottom:3px;">Category</div>
+            <div style="font-size:12px;color:#94a3b8;">Electronics ▾</div>
+          </div>
+          <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;">
+            <div style="font-size:10px;color:#64748b;margin-bottom:3px;">Photo</div>
+            <div style="font-size:12px;color:#10b981;">📷 Add</div>
+          </div>
+        </div>
+        <div style="background:#10b981;border-radius:10px;padding:10px;text-align:center;">
+          <span style="font-size:12px;font-weight:700;color:#000;">Next →</span>
+        </div>
+      </div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05);">
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:6px;font-weight:600;">STEP 2 OF 2 — What do you want in return?</div>
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;margin-bottom:8px;">
+          <div style="font-size:10px;color:#64748b;margin-bottom:3px;">What would you like to swap for?</div>
+          <div style="font-size:12px;color:#94a3b8;">A laptop, guitar lessons, plumbing...</div>
+        </div>
+        <div style="background:#10b981;border-radius:10px;padding:10px;text-align:center;">
+          <span style="font-size:12px;font-weight:700;color:#000;">List It</span>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>2-step wizard (4 fields total)</h3>
+      <p>Split into "What you have" and "What you want". Essential fields only. Everything else (value, condition, delivery, suburb) is optional or removed.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="guided" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a; padding:16px; min-height:260px;">
+      <div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:12px;">List an item or service</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <div style="flex:1;background:#10b981;border-radius:8px;padding:8px;text-align:center;"><span style="font-size:11px;font-weight:700;color:#000;">Item</span></div>
+        <div style="flex:1;background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;text-align:center;"><span style="font-size:11px;color:#64748b;">Service</span></div>
+      </div>
+      <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;margin-bottom:8px;">
+        <div style="font-size:10px;color:#64748b;margin-bottom:3px;">Name *</div>
+        <div style="font-size:12px;color:#94a3b8;">Samsung Galaxy S24</div>
+      </div>
+      <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;margin-bottom:8px;">
+        <div style="font-size:10px;color:#64748b;margin-bottom:3px;">Description * <span style="color:#7c3aed;">✨ Auto-write for me</span></div>
+        <div style="font-size:12px;color:#94a3b8;">Good condition, barely used...</div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;">
+          <div style="font-size:10px;color:#64748b;margin-bottom:3px;">Category *</div>
+          <div style="font-size:11px;color:#94a3b8;">Electronics ▾</div>
+        </div>
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;">
+          <div style="font-size:10px;color:#64748b;margin-bottom:3px;">Condition</div>
+          <div style="font-size:11px;color:#94a3b8;">Like New ▾</div>
+        </div>
+      </div>
+      <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;margin-bottom:8px;">
+        <div style="font-size:10px;color:#64748b;margin-bottom:3px;">What do you want in return? *</div>
+        <div style="font-size:12px;color:#94a3b8;">A laptop or tablet...</div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;">
+        <div style="flex:1;background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;">
+          <div style="font-size:10px;color:#64748b;margin-bottom:3px;">Value (ZAR) — optional</div>
+          <div style="font-size:12px;color:#94a3b8;">R 12,000</div>
+        </div>
+        <div style="flex:1;background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;">
+          <div style="font-size:10px;color:#64748b;margin-bottom:3px;">Photo — optional</div>
+          <div style="font-size:12px;color:#10b981;">📷 Add</div>
+        </div>
+      </div>
+      <div style="background:#10b981;border-radius:10px;padding:10px;text-align:center;">
+        <span style="font-size:12px;font-weight:700;color:#000;">Post Listing</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Cleaned-up single page (6 fields)</h3>
+      <p>Keep one page but cut delivery method, suburb, and the URL image workaround. Clearly mark required vs. optional. Promote the AI description button more prominently.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="current" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0f172a; padding:16px; min-height:260px;">
+      <div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:12px;">Add Asset</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Type</div><div style="font-size:11px;color:#94a3b8;">Item / Service</div></div>
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Title</div><div style="font-size:11px;color:#94a3b8;">Samsung Galaxy S24 Ultra</div></div>
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Description + AI Assist</div><div style="font-size:11px;color:#94a3b8;">Brand, model, age, accessories…</div></div>
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Category (8 options)</div></div>
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Estimated Value (ZAR)</div></div>
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Image URLs (up to 5)</div></div>
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Condition</div></div>
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Delivery Method</div></div>
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Suburb / Area</div></div>
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px;"><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">What are you looking for in exchange?</div></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Keep current (9 fields, relabelled)</h3>
+      <p>Just rename "Add Asset" to "List an Item", drop the code-style labels, and make required fields obvious. Same structure, cleaner language.</p>
+    </div>
+  </div>
+
+</div>
