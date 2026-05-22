@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams, useFetcher, Link } from "react-router";
 import { eq, ne, and, desc, inArray, ilike, or } from "drizzle-orm";
 import { AiServiceError, generateContent } from "~/lib/ai.server";
-import { Sparkles, Search, X, Radar } from "lucide-react";
+import { Sparkles, Search, X, Radar, Lock } from "lucide-react";
+import { getUserTier } from "~/lib/tier-limits.server";
+import { canUseAiFeature } from "~/lib/tier-limits";
 import type { Route } from "./+types/home";
 import type { ListingCard } from "~/lib/types";
 import { requireAuth } from "~/lib/auth.server";
@@ -182,6 +184,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     youHaveMatch: matchesSeeking(item.seekingDescription),
   }));
 
+  const tier = await getUserTier(user.id);
+
   return {
     listings: taggedItems,
     hasListings: ownListings.length > 0,
@@ -190,6 +194,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     needsLocation: !userProfile?.lat || !userProfile?.lng,
     searchQuery: searchQuery ?? null,
     scope,
+    canUseAiMatching: canUseAiFeature(tier, "ai_matching"),
   };
 }
 
@@ -204,6 +209,11 @@ export async function action({ request }: Route.ActionArgs) {
   }
 
   const { user } = await requireAuth(request);
+
+  const tier = await getUserTier(user.id);
+  if (!canUseAiFeature(tier, "ai_matching")) {
+    return { error: "ai_tier_restricted" };
+  }
 
   const url = new URL(request.url);
   const regionParam = url.searchParams.get("region");
@@ -336,7 +346,7 @@ export default function DashboardHome({
   const scope = (searchParams.get("scope") ?? "local") as "local" | "national";
   const radiusKm = Number(searchParams.get("radius") ?? "10");
   const fetcher = useFetcher<typeof action>();
-  const { currentRegion, searchQuery } = loaderData;
+  const { currentRegion, searchQuery, canUseAiMatching } = loaderData;
 
   // ── Client-side debounced search (300 ms) ──
   const [inputValue, setInputValue] = useState(searchQuery ?? "");
@@ -434,17 +444,28 @@ export default function DashboardHome({
         </div>
 
         {/* AI Match button */}
-        <fetcher.Form method="post">
-          <input type="hidden" name="intent" value="aiMatch" />
-          <button
-            type="submit"
-            disabled={isMatching}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-widest border transition-all disabled:opacity-50 disabled:cursor-wait bg-purple-500/10 text-purple-400 border-purple-500/30 hover:bg-purple-500/20 hover:border-purple-500/50"
+        {canUseAiMatching ? (
+          <fetcher.Form method="post">
+            <input type="hidden" name="intent" value="aiMatch" />
+            <button
+              type="submit"
+              disabled={isMatching}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-widest border transition-all disabled:opacity-50 disabled:cursor-wait bg-purple-500/10 text-purple-400 border-purple-500/30 hover:bg-purple-500/20 hover:border-purple-500/50"
+            >
+              {isMatching ? <Spinner className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
+              {isMatching ? "Matching…" : "AI Match"}
+            </button>
+          </fetcher.Form>
+        ) : (
+          <Link
+            to="/dashboard/billing"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-widest border bg-white/[0.03] text-slate-500 border-white/10 hover:text-emerald-400 hover:border-emerald-500/30 transition-all"
+            title="Upgrade to Plus to use AI Match"
           >
-            {isMatching ? <Spinner className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
-            {isMatching ? "Matching…" : "AI Match"}
-          </button>
-        </fetcher.Form>
+            <Lock className="w-3 h-3" />
+            AI Match — Plus only
+          </Link>
+        )}
       </div>
 
       {/* Search bar */}
@@ -476,7 +497,7 @@ export default function DashboardHome({
           Add listings first to get AI matches
         </div>
       )}
-      {matchError && matchError !== "no_listings" && (
+      {matchError && matchError !== "no_listings" && matchError !== "ai_tier_restricted" && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-xs text-red-400 font-mono">
           {matchError}
         </div>
