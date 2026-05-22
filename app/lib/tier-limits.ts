@@ -37,3 +37,23 @@ export function listingLimitFor(planCode: string | null | undefined): number {
  *  - app/routes/dashboard/billing.tsx (Business tier card)
  */
 export const BUSINESS_PRODUCTS_LIVE = false;
+
+export const AI_FEATURE_TIERS = {
+  ai_description: ["plus", "business", "enterprise"],
+  ai_matching:    ["plus", "business", "enterprise"],
+  ai_chat:        ["plus", "business", "enterprise"],
+} satisfies Record<string, TierCode[]>;
+
+export type AiFeature = keyof typeof AI_FEATURE_TIERS;
+
+/**
+ * Returns true if the given plan tier can access the named AI feature.
+ * The AI meetup spot suggester is intentionally NOT in this map — it is open to all tiers.
+ */
+export function canUseAiFeature(
+  planCode: string | null | undefined,
+  feature: AiFeature,
+): boolean {
+  const tier = normalizeTierCode(planCode);
+  return (AI_FEATURE_TIERS[feature] as TierCode[]).includes(tier);
+}
