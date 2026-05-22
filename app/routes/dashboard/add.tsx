@@ -30,8 +30,9 @@ import type { Route } from "./+types/add";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import { listings, listingImages } from "~/lib/schema";
-import { getListingUsage } from "~/lib/tier-limits.server";
+import { getListingUsage, getUserTier } from "~/lib/tier-limits.server";
 import type { ListingUsage } from "~/lib/tier-limits";
+import { canUseAiFeature } from "~/lib/tier-limits";
 import {
   validateImageUrl,
   sanitizeImageUrl,
@@ -145,6 +146,9 @@ Requirements:
   const formData = await request.formData();
   const intent = formData.get("intent") as string | null;
 
+  // Auth gate for all intents (requireAuth throws redirect to /login if not authenticated)
+  const { user } = await requireAuth(request);
+
   // ── AI Description ────────────────────────────────────────
   if (intent === "aiDescription") {
     const title = (formData.get("title") as string) || "";
@@ -152,6 +156,11 @@ Requirements:
 
     if (!title.trim()) {
       return { aiError: "Enter a title first so the AI can help." };
+    }
+
+    const tier = await getUserTier(user.id);
+    if (!canUseAiFeature(tier, "ai_description")) {
+      return { aiError: "ai_tier_restricted" };
     }
 
     try {
@@ -172,7 +181,6 @@ Requirements:
   }
 
   // ── Create Listing (default) ──────────────────────────────
-  const { user } = await requireAuth(request);
 
   // Defense-in-depth: re-check the active-listing limit on submit.
   // Primary UX path is the loader-driven upgrade panel in the component;
@@ -267,7 +275,8 @@ export default function AddAsset({ loaderData, actionData }: Route.ComponentProp
     return <LimitReachedPanel usage={usage} />;
   }
 
-  return <AddAssetForm actionData={actionData} />;
+  const canUseAiDescription = canUseAiFeature(usage.planCode, "ai_description");
+  return <AddAssetForm actionData={actionData} canUseAiDescription={canUseAiDescription} />;
 }
 
 function LimitReachedPanel({ usage }: { usage: ListingUsage }) {
@@ -340,8 +349,10 @@ function LimitReachedPanel({ usage }: { usage: ListingUsage }) {
 
 function AddAssetForm({
   actionData,
+  canUseAiDescription,
 }: {
   actionData: Route.ComponentProps["actionData"];
+  canUseAiDescription: boolean;
 }) {
   const [type, setType] = useState<"item" | "service">("item");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
@@ -569,19 +580,30 @@ function AddAssetForm({
                 className="text-[10px] font-mono uppercase tracking-widest text-slate-400"
               >
               </label>
-              <button
-                type="button"
-                onClick={handleAiAssist}
-                disabled={isAiLoading}
-                className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-400 hover:text-purple-300 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors"
-              >
-                {isAiLoading ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="w-3.5 h-3.5" />
-                )}
-                {isAiLoading ? "Generating…" : "AI Assist"}
-              </button>
+              {canUseAiDescription ? (
+                <button
+                  type="button"
+                  onClick={handleAiAssist}
+                  disabled={isAiLoading}
+                  className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-400 hover:text-purple-300 disabled:text-slate-600 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isAiLoading ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="w-3.5 h-3.5" />
+                  )}
+                  {isAiLoading ? "Generating…" : "AI Assist"}
+                </button>
+              ) : (
+                <Link
+                  to="/dashboard/billing"
+                  className="flex items-center gap-1.5 text-[11px] font-mono font-bold uppercase tracking-widest text-slate-500 hover:text-emerald-400 transition-colors"
+                  title="Upgrade to Plus to use AI Assist"
+                >
+                  <Lock className="w-3 h-3" />
+                  Plus only
+                </Link>
+              )}
             </div>
             <Textarea
               ref={descriptionRef}
@@ -645,8 +667,17 @@ function AddAssetForm({
             )}
 
             {/* AI error */}
-            {aiError && !isAiLoading && (
-              <p className="mt-2 text-xs text-amber-400">{aiError}</p>
+            {aiData && "aiError" in aiData && (
+              <p className="mt-2 text-xs text-red-400">
+                {aiData.aiError === "ai_tier_restricted"
+                  ? "AI Assist is available on Plus and above. "
+                  : aiData.aiError}
+                {aiData.aiError === "ai_tier_restricted" && (
+                  <Link to="/dashboard/billing" className="underline text-emerald-400 hover:text-emerald-300">
+                    Upgrade plan →
+                  </Link>
+                )}
+              </p>
             )}
           </div>
 
