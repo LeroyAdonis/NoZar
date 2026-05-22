@@ -28,6 +28,7 @@ export default [
     route("map", "routes/dashboard/map.tsx"),
     route("add", "routes/dashboard/add.tsx"),
     route("trade/:id", "routes/dashboard/trade.$id.tsx"),
+    route("chat/:tradeId", "routes/dashboard/chat.$tradeId.tsx"),
     route("profile", "routes/dashboard/profile.tsx"),
     route("billing", "routes/dashboard/billing.tsx"),
     route("verify-phone", "routes/dashboard/verify-phone.tsx"),
