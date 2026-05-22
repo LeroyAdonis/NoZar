@@ -5,6 +5,7 @@ import {
   listingLimitFor,
   normalizeTierCode,
   type ListingUsage,
+  type TierCode,
 } from "./tier-limits";
 
 export type { ListingUsage } from "./tier-limits";
@@ -34,4 +35,17 @@ export async function getListingUsage(userId: string): Promise<ListingUsage> {
     overLimit: activeCount > listingLimit,
     remaining: Math.max(0, listingLimit - activeCount),
   };
+}
+
+/**
+ * Lightweight helper that fetches only the user's tier code from subscriptions.
+ * Use this when you don't need the full ListingUsage object.
+ */
+export async function getUserTier(userId: string): Promise<TierCode> {
+  const [sub] = await db
+    .select({ planCode: subscriptions.planCode })
+    .from(subscriptions)
+    .where(eq(subscriptions.userId, userId))
+    .limit(1);
+  return normalizeTierCode(sub?.planCode);
 }
