@@ -14,6 +14,7 @@ import {
   Cpu,
 } from "lucide-react";
 
+import { PromoBanner } from "~/components/landing/promo-banner";
 import { TrustBadgesSection } from "~/components/landing/trust-badges-section";
 import { PricingSection } from "~/components/landing/pricing-section";
 import { FaqSection } from "~/components/landing/faq-section";
@@ -132,13 +133,8 @@ export default function LandingPage({
         <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/cubes.png')] opacity-[0.02]" />
       </div>
 
-      {/* MVP Beta Banner */}
-      <div className="fixed top-0 w-full z-[60] bg-emerald-500/10 border-b border-emerald-500/20 py-2 text-center backdrop-blur-md">
-        <p className="text-[9px] font-mono uppercase tracking-[0.2em] text-emerald-400">
-          <span className="inline-block animate-pulse mr-2">●</span>
-          Beta — live in Joburg &amp; Cape Town
-        </p>
-      </div>
+      {/* Promo Banner */}
+      <PromoBanner isLoggedIn={isLoggedIn} />
 
       {/* Fixed Navbar */}
       <nav
