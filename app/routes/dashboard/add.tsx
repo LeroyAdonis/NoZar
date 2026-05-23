@@ -29,7 +29,8 @@ import { AiServiceError, generateContent } from "~/lib/ai.server";
 import type { Route } from "./+types/add";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
-import { listings, listingImages } from "~/lib/schema";
+import { listings, listingImages, profiles } from "~/lib/schema";
+import { eq } from "drizzle-orm";
 import { getListingUsage, getUserTier } from "~/lib/tier-limits.server";
 import type { ListingUsage } from "~/lib/tier-limits";
 import { canUseAiFeature } from "~/lib/tier-limits";
@@ -64,6 +65,13 @@ const selectStyles =
 
 const textareaStyles =
   "w-full rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 resize-none";
+
+// ─── Helpers ───────────────────────────────────────────────────
+
+/** Apply ±0.005° (~±500 m) random offset so co-located pins remain visible. */
+function jitterCoord(value: number): number {
+  return value + (Math.random() - 0.5) * 0.01;
+}
 
 // ─── Meta ──────────────────────────────────────────────────────
 
@@ -234,6 +242,22 @@ Requirements:
     geo = await geocodeSuburb(suburb.trim());
   }
 
+  // Fallback: use profile coords when geocoding yielded nothing
+  if (!geo) {
+    const [profile] = await db
+      .select({ lat: profiles.lat, lng: profiles.lng })
+      .from(profiles)
+      .where(eq(profiles.userId, user.id))
+      .limit(1);
+    if (profile?.lat != null && profile?.lng != null) {
+      geo = { lat: profile.lat, lng: profile.lng };
+    }
+  }
+
+  // Apply jitter so co-located pins don't stack at identical pixels
+  const finalLat = geo ? jitterCoord(geo.lat) : null;
+  const finalLng = geo ? jitterCoord(geo.lng) : null;
+
   const [inserted] = await db
     .insert(listings)
     .values({
@@ -247,8 +271,8 @@ Requirements:
       deliveryMethod: deliveryMethod || null,
       seekingDescription: seekingDescription?.trim() || null,
       status: "active",
-      lat: geo?.lat ?? null,
-      lng: geo?.lng ?? null,
+      lat: finalLat,
+      lng: finalLng,
     })
     .returning({ id: listings.id });
 

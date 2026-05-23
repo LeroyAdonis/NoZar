@@ -200,6 +200,7 @@ export function NozarMap({
           map: mapInstance,
           title: pin.title,
           content: pin_elem.element,
+          zIndex: 10,
         });
 
         if (onPinClick) {
