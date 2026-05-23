@@ -1,25 +1,27 @@
 import { data, Form, Link } from "react-router";
 import type { Route } from "./+types/trade.$id";
-import { eq } from "drizzle-orm";
+import { eq, aliasedTable } from "drizzle-orm";
 import { db } from "~/lib/db.server";
-import { tradeProposals, listings, users } from "~/lib/schema";
+import { tradeProposals, listings } from "~/lib/schema";
 import { requireAuth } from "~/lib/auth.server";
 import { ChevronLeft } from "lucide-react";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
   await requireAuth(request);
   const tradeId = Number(params.id);
+
+  const targetListing = aliasedTable(listings, "target_listing");
+  const offeredListing = aliasedTable(listings, "offered_listing");
   
   const [proposal] = await db
     .select({
       proposal: tradeProposals,
-      target: listings,
-      offered: listings,
+      target: targetListing,
+      offered: offeredListing,
     })
     .from(tradeProposals)
-    .innerJoin(listings, eq(tradeProposals.targetItemId, listings.id))
-    // Note: This join is tricky with two listings. Drizzle might need aliases.
-    // For now, let's keep it simple.
+    .innerJoin(targetListing, eq(tradeProposals.targetItemId, targetListing.id))
+    .innerJoin(offeredListing, eq(tradeProposals.offeredItemId, offeredListing.id))
     .where(eq(tradeProposals.id, tradeId))
     .limit(1);
 

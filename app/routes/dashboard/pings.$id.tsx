@@ -45,7 +45,7 @@ import {
   tradeCompletedEmail,
 } from "~/lib/email.server";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
-import { TrustBadge } from "~/components/ui/trust-badge";
+import { TrustBadge, type TrustLevel } from "~/components/ui/trust-badge";
 import { ReportModal } from "~/components/ui/report-modal";
 import { SafeZonePicker } from "~/components/ui/safezone-picker";
 import { BalancePile } from "~/components/ui/balance-pile";
@@ -214,7 +214,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     currentUserId: user.id,
     hasRated: !!existingRating,
     existingRatingScore: existingRating?.score ?? null,
-    myTrust: myTrust || { level: "newcomer" as const, completedTrades: 0 },
+    myTrust: (myTrust ?? { level: "newcomer", completedTrades: 0 }) as { level: TrustLevel; completedTrades: number },
     isReady: myReadyRow[0]?.ready ?? false,
     theyReady: theirReadyRow[0]?.ready ?? false,
     spots,
@@ -324,6 +324,10 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
 
     case "counterOffer": {
+      const offerText = (formData.get("text") as string)?.trim();
+      if (!offerText) {
+        return { error: "Counter-offer message cannot be empty" };
+      }
       await db.insert(messages).values({
         tradeId,
         senderId: user.id,
@@ -554,25 +558,25 @@ export async function action({ request, params }: Route.ActionArgs) {
           .set({ level, completedTrades, averageRating, lastActiveAt: new Date(), updatedAt: new Date() })
           .where(eq(trustProfiles.userId, uid));
 
-        // Email both participants about trade completion (non-blocking)
-        if (cpForComplete?.email) {
-          tradeCompletedEmail({
-            to: cpForComplete.email,
-            recipientName: cpForComplete.name,
-            otherName: uid === counterpartyId ? user.name : cpForComplete.name,
-            tradeId,
-            listingTitle: listingForComplete?.title ?? "a listing",
-          }).catch(() => {});
-        }
-        // Also email the current user (they initiated completion)
+      }
+
+      // Email both participants about trade completion (non-blocking, outside loop to avoid duplicates)
+      if (cpForComplete?.email) {
         tradeCompletedEmail({
-          to: user.email,
-          recipientName: user.name,
-          otherName: cpForComplete?.name ?? "your trading partner",
+          to: cpForComplete.email,
+          recipientName: cpForComplete.name,
+          otherName: user.name,
           tradeId,
           listingTitle: listingForComplete?.title ?? "a listing",
         }).catch(() => {});
       }
+      tradeCompletedEmail({
+        to: user.email,
+        recipientName: user.name,
+        otherName: cpForComplete?.name ?? "your trading partner",
+        tradeId,
+        listingTitle: listingForComplete?.title ?? "a listing",
+      }).catch(() => {});
 
       return { ok: true };
     }
@@ -2158,7 +2162,7 @@ function MessageInput({
   status: string;
   isSubmitting: boolean;
   submittingIntent: string | null;
-  myTrust?: { level: string; completedTrades: number };
+  myTrust?: { level: TrustLevel; completedTrades: number };
   messagesRemaining?: number;
   onBalanceClick?: () => void;
 }) {
