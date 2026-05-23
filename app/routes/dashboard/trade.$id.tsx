@@ -7,7 +7,7 @@ import { requireAuth } from "~/lib/auth.server";
 import { ChevronLeft } from "lucide-react";
 
 export async function loader({ request, params }: Route.LoaderArgs) {
-  await requireAuth(request);
+  const { user } = await requireAuth(request);
   const tradeId = Number(params.id);
 
   const targetListing = aliasedTable(listings, "target_listing");
@@ -29,7 +29,55 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     throw data(null, { status: 404 });
   }
 
-  return { proposal };
+  return { proposal, currentUserId: user.id };
+}
+
+export async function action({ request, params }: Route.ActionArgs) {
+  const { user } = await requireAuth(request);
+  const tradeId = Number(params.id);
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  // Verify proposal exists and user is the receiver
+  const [proposal] = await db
+    .select({ receiverId: tradeProposals.receiverId, status: tradeProposals.status })
+    .from(tradeProposals)
+    .where(eq(tradeProposals.id, tradeId))
+    .limit(1);
+
+  if (!proposal) {
+    return { success: false, error: "Trade proposal not found." };
+  }
+
+  if (proposal.receiverId !== user.id) {
+    return { success: false, error: "Only the recipient can respond to this proposal." };
+  }
+
+  if (proposal.status !== "pending") {
+    return { success: false, error: "This proposal has already been responded to." };
+  }
+
+  let newStatus: string;
+  switch (intent) {
+    case "accept":
+      newStatus = "accepted";
+      break;
+    case "decline":
+      newStatus = "declined";
+      break;
+    case "counter":
+      newStatus = "countered";
+      break;
+    default:
+      return { success: false, error: "Invalid intent." };
+  }
+
+  await db
+    .update(tradeProposals)
+    .set({ status: newStatus, updatedAt: new Date() })
+    .where(eq(tradeProposals.id, tradeId));
+
+  return { success: true, intent };
 }
 
 export default function TradePage({ loaderData }: Route.ComponentProps) {

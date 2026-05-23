@@ -42,7 +42,7 @@ export default function LegalLayout() {
       <footer className="relative z-10 border-t border-white/5 px-6 py-8">
         <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="font-mono text-[10px] uppercase tracking-widest text-slate-600">
-            © 2026 NoZar. All rights reserved.
+            © {new Date().getFullYear()} NoZar. All rights reserved.
           </p>
           <nav className="flex items-center gap-6">
             <Link

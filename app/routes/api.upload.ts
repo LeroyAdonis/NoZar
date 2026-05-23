@@ -1,5 +1,6 @@
 import { type ActionFunctionArgs } from "react-router";
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
+import { requireAuth } from "~/lib/auth.server";
 
 /**
  * Client-upload endpoint for Vercel Blob.
@@ -12,6 +13,8 @@ import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
  * so the serverless-function 4.5 MB body limit is never hit.
  */
 export async function action({ request }: ActionFunctionArgs) {
+  await requireAuth(request);
+
   const token = process.env.BLOB_READ_WRITE_TOKEN;
   if (!token) {
     return Response.json(

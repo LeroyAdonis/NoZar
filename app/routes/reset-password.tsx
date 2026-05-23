@@ -14,7 +14,9 @@ export async function loader({ request }: Route.LoaderArgs) {
   if (session) {
     throw redirect("/dashboard");
   }
-  return {};
+  const url = new URL(request.url);
+  const token = url.searchParams.get("token") ?? "";
+  return { token };
 }
 
 export function meta({}: Route.MetaArgs) {
@@ -26,17 +28,13 @@ export function meta({}: Route.MetaArgs) {
 
 const SAFE_RESET_ERROR = "Unable to reset your password right now. Please try again.";
 
-export default function ResetPasswordPage(_props: Route.ComponentProps) {
+export default function ResetPasswordPage({ loaderData }: Route.ComponentProps) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [token] = useState(
-    typeof window !== "undefined"
-      ? new URLSearchParams(window.location.search).get("token") ?? ""
-      : "",
-  );
+  const token = loaderData.token;
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,15 +104,14 @@ export default function ResetPasswordPage(_props: Route.ComponentProps) {
             Your password has been updated. Sign in with your new password.
           </p>
 
-          <button
-            type="button"
-            onClick={() => navigate("/login")}
+          <Button
+            variant="nozar"
+            size="lg"
             className="w-full"
+            onClick={() => navigate("/login")}
           >
-            <Button variant="nozar" size="lg" className="w-full">
-              Sign In
-            </Button>
-          </button>
+            Sign In
+          </Button>
         </div>
       </div>
     );

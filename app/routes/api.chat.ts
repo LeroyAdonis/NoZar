@@ -24,12 +24,12 @@ export async function action({ request }: ActionFunctionArgs) {
       status: 200,
       headers: { "Content-Type": "application/json" },
     });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("/api/chat error:", err);
     const error =
       err instanceof AiServiceError
         ? err.code
-        : err?.message || "server_error";
+        : "server_error";
     return new Response(JSON.stringify({ error }), { status: 500 });
   }
 }

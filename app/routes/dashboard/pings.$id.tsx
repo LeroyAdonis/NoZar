@@ -971,6 +971,8 @@ export default function PingDetail({
   const navigation = useNavigation();
   const revalidator = useRevalidator();
   const scrollRef = useRef<HTMLDivElement>(null);
+  const revalidatorRef = useRef(revalidator);
+  revalidatorRef.current = revalidator;
   const isSubmitting = navigation.state === "submitting";
   const submittingIntent = isSubmitting
     ? (navigation.formData?.get("intent") as string | null)
@@ -1033,6 +1035,7 @@ export default function PingDetail({
   const handleBalanceSubmit = (
     items: Array<{ listingId?: number; description?: string; estimatedValue?: number }>,
   ) => {
+    let mounted = true;
     const requests = items.map((item) => {
       const fd = new FormData();
       fd.set("intent", "addTradeItem");
@@ -1043,45 +1046,50 @@ export default function PingDetail({
       fd.set("type", item.listingId != null ? "listing" : "service_extension");
       return fetch(`/dashboard/pings/${trade.id}`, { method: "post", body: fd });
     });
-    Promise.all(requests).then(() => revalidator.revalidate());
+    Promise.all(requests).then(() => {
+      if (mounted) revalidator.revalidate();
+    });
     setShowBalancePile(false);
+    return () => { mounted = false; };
   };
 
   // ── SSE for real-time message updates ────────────────────
   // Opens a persistent connection; revalidates only when the server
   // signals new messages — eliminates constant 2 s polling.
   useEffect(() => {
+    let mounted = true;
+
+    function safeRevalidate() {
+      if (mounted && revalidatorRef.current.state === "idle") {
+        revalidatorRef.current.revalidate();
+      }
+    }
+
     // Fallback for environments that don't support EventSource (e.g. old WebViews)
     if (typeof EventSource === "undefined") {
-      const interval = setInterval(() => {
-        if (revalidator.state === "idle") revalidator.revalidate();
-      }, 5000);
-      return () => clearInterval(interval);
+      const interval = setInterval(safeRevalidate, 5000);
+      return () => { mounted = false; clearInterval(interval); };
     }
 
     const es = new EventSource(`/api/chat-stream/${trade.id}`);
 
-    es.addEventListener("new-messages", () => {
-      if (revalidator.state === "idle") revalidator.revalidate();
-    });
+    es.addEventListener("new-messages", safeRevalidate);
 
     es.onerror = () => {
-      // On a permanent error the browser will retry automatically;
-      // close explicitly to prevent zombie connections on unmount.
       es.close();
     };
 
-    return () => es.close();
-  }, [trade.id, revalidator]);
+    return () => { mounted = false; es.close(); };
+  }, [trade.id]);
 
   // Immediate revalidation after action completes
   const prevNavState = useRef(navigation.state);
   useEffect(() => {
     if (prevNavState.current === "loading" && navigation.state === "idle") {
-      if (revalidator.state === "idle") revalidator.revalidate();
+      if (revalidatorRef.current.state === "idle") revalidatorRef.current.revalidate();
     }
     prevNavState.current = navigation.state;
-  }, [navigation.state, revalidator]);
+  }, [navigation.state]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {

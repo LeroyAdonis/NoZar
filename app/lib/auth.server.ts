@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { redirect } from "react-router";
@@ -83,7 +84,8 @@ function escapeHtml(str: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 export const auth = betterAuth({
@@ -101,7 +103,7 @@ export const auth = betterAuth({
         after: async (user) => {
           const { users } = await import("./schema");
           const { eq } = await import("drizzle-orm");
-          const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+          const code = randomBytes(4).toString("hex").toUpperCase();
           await db.update(users).set({ referralCode: code }).where(eq(users.id, user.id));
         },
       },
@@ -115,26 +117,31 @@ export const auth = betterAuth({
       },
     },
   },
-  emailAndPassword: {
+    emailAndPassword: {
     enabled: true,
     async sendResetPassword({ user, url }) {
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
 
-      // Don't await — prevent timing attacks; serverless platforms
-      // need waitUntil or similar to ensure delivery.
-      void resend.emails.send({
+      const promise = resend.emails.send({
         from: "NoZar <noreply@nozar.app>",
         to: user.email,
         subject: "Reset Your NoZar Password",
         html: getResetPasswordEmailHtml(url, user.name),
       });
+
+      const wt = (globalThis as { waitUntil?: (p: Promise<unknown>) => void }).waitUntil;
+      if (typeof wt === "function") {
+        wt(promise);
+      } else {
+        await promise;
+      }
     },
   },
   socialProviders: {
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID ?? "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
     },
   },
   session: {

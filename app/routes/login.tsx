@@ -52,6 +52,7 @@ export default function LoginPage() {
         password,
         fetchOptions: {
           onSuccess: () => {
+            setLoading(false);
             navigate("/dashboard");
           },
           onError: (ctx) => {
@@ -73,6 +74,12 @@ export default function LoginPage() {
       await authClient.signIn.social({
         provider: "google",
         callbackURL: "/dashboard",
+        fetchOptions: {
+          onError: (ctx) => {
+            setError(getLoginErrorMessage(ctx.error));
+            setLoading(false);
+          },
+        },
       });
     } catch {
       setError(SAFE_LOGIN_ERROR);

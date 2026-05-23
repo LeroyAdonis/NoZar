@@ -28,14 +28,14 @@ export async function action({ request }: ActionFunctionArgs) {
     );
   }
 
-  await cancelSubscription(sub.token);
+  const payfastResult = await cancelSubscription(sub.token);
 
   // PayFast will fire an ITN with payment_status=CANCELLED; the webhook
   // updates subscriptions.status. We optimistically mark it cancelled now
   // for immediate UI feedback.
   await db
     .update(subscriptions)
-    .set({ status: "cancelled", updatedAt: new Date() })
+    .set({ status: "cancelled", updatedAt: new Date(), subscriptionToken: null })
     .where(eq(subscriptions.userId, user.id));
 
   return data({ ok: true }, { status: 200 });

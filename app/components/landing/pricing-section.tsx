@@ -127,7 +127,6 @@ export function PricingSection() {
         {visibleTiers.map((tier) => (
           <StaggerItem key={tier.name}>
           <Card
-            key={tier.name}
             variant="glass"
             className={`flex flex-col relative transition-all duration-500 ${
               tier.popular

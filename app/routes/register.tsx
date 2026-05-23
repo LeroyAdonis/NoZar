@@ -1,16 +1,14 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, redirect } from "react-router";
 import type { Route } from "./+types/register";
 import { authClient } from "~/lib/auth.client";
-import { redirect } from "react-router";
+import { getOptionalSession } from "~/lib/auth.server";
 import { parse } from "cookie";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
-import { Repeat } from "lucide-react";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 
 export async function loader({ request }: Route.LoaderArgs) {
-  const { getOptionalSession } = await import("~/lib/auth.server");
   const session = await getOptionalSession(request);
   if (session) {
     throw redirect("/dashboard");
@@ -43,27 +41,23 @@ export default function RegisterPage() {
       password,
       name,
       fetchOptions: {
-        onSuccess: async (ctx) => {
-          // Record referral if cookie exists
-          const cookies = parse(document.cookie);
-          const referrerId = cookies.referrerId;
-          if (referrerId && ctx.data?.user?.id) {
-            try {
-              // We need to do this on the server really, but Better Auth hooks are better for this.
-              // For now, we'll just redirect and hope a future enhancement handles it properly
-              // OR we can call a hidden API.
-              // Given the constraints, let's at least try to fetch a completion endpoint.
-              await fetch("/api/refer/complete", { 
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ referrerId, refereeId: ctx.data.user.id })
-              });
-            } catch (e) {
-              console.error("Failed to record referral:", e);
+          onSuccess: async (ctx) => {
+            const cookies = parse(document.cookie);
+            const referrerId = cookies.referrerId;
+            if (referrerId && ctx.data?.user?.id) {
+              try {
+                await fetch("/api/refer/complete", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ referrerId, refereeId: ctx.data.user.id }),
+                });
+              } catch (e) {
+                console.error("Failed to record referral:", e);
+              }
             }
-          }
-          navigate("/dashboard");
-        },
+            setLoading(false);
+            navigate("/dashboard");
+          },
         onError: (ctx) => {
           setError(ctx.error.message ?? "Registration failed");
           setLoading(false);
@@ -73,10 +67,23 @@ export default function RegisterPage() {
   };
 
   const handleGoogleSignIn = async () => {
-    await authClient.signIn.social({
-      provider: "google",
-      callbackURL: "/dashboard",
-    });
+    setLoading(true);
+    setError("");
+    try {
+      await authClient.signIn.social({
+        provider: "google",
+        callbackURL: "/dashboard",
+        fetchOptions: {
+          onError: (ctx) => {
+            setError(ctx.error.message ?? "Registration failed");
+            setLoading(false);
+          },
+        },
+      });
+    } catch {
+      setError("Unable to sign in right now. Please try again.");
+      setLoading(false);
+    }
   };
 
   return (
@@ -171,6 +178,7 @@ export default function RegisterPage() {
           size="lg"
           className="w-full"
           onClick={handleGoogleSignIn}
+          disabled={loading}
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24">
             <path

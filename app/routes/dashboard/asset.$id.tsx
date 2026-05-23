@@ -632,7 +632,7 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
                   </p>
                   {(selectedItem?.estimatedValueZar ?? (userInventory?.length === 1 ? userInventory[0].estimatedValueZar : null)) != null && (
                     <p className="text-[10px] font-mono text-emerald-400">
-                      ~R{((selectedItem?.estimatedValueZar ?? userInventory![0].estimatedValueZar) ?? 0).toLocaleString("en-ZA")}
+                      ~R{((selectedItem?.estimatedValueZar ?? userInventory?.[0]?.estimatedValueZar ?? 0)).toLocaleString("en-ZA")}
                     </p>
                   )}
                 </div>

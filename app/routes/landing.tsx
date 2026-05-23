@@ -130,7 +130,7 @@ export default function LandingPage({
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-emerald-900/20 blur-[150px]" />
         <div className="absolute top-[40%] right-[-20%] w-[60%] h-[60%] rounded-full bg-cyan-900/10 blur-[150px]" />
-        <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/cubes.png')] opacity-[0.02]" />
+        <div className="absolute inset-0 bg-[url('/patterns/cubes.png')] opacity-[0.02]" />
       </div>
 
       {/* Promo Banner */}
@@ -335,7 +335,7 @@ export default function LandingPage({
           </div>
           {/* TASK 10 COMPLETE */}
           <Link
-            to="/refer"
+            to="/dashboard/refer"
             className="text-emerald-500 hover:text-emerald-400 font-mono text-sm underline"
           >
             Know someone with something to trade?

@@ -9,6 +9,7 @@
  * AT docs: https://developers.africastalking.com/docs/sms/sending
  */
 
+import { randomInt } from "node:crypto";
 import { eq, and, gt } from "drizzle-orm";
 import { db } from "./db.server";
 import { verifications } from "./schema";
@@ -57,11 +58,9 @@ export function normalizeZaPhone(raw: string): string | null {
 
 // ─── OTP core ───────────────────────────────────────────────────
 
-/** Generate a random 6-digit numeric OTP. */
+/** Generate a random 6-digit numeric OTP using a CSPRNG. */
 function generateCode(): string {
-  // Math.random is fine for a time-limited, server-side OTP — no need for
-  // cryptographic strength here given the short TTL and rate-limit context.
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return String(randomInt(100000, 999999));
 }
 
 /**

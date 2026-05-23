@@ -69,28 +69,30 @@ export async function loader({ request, params }: Route.LoaderArgs) {
       }
 
       // Poll the DB every 3 s — much cheaper than a 2 s full-page reload per client
-      const pollInterval = setInterval(async () => {
-        if (request.signal.aborted) {
-          cleanup();
-          return;
-        }
-        try {
-          const [[{ value: currentCount }], [{ value: currentVoteCount }]] = await Promise.all([
-            db.select({ value: count() }).from(messages).where(eq(messages.tradeId, tradeId)),
-            db.select({ value: count() }).from(meetupVotes).where(eq(meetupVotes.tradeId, tradeId)),
-          ]);
+      const pollInterval = setInterval(() => {
+        (async () => {
+          if (request.signal.aborted) {
+            cleanup();
+            return;
+          }
+          try {
+            const [[{ value: currentCount }], [{ value: currentVoteCount }]] = await Promise.all([
+              db.select({ value: count() }).from(messages).where(eq(messages.tradeId, tradeId)),
+              db.select({ value: count() }).from(meetupVotes).where(eq(meetupVotes.tradeId, tradeId)),
+            ]);
 
-          if (currentCount !== lastCount) {
-            lastCount = currentCount;
-            sendEvent("new-messages", String(currentCount));
+            if (currentCount !== lastCount) {
+              lastCount = currentCount;
+              sendEvent("new-messages", String(currentCount));
+            }
+            if (currentVoteCount !== lastVoteCount) {
+              lastVoteCount = currentVoteCount;
+              sendEvent("votes-changed", String(currentVoteCount));
+            }
+          } catch {
+            // Silently skip on transient DB errors; client stays connected.
           }
-          if (currentVoteCount !== lastVoteCount) {
-            lastVoteCount = currentVoteCount;
-            sendEvent("new-messages", String(currentCount));
-          }
-        } catch {
-          // Silently skip on transient DB errors; client stays connected.
-        }
+        })().catch((err) => console.warn("[sse] poll error:", err));
       }, 3000);
 
       // Heartbeat every 25 s to keep the connection alive through proxies

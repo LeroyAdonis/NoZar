@@ -26,8 +26,8 @@ function isEmailPasswordSignInRequest(request: Request): boolean {
 function isSocialAuthRequest(request: Request): boolean {
   const { pathname } = new URL(request.url);
   return (
-    pathname.includes("/sign-in/social") ||
-    pathname.includes("/callback/")
+    pathname.endsWith("/sign-in/social") ||
+    /\/callback\/\w+$/.test(pathname)
   );
 }
 

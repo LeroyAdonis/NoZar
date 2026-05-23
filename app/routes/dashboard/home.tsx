@@ -356,6 +356,12 @@ export default function DashboardHome({
     setInputValue(searchQuery ?? "");
   }, [searchQuery]);
 
+  // Clear debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
   function handleSearchInput(value: string) {
     setInputValue(value);
     if (debounceRef.current) clearTimeout(debounceRef.current);

@@ -65,8 +65,9 @@ export async function action({ request }: Route.ActionArgs) {
           target: profiles.userId,
           set: { province, updatedAt: new Date() },
         });
+      return { success: true, intent: "setRegion" };
     }
-    return { success: true, intent: "setRegion" };
+    return { success: false, intent: "setRegion", error: "Invalid province" };
   }
 
   if (intent === "updateLocation") {

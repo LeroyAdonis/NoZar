@@ -109,12 +109,11 @@ export function FaqSection() {
               open={isOpen}
               className="group"
               onToggle={(e) => {
-                // Sync native <details> toggle with React state
                 const detail = e.currentTarget;
                 if (detail.open) {
                   setOpenId(item.id);
-                } else if (openId === item.id) {
-                  setOpenId(null);
+                } else {
+                  setOpenId((prev) => (prev === item.id ? null : prev));
                 }
               }}
             >

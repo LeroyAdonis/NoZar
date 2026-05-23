@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Camera, X, Check } from "lucide-react";
 import { Button } from "./button";
 
@@ -9,14 +9,14 @@ type CameraCaptureProps = {
 export function CameraCapture({ onCapture }: CameraCaptureProps) {
   const [active, setActive] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const startCamera = async () => {
     try {
       const s = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "environment" },
       });
-      setStream(s);
+      streamRef.current = s;
       if (videoRef.current) {
         videoRef.current.srcObject = s;
         videoRef.current.play();
@@ -29,10 +29,18 @@ export function CameraCapture({ onCapture }: CameraCaptureProps) {
   };
 
   const stopCamera = () => {
-    stream?.getTracks().forEach((track) => track.stop());
-    setStream(null);
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
     setActive(false);
   };
+
+  // Cleanup stream on unmount
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    };
+  }, []);
 
   const capture = () => {
     if (videoRef.current) {

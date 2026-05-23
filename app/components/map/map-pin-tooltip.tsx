@@ -1,5 +1,3 @@
-"use client";
-
 import { motion, useReducedMotion } from "motion/react";
 import { Link } from "react-router";
 import type { MapPin } from "./nozar-map";

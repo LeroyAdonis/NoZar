@@ -80,7 +80,7 @@ export async function action({ request }: ActionFunctionArgs) {
     .insert(paymentEvents)
     .values({
       mPaymentId,
-      pfPaymentId,
+      pfPaymentId: pfPaymentId ?? "__missing__",
       userId,
       paymentStatus,
       amountGrossCents: expectedAmountCents,

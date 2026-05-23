@@ -7,6 +7,13 @@ import ChatComposer from "~/components/ui/ChatComposer";
 import { requireAuth } from "~/lib/auth.server";
 import { getUserTier } from "~/lib/tier-limits.server";
 import { canUseAiFeature } from "~/lib/tier-limits";
+import type { Route } from "./+types/chat.$tradeId";
+
+type Message = {
+  id?: number;
+  text: string;
+  role: "user" | "assistant";
+};
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { user } = await requireAuth(request);
@@ -14,35 +21,55 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return { canUseAiChat: canUseAiFeature(tier, "ai_chat") };
 }
 
-export default function TradeChat({ params }: any) {
+export default function TradeChat({ params }: Route.ComponentProps) {
   const { canUseAiChat } = useLoaderData<typeof loader>();
   const tradeId = Number(params.tradeId);
-  const [messages, setMessages] = useState<Array<any>>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const abortController = new AbortController();
+    setError(null);
+
     async function load() {
-      const res = await fetch(`/api/messages/${tradeId}`);
-      const data = await res.json();
-      setMessages(data);
+      try {
+        const res = await fetch(`/api/messages/${tradeId}`, {
+          signal: abortController.signal,
+        });
+        if (!res.ok) throw new Error(`Failed to load messages (${res.status})`);
+        const data = await res.json();
+        if (!abortController.signal.aborted) {
+          setMessages(data);
+        }
+      } catch (err) {
+        if (abortController.signal.aborted) return;
+        console.error("Failed to load messages:", err);
+        setError("Failed to load messages. Please try again.");
+      }
     }
     load();
+
+    return () => abortController.abort();
   }, [tradeId]);
 
   async function onSend(text: string) {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tradeId, input: text }),
-    });
-    if (res.ok) {
+    setError(null);
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tradeId, input: text }),
+      });
+      if (!res.ok) throw new Error(`Send failed (${res.status})`);
       const json = await res.json();
       setMessages((m) => [
         ...m,
         { text, role: "user" },
         { text: json.message.text, role: "assistant" },
       ]);
-    } else {
-      console.error("send failed");
+    } catch (err) {
+      console.error("send failed:", err);
+      setError("Failed to send message. Please try again.");
     }
   }
 
@@ -75,6 +102,11 @@ export default function TradeChat({ params }: any) {
 
   return (
     <div className="p-4">
+      {error && (
+        <div className="mb-2 p-2 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded">
+          {error}
+        </div>
+      )}
       <ChatWindow messages={messages} />
       <ChatComposer onSend={onSend} />
     </div>

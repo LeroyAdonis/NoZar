@@ -53,14 +53,16 @@ export function BalancePile({
 
   const handleAccept = () => {
     const items: TradeItem[] = [
-      ...selectedListings.map((id) => {
-        const l = userListings.find((x) => x.id === id);
-        return { listingId: Number(id), estimatedValue: l?.estimatedValueZar || undefined };
-      }),
+      ...selectedListings.map(
+        (id): TradeItem => {
+          const l = userListings.find((x) => x.id === id);
+          return { listingId: Number(id), estimatedValue: l?.estimatedValueZar || undefined };
+        },
+      ),
       customService.trim()
-        ? { description: customService.trim(), estimatedValue: Number(customValue) || undefined }
+        ? ({ description: customService.trim(), estimatedValue: Number(customValue) || undefined } as TradeItem)
         : null,
-    ].filter(Boolean) as TradeItem[];
+    ].filter((x): x is TradeItem => x !== null);
 
     onSubmit(items);
     setSelectedListings([]);

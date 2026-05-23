@@ -7,6 +7,9 @@ import { eq, and, gt, asc } from "drizzle-orm";
 export async function loader({ request, params }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
   const tradeId = Number(params.tradeId);
+  if (Number.isNaN(tradeId) || !Number.isInteger(tradeId) || tradeId < 1) {
+    return new Response("Invalid trade ID", { status: 400 });
+  }
 
   // Verify user is a participant in this trade
   const trade = await db
@@ -25,15 +28,23 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const since = url.searchParams.get("since");
 
-  let query;
+  let sinceDate: Date | undefined;
   if (since) {
+    sinceDate = new Date(since);
+    if (Number.isNaN(sinceDate.getTime())) {
+      return new Response("Invalid date parameter", { status: 400 });
+    }
+  }
+
+  let query;
+  if (sinceDate) {
     query = db
       .select()
       .from(messages)
       .where(
         and(
           eq(messages.tradeId, tradeId),
-          gt(messages.createdAt, new Date(since)),
+          gt(messages.createdAt, sinceDate),
         ),
       )
       .orderBy(asc(messages.createdAt));

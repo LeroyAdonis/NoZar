@@ -59,7 +59,8 @@ export function PushPermissionButton({ vapidPublicKey }: Props) {
         body: JSON.stringify({ subscription: sub.toJSON() }),
       });
       setState("subscribed");
-    } catch {
+    } catch (err) {
+      console.error("Push subscribe failed:", err);
       setState("idle");
     }
   }
@@ -78,7 +79,8 @@ export function PushPermissionButton({ vapidPublicKey }: Props) {
         await sub.unsubscribe();
       }
       setState("idle");
-    } catch {
+    } catch (err) {
+      console.error("Push unsubscribe failed:", err);
       setState("idle");
     }
   }

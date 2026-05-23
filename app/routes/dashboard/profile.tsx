@@ -397,7 +397,7 @@ export async function action({ request }: Route.ActionArgs) {
   if (intent === "activate-listing") {
     const listingId = Number(formData.get("listingId"));
     if (!listingId || isNaN(listingId)) {
-      return { success: false, intent: "activate-listing", error: "Invalid listing ID" };
+      return { success: false, intent: "activate-listing", listingId, error: "Invalid listing ID" };
     }
 
     const usage = await getListingUsage(user.id);
@@ -417,7 +417,7 @@ export async function action({ request }: Route.ActionArgs) {
       .returning({ id: listings.id });
 
     if (result.length === 0) {
-      return { success: false, intent: "activate-listing", error: "Listing not found or not owned by you" };
+      return { success: false, intent: "activate-listing", listingId, error: "Listing not found or not owned by you" };
     }
 
     return { success: true, intent: "activate-listing", listingId };
@@ -494,23 +494,25 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
   useEffect(() => {
     if (showEditSheet) {
       document.body.style.overflow = "hidden";
-      return () => { document.body.style.overflow = ""; };
     }
+    return () => { document.body.style.overflow = ""; };
   }, [showEditSheet]);
 
   // Partition listings into active and archived
   const activeListings = userListings.filter((l) => l.status === "active");
   const archivedListings = userListings.filter((l) => l.status === "archived");
 
-  // Error returned from activate-listing action (e.g. limit reached)
-  const activateError =
+  // Error returned from activate-listing action (e.g. limit reached) - scoped by listingId
+  const activateErrors: Record<number, string> =
     actionData &&
     "intent" in actionData &&
     actionData.intent === "activate-listing" &&
     !actionData.success &&
-    "error" in actionData
-      ? actionData.error
-      : null;
+    "error" in actionData &&
+    "listingId" in actionData &&
+    typeof actionData.listingId === "number"
+      ? { [actionData.listingId]: actionData.error as string }
+      : {};
 
   const avatarActionData = avatarFetcher.data as { success?: boolean; intent?: string; error?: string; avatarUrl?: string } | undefined;
   const isAvatarSubmitting = avatarFetcher.state === "submitting";
@@ -613,7 +615,7 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
                 Hidden ({archivedListings.length})
               </p>
 
-              {activateError && (
+              {Object.keys(activateErrors).length > 0 && (
                 <div
                   role="alert"
                   className="flex items-start gap-2 bg-rose-500/5 border border-rose-500/20 rounded-xl px-3 py-2.5"
@@ -623,7 +625,7 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
                   </span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[11px] text-rose-300 leading-relaxed">
-                      {activateError}
+                      {Object.values(activateErrors)[0]}
                     </p>
                     <Link
                       to="/dashboard/billing"

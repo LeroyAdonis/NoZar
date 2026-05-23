@@ -1,43 +1,37 @@
-import { redirect, type LoaderFunctionArgs } from "react-router";
-import { useState, useEffect } from "react";
-import { useLoaderData } from "react-router";
+import { randomBytes } from "node:crypto";
+import { redirect, useLoaderData, type LoaderFunctionArgs } from "react-router";
+import { requireAuth } from "~/lib/auth.server";
+import { db } from "~/lib/db.server";
+import { referrals, users } from "~/lib/schema";
+import { count, eq } from "drizzle-orm";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { requireAuth } = await import("~/lib/auth.server");
-  const { db } = await import("~/lib/db.server");
-  const { referrals, users } = await import("~/lib/schema");
-  const { count, eq } = await import("drizzle-orm");
-
   const session = await requireAuth(request);
 
   let referralCode = session.user.referralCode as string | null;
 
-  // Backfill: generate a code for existing users who pre-date the hook
   if (!referralCode) {
-    const newCode = Math.random().toString(36).substring(2, 10).toUpperCase();
+    const newCode = randomBytes(4).toString("hex").toUpperCase();
     await db.update(users).set({ referralCode: newCode }).where(eq(users.id, session.user.id));
     referralCode = newCode;
   }
 
-  // Get referral count
   const [{ value: referralCount }] = await db
     .select({ value: count() })
     .from(referrals)
     .where(eq(referrals.referrerId, session.user.id));
 
+  const url = new URL(request.url);
+
   return {
     referralCode,
-    referralCount
+    referralCount,
+    origin: url.origin,
   };
 }
 
 export default function ReferPage() {
-  const { referralCode, referralCount } = useLoaderData<typeof loader>();
-  const [origin, setOrigin] = useState("");
-
-  useEffect(() => {
-    setOrigin(window.location.origin);
-  }, []);
+  const { referralCode, referralCount, origin } = useLoaderData<typeof loader>();
 
   const referralLink = referralCode ? `${origin}/r/${referralCode}` : "Loading...";
 

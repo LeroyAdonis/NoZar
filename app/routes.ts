@@ -14,9 +14,12 @@ export default [
   route("api/auth/*", "routes/api.auth.$.ts"),
   route("api/messages/:tradeId", "routes/api.messages.$tradeId.ts"),
   route("api/chat-stream/:tradeId", "routes/api.chat-stream.$tradeId.ts"),
+  route("api/chat", "routes/api.chat.ts"),
   route("api/pay/upgrade", "routes/api.pay.upgrade.ts"),
   route("api/pay/webhook", "routes/api.pay.webhook.ts"),
+  route("api/pay/cancel", "routes/api.pay.cancel.ts"),
   route("api/refer", "routes/api.refer.ts"),
+  route("api/refer/complete", "routes/api.refer.complete.ts"),
   route("api/upload", "routes/api.upload.ts"),
   route("api/push-subscribe", "routes/api.push-subscribe.ts"),
   route("dashboard", "routes/dashboard.tsx", [
