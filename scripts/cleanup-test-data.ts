@@ -50,23 +50,30 @@ async function deleteBlobs(urls: string[]): Promise<void> {
 async function deleteDatabase(ownerId: string): Promise<void> {
   console.log("\n🗄️  Running database cleanup in a single transaction...");
 
-  const nonOwnerTrades   = sql`SELECT id FROM trades        WHERE initiator_id != ${ownerId} AND responder_id != ${ownerId}`;
+  // trades.listing_id has no onDelete clause (defaults to RESTRICT).
+  // We must delete any trade whose listing is being removed, even if the
+  // owner is one of the parties (e.g. owner pinged a test-user's listing).
+  const tradesToDelete = sql`
+    SELECT id FROM trades
+    WHERE (initiator_id != ${ownerId} AND responder_id != ${ownerId})
+       OR listing_id IN (SELECT id FROM listings WHERE user_id != ${ownerId})
+  `;
   const nonOwnerListings = sql`SELECT id FROM listings      WHERE user_id != ${ownerId}`;
   const nonOwnerChatSess = sql`SELECT id FROM chat_sessions WHERE user_id != ${ownerId}`;
 
   await sql.transaction([
-    // 1. Leaf tables referencing trades
-    sql`DELETE FROM ratings             WHERE trade_id IN (${nonOwnerTrades})`,
-    sql`DELETE FROM contact_disclosures WHERE trade_id IN (${nonOwnerTrades})`,
+    // 1. Leaf tables with no-onDelete FKs referencing trades
+    sql`DELETE FROM ratings             WHERE trade_id IN (${tradesToDelete})`,
+    sql`DELETE FROM contact_disclosures WHERE trade_id IN (${tradesToDelete})`,
 
     // 2. Chat messages → chat sessions
     sql`DELETE FROM chat_messages WHERE session_id IN (${nonOwnerChatSess})`,
     sql`DELETE FROM chat_sessions WHERE user_id != ${ownerId}`,
 
-    // 3. Trades — cascades: messages, trade_reports, etc.
-    sql`DELETE FROM trades WHERE initiator_id != ${ownerId} AND responder_id != ${ownerId}`,
+    // 3. Trades (messages/thread_read_cursors cascade automatically)
+    sql`DELETE FROM trades WHERE id IN (${tradesToDelete})`,
 
-    // 4. Listings
+    // 4. Listings (listing_images cascades, but explicit delete is harmless)
     sql`DELETE FROM listing_images WHERE listing_id IN (${nonOwnerListings})`,
     sql`DELETE FROM listings       WHERE user_id != ${ownerId}`,
 
