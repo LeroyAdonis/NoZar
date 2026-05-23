@@ -2,8 +2,8 @@ import { and, count, eq } from "drizzle-orm";
 import { db } from "./db.server";
 import { listings, subscriptions } from "./schema";
 import {
+  getEffectivePlanCode,
   listingLimitFor,
-  normalizeTierCode,
   type ListingUsage,
   type TierCode,
 } from "./tier-limits";
@@ -12,12 +12,16 @@ export type { ListingUsage } from "./tier-limits";
 
 export async function getListingUsage(userId: string): Promise<ListingUsage> {
   const [sub] = await db
-    .select({ planCode: subscriptions.planCode })
+    .select({
+      planCode: subscriptions.planCode,
+      status: subscriptions.status,
+      promoExpiresAt: subscriptions.promoExpiresAt,
+    })
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
     .limit(1);
 
-  const planCode = normalizeTierCode(sub?.planCode);
+  const planCode = getEffectivePlanCode(sub);
   const listingLimit = listingLimitFor(planCode);
 
   const [row] = await db
@@ -43,9 +47,13 @@ export async function getListingUsage(userId: string): Promise<ListingUsage> {
  */
 export async function getUserTier(userId: string): Promise<TierCode> {
   const [sub] = await db
-    .select({ planCode: subscriptions.planCode })
+    .select({
+      planCode: subscriptions.planCode,
+      status: subscriptions.status,
+      promoExpiresAt: subscriptions.promoExpiresAt,
+    })
     .from(subscriptions)
     .where(eq(subscriptions.userId, userId))
     .limit(1);
-  return normalizeTierCode(sub?.planCode);
+  return getEffectivePlanCode(sub);
 }

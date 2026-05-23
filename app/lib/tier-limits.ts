@@ -16,6 +16,12 @@ export type ListingUsage = {
   remaining: number;
 };
 
+export type SubInfo = {
+  planCode?: string | null;
+  status?: string | null;
+  promoExpiresAt?: Date | null;
+};
+
 export function normalizeTierCode(planCode: string | null | undefined): TierCode {
   const code = (planCode ?? "free") as TierCode;
   return code in LISTING_LIMITS ? code : "free";
@@ -23,6 +29,25 @@ export function normalizeTierCode(planCode: string | null | undefined): TierCode
 
 export function listingLimitFor(planCode: string | null | undefined): number {
   return LISTING_LIMITS[normalizeTierCode(planCode)];
+}
+
+/**
+ * Resolves the effective tier for a user given their raw subscription row.
+ * - status "active"  → use planCode (paid subscription)
+ * - status "promo" AND promoExpiresAt in the future → "plus"
+ * - anything else (no row, expired, cancelled) → "free"
+ */
+export function getEffectivePlanCode(sub?: SubInfo | null): TierCode {
+  if (!sub) return "free";
+  if (sub.status === "active") return normalizeTierCode(sub.planCode);
+  if (
+    sub.status === "promo" &&
+    sub.promoExpiresAt &&
+    sub.promoExpiresAt > new Date()
+  ) {
+    return "plus";
+  }
+  return "free";
 }
 
 /**

@@ -78,6 +78,13 @@
       "when": 1779192628192,
       "tag": "0010_freezing_scrambler",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1779526022631,
+      "tag": "0011_smooth_vin_gonzales",
+      "breakpoints": true
     }
   ]
 }

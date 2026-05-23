@@ -348,11 +348,12 @@ export const subscriptions = pgTable("subscriptions", {
     .unique()
     .references(() => users.id, { onDelete: "cascade" }),
   planCode: text("plan_code").notNull(), // plus | business | enterprise
-  status: text("status").notNull(), // active | cancelled | expired
+  status: text("status").notNull(), // active | cancelled | expired | promo
   subscriptionCode: text("subscription_code"),
   subscriptionToken: text("subscription_token"),
   email: text("email"),
   nextPaymentDate: timestamp("next_payment_date"),
+  promoExpiresAt: timestamp("promo_expires_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
