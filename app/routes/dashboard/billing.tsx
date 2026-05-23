@@ -1,6 +1,6 @@
 import { Form, useLoaderData } from "react-router";
 import { eq } from "drizzle-orm";
-import { CreditCard, Check, Lock, Bell, Zap, BarChart3, Shield, Layers } from "lucide-react";
+import { CreditCard, Check, Lock, Zap, BarChart3, Shield, Layers, Rocket } from "lucide-react";
 
 import type { Route } from "./+types/billing";
 import { requireAuth } from "~/lib/auth.server";
@@ -85,6 +85,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     .select({
       status: subscriptions.status,
       nextPaymentDate: subscriptions.nextPaymentDate,
+      promoExpiresAt: subscriptions.promoExpiresAt,
     })
     .from(subscriptions)
     .where(eq(subscriptions.userId, user.id))
@@ -104,7 +105,7 @@ export async function loader({ request }: Route.LoaderArgs) {
     planCode: usage.planCode,
     listingCount: usage.activeCount,
     subscription: sub
-      ? { status: sub.status, nextPaymentDate: sub.nextPaymentDate }
+      ? { status: sub.status, nextPaymentDate: sub.nextPaymentDate, promoExpiresAt: sub.promoExpiresAt }
       : null,
     upgradeEnabled,
   };
@@ -136,23 +137,6 @@ export default function BillingPage() {
         </h1>
       </div>
 
-      {/* ── Coming-soon banner (hidden when upgrade is enabled) ── */}
-      {!upgradeEnabled && (
-        <div className="flex items-start gap-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-4 py-3.5">
-          <Bell className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-400 mb-0.5">
-              Coming Soon
-            </p>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              Billing &amp; subscriptions are launching soon — powered by{" "}
-              <span className="text-slate-300 font-mono">PayFast</span>.
-              You&apos;ll be notified when upgrades become available.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* ── Active subscription / Cancel section ── */}
       {subscription?.status === "active" && (
         <section className="bg-[#0F172A] border border-emerald-500/20 rounded-2xl p-5">
@@ -181,6 +165,28 @@ export default function BillingPage() {
             </Form>
           </div>
         </section>
+      )}
+
+      {/* ── Promo status card ── */}
+      {subscription?.status === "promo" && (
+        <div data-testid="promo-status-card" className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Rocket className="w-4 h-4 text-emerald-400" />
+              <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400">Beta Plus Active</span>
+            </div>
+            <span className="text-[9px] font-mono uppercase tracking-widest text-slate-500 bg-slate-800 px-2 py-0.5 rounded">Free for 90 days</span>
+          </div>
+          <p className="text-xs text-slate-400">
+            You have full <span className="text-emerald-400 font-semibold">Plus</span> access during the beta.
+            {subscription.promoExpiresAt && (
+              <> Your free period ends on <span className="text-slate-200">{new Date(subscription.promoExpiresAt).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}</span>.</>
+            )}
+          </p>
+          <p className="text-[10px] text-slate-500">
+            After the beta, you can subscribe to keep Plus access. No card required during the free period.
+          </p>
+        </div>
       )}
 
       {/* ── Current plan card ── */}
@@ -223,10 +229,10 @@ export default function BillingPage() {
               }`}
             >
               {overLimit
-                ? "Over listing limit — archive some listings or upgrade when billing launches"
+                  ? "Over listing limit — archive some listings or upgrade to add more"
                 : atLimit
-                ? "At listing limit — upgrade when billing launches to add more"
-                : "Approaching listing limit — upgrade when billing launches"}
+                  ? "At listing limit — upgrade to add more"
+                  : "Approaching listing limit — consider upgrading"}
             </p>
           )}
         </div>
@@ -414,7 +420,7 @@ export default function BillingPage() {
 
       {/* ── Footer note ── */}
       <p className="text-[10px] font-mono text-slate-600 text-center pb-4">
-        All prices in ZAR · Billing via PayFast · Launching soon
+        All prices in ZAR · Billing via PayFast · Cancel anytime
       </p>
     </div>
   );
