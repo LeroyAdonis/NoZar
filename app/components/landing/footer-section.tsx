@@ -14,6 +14,7 @@ const legalLinks = [
   { label: "Privacy Policy", to: "/legal/privacy" },
   { label: "Community Guidelines", to: "/legal/community-guidelines" },
   { label: "Complaints Process", to: "/legal/complaints" },
+  { label: "Beta Promo Terms", to: "/legal/beta-promo" },
 ] as const;
 
 const linkClasses =
