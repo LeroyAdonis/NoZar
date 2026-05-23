@@ -17,6 +17,7 @@ import { db } from "~/lib/db.server";
 import { profiles } from "~/lib/schema";
 import { eq } from "drizzle-orm";
 import { getUnreadCount } from "~/lib/notifications.server";
+import { ensurePromoEnrolled } from "~/lib/promo.server";
 import { BottomNav } from "~/components/ui/bottom-nav";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 import { LocationPromptModal } from "~/components/ui/location-prompt-modal";
@@ -27,6 +28,7 @@ import { WelcomeOverlay } from "~/components/ui/welcome-overlay";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
+  await ensurePromoEnrolled(user.id); // auto-enroll in 90-day promo if no subscription
   const unreadCount = await getUnreadCount(db, user.id);
 
   const profile = (await db
