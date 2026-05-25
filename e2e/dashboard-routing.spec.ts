@@ -2,26 +2,35 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test';
 
 test.describe.configure({ mode: 'serial' });
 
+// Auth redirect tests use request.get (not page.goto) because React Router v7's
+// dev-mode SSR streaming can abort the connection before the browser frame commits,
+// causing ERR_ABORTED. HTTP-level requests bypass the frame entirely and are reliable.
 test.describe('dashboard routing auth', () => {
-  test('guests are redirected from /dashboard to /login without redirectTo', async ({ page }) => {
-    await page.goto('/dashboard');
+  test('guests are redirected from /dashboard to /login without redirectTo', async ({ request }) => {
+    const response = await request.get('/dashboard', { maxRedirects: 0, failOnStatusCode: false });
 
-    await expect(page).toHaveURL(/\/login$/);
-    expect(page.url()).not.toContain('redirectTo=');
+    expect(response.status()).toBe(302);
+    const location = response.headers()['location'] ?? '';
+    expect(location).toMatch(/\/login$/);
+    expect(location).not.toContain('redirectTo=');
   });
 
-  test('guests are redirected from nested dashboard routes to /login without redirectTo', async ({ page }) => {
-    await page.goto('/dashboard/asset/1');
+  test('guests are redirected from nested dashboard routes to /login without redirectTo', async ({ request }) => {
+    const response = await request.get('/dashboard/asset/1', { maxRedirects: 0, failOnStatusCode: false });
 
-    await expect(page).toHaveURL(/\/login$/);
-    expect(page.url()).not.toContain('redirectTo=');
+    expect(response.status()).toBe(302);
+    const location = response.headers()['location'] ?? '';
+    expect(location).toMatch(/\/login$/);
+    expect(location).not.toContain('redirectTo=');
   });
 
-  test('guests are redirected from /dashboard/map to /login without redirectTo', async ({ page }) => {
-    await page.goto('/dashboard/map');
+  test('guests are redirected from /dashboard/map to /login without redirectTo', async ({ request }) => {
+    const response = await request.get('/dashboard/map', { maxRedirects: 0, failOnStatusCode: false });
 
-    await expect(page).toHaveURL(/\/login$/);
-    expect(page.url()).not.toContain('redirectTo=');
+    expect(response.status()).toBe(302);
+    const location = response.headers()['location'] ?? '';
+    expect(location).toMatch(/\/login$/);
+    expect(location).not.toContain('redirectTo=');
   });
 });
 
@@ -33,6 +42,10 @@ test.describe('dashboard map locality flow', () => {
 
   test('new authenticated users can anchor the radar from preview mode', async ({ page }, testInfo) => {
     await registerFreshUser(page, testInfo);
+    // Dismiss the tutorial so it doesn't intercept pointer events on the map page.
+    // registerFreshUser lands on /dashboard where the tutorial overlay may be mounted;
+    // setting the localStorage key mirrors what onDismiss does in dashboard.tsx.
+    await page.evaluate(() => localStorage.setItem('nozar_tutorial_seen', '1'));
 
     await page.goto('/dashboard/map');
     await expect(page).toHaveURL(/\/dashboard\/map$/);
@@ -73,7 +86,8 @@ async function registerFreshUser(page: Page, testInfo: TestInfo) {
   await page.getByLabel('Password').fill('Password123!');
   await page.getByRole('button', { name: 'Create Account' }).click();
 
-  await expect(page).toHaveURL(/\/dashboard$/);
+  // Allow extra time for Neon DB cold-start during registration (first real DB write per run).
+  await expect(page).toHaveURL(/\/dashboard$/, { timeout: 30_000 });
 }
 
 function slugifyProjectName(projectName: string): string {
