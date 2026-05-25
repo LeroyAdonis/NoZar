@@ -24,8 +24,19 @@ export function meta({}: Route.MetaArgs) {
 }
 
 const SAFE_LOGIN_ERROR = "Unable to sign in right now. Please try again.";
+const EMAIL_NOT_VERIFIED_SENTINEL = "EMAIL_NOT_VERIFIED";
+
+function isEmailNotVerifiedError(error: { message?: string; status?: number }): boolean {
+  const msg = (error.message ?? "").toLowerCase();
+  return (
+    msg.includes("not verified") ||
+    msg.includes("email_not_verified") ||
+    msg.includes("verify your email")
+  );
+}
 
 function getLoginErrorMessage(error: { message?: string; status?: number }): string {
+  if (isEmailNotVerifiedError(error)) return EMAIL_NOT_VERIFIED_SENTINEL;
   if (typeof error.status === "number" && error.status >= 500) {
     return SAFE_LOGIN_ERROR;
   }
@@ -41,10 +52,34 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showResend, setShowResend] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
+
+  const handleResendVerification = async () => {
+    if (!email) {
+      setError("Enter your email address above, then click resend.");
+      return;
+    }
+    setLoading(true);
+    try {
+      await authClient.sendVerificationEmail({
+        email,
+        callbackURL: "/login",
+      });
+      setResendSent(true);
+      setError("");
+    } catch {
+      setError("Failed to resend verification email. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setShowResend(false);
+    setResendSent(false);
     setLoading(true);
     try {
       await authClient.signIn.email({
@@ -56,7 +91,16 @@ export default function LoginPage() {
             navigate("/dashboard");
           },
           onError: (ctx) => {
-            setError(getLoginErrorMessage(ctx.error));
+            const msg = getLoginErrorMessage(ctx.error);
+            if (msg === EMAIL_NOT_VERIFIED_SENTINEL) {
+              setError(
+                "Please verify your email before signing in. Check your inbox for the verification link.",
+              );
+              setShowResend(true);
+            } else {
+              setError(msg);
+              setShowResend(false);
+            }
             setLoading(false);
           },
         },
@@ -107,8 +151,20 @@ export default function LoginPage() {
 
           {/* Error message */}
           {error && (
-            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono text-center">
-              {error}
+            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono text-center space-y-2">
+              <p>{error}</p>
+              {showResend && !resendSent && (
+                <button
+                  type="button"
+                  onClick={handleResendVerification}
+                  className="underline text-emerald-400 hover:text-emerald-300 font-medium text-xs"
+                >
+                  Resend verification email
+                </button>
+              )}
+              {resendSent && (
+                <p className="text-emerald-400 font-medium">Verification email sent — check your inbox.</p>
+              )}
             </div>
           )}
 

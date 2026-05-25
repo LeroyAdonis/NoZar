@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate, redirect } from "react-router";
+import { Link, redirect } from "react-router";
 import type { Route } from "./+types/register";
 import { authClient } from "~/lib/auth.client";
 import { getOptionalSession } from "~/lib/auth.server";
@@ -24,12 +24,12 @@ export function meta({}: Route.MetaArgs) {
 }
 
 export default function RegisterPage() {
-  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +56,9 @@ export default function RegisterPage() {
               }
             }
             setLoading(false);
-            navigate("/dashboard");
+            // Email verification is required — do not navigate to dashboard.
+            // Instruct the user to check their inbox instead.
+            setVerificationSent(true);
           },
         onError: (ctx) => {
           setError(ctx.error.message ?? "Registration failed");
@@ -110,6 +112,24 @@ export default function RegisterPage() {
         {error && (
           <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono text-center">
             {error}
+          </div>
+        )}
+
+        {/* Email verification notice */}
+        {verificationSent && (
+          <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm text-center space-y-1">
+            <p className="font-semibold">Account created!</p>
+            <p className="text-xs text-slate-400">
+              Check your email for a verification link before signing in.
+            </p>
+            <p className="mt-2">
+              <a
+                href="/login"
+                className="text-emerald-400 underline hover:text-emerald-300 text-xs font-medium"
+              >
+                Go to Sign In →
+              </a>
+            </p>
           </div>
         )}
 

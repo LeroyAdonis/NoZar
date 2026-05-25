@@ -88,6 +88,45 @@ function escapeHtml(str: string): string {
     .replace(/'/g, "&#39;");
 }
 
+// ─── Verification Email Template ────────────────────────────
+
+function getVerificationEmailHtml(url: string, name: string): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body style="margin:0;padding:0;background-color:#030712;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <div style="max-width:480px;margin:0 auto;padding:40px 20px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <h1 style="font-size:24px;font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;color:#10b981;margin:0;">NoZar</h1>
+    </div>
+    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:32px;">
+      <h2 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 16px 0;">Verify Your Email</h2>
+      <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
+        Hey ${escapeHtml(name)}, thanks for joining NoZar! Please verify your email address to activate your account.
+        This link expires in 24 hours.
+      </p>
+      <div style="text-align:center;">
+        <a href="${escapeHtml(url)}"
+          style="display:inline-block;background:#10b981;color:#030712;font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:0.1em;
+          text-decoration:none;padding:14px 32px;border-radius:12px;">
+          Verify Email
+        </a>
+      </div>
+      <p style="color:#475569;font-size:12px;line-height:1.6;margin:24px 0 0 0;">
+        If you didn't create a NoZar account, you can safely ignore this email.
+      </p>
+    </div>
+    <p style="color:#475569;font-size:11px;text-align:center;margin-top:24px;">
+      &copy; ${new Date().getFullYear()} NoZar. All rights reserved.
+    </p>
+  </div>
+</body>
+</html>`.trim();
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -101,10 +140,20 @@ export const auth = betterAuth({
     user: {
       create: {
         after: async (user) => {
-          const { users } = await import("./schema");
+          const { users, profiles } = await import("./schema");
           const { eq } = await import("drizzle-orm");
+          // Set referral code
           const code = randomBytes(4).toString("hex").toUpperCase();
           await db.update(users).set({ referralCode: code }).where(eq(users.id, user.id));
+          // Create profile — pre-populate avatarUrl from Google OAuth image if available
+          await db
+            .insert(profiles)
+            .values({
+              userId: user.id,
+              displayName: user.name || "NoZar User",
+              avatarUrl: (user as { image?: string | null }).image ?? null,
+            })
+            .onConflictDoNothing();
         },
       },
     },
@@ -137,6 +186,25 @@ export const auth = betterAuth({
         await promise;
       }
     },
+  },
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url }) => {
+      const { Resend } = await import("resend");
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const promise = resend.emails.send({
+        from: "NoZar <noreply@nozar.app>",
+        to: user.email,
+        subject: "Verify Your NoZar Email",
+        html: getVerificationEmailHtml(url, user.name),
+      });
+      const wt = (globalThis as { waitUntil?: (p: Promise<unknown>) => void }).waitUntil;
+      if (typeof wt === "function") {
+        wt(promise);
+      } else {
+        await promise;
+      }
+    },
+    autoSignIn: false,
   },
   socialProviders: {
     google: {
