@@ -30,7 +30,7 @@ function getResend(): Resend | null {
 
 const FROM_EMAIL = "NoZar <noreply@nozar.co.za>";
 const APP_URL =
-  process.env.APP_URL ?? "https://no-zar-r66j.vercel.app";
+  process.env.APP_URL ?? "https://www.nozar.co.za";
 
 interface EmailParams {
   to: string;
