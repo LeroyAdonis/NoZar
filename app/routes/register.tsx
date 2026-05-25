@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, redirect } from "react-router";
+import { Link, redirect, useNavigate } from "react-router";
 import type { Route } from "./+types/register";
 import { authClient } from "~/lib/auth.client";
 import { getOptionalSession } from "~/lib/auth.server";
@@ -30,6 +30,7 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
+  const navigate = useNavigate();
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,9 +57,13 @@ export default function RegisterPage() {
               }
             }
             setLoading(false);
-            // Email verification is required — do not navigate to dashboard.
-            // Instruct the user to check their inbox instead.
-            setVerificationSent(true);
+            // If Better Auth auto-signed the user in (e.g. test mode or future config),
+            // navigate directly to dashboard. Otherwise, require email verification.
+            if (ctx.data?.session) {
+              navigate("/dashboard");
+            } else {
+              setVerificationSent(true);
+            }
           },
         onError: (ctx) => {
           setError(ctx.error.message ?? "Registration failed");

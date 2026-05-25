@@ -189,6 +189,8 @@ export const auth = betterAuth({
   },
   emailVerification: {
     sendVerificationEmail: async ({ user, url }) => {
+      // Skip email sending during Playwright E2E tests
+      if (process.env.PLAYWRIGHT_TEST === "1") return;
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
       const promise = resend.emails.send({
@@ -204,7 +206,9 @@ export const auth = betterAuth({
         await promise;
       }
     },
-    autoSignIn: false,
+    // In E2E tests, auto-sign-in so registration flows work end-to-end
+    // without needing a real verification email. Production requires verification.
+    autoSignIn: process.env.PLAYWRIGHT_TEST === "1",
   },
   socialProviders: {
     google: {
