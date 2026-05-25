@@ -173,7 +173,7 @@ export const auth = betterAuth({
       const resend = new Resend(process.env.RESEND_API_KEY);
 
       const promise = resend.emails.send({
-        from: "NoZar <noreply@nozar.app>",
+        from: "NoZar <noreply@nozar.co.za>",
         to: user.email,
         subject: "Reset Your NoZar Password",
         html: getResetPasswordEmailHtml(url, user.name),
@@ -194,7 +194,7 @@ export const auth = betterAuth({
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
       const promise = resend.emails.send({
-        from: "NoZar <noreply@nozar.app>",
+        from: "NoZar <noreply@nozar.co.za>",
         to: user.email,
         subject: "Verify Your NoZar Email",
         html: getVerificationEmailHtml(url, user.name),
