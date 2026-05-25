@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Outlet, useLocation, useNavigation, useNavigate } from "react-router";
+import { Link, Outlet, redirect, useLocation, useNavigation, useNavigate } from "react-router";
 import {
   Bell,
   ShieldCheck,
@@ -28,6 +28,14 @@ import { TutorialOverlay } from "~/components/ui/tutorial-overlay";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
+
+  // Gate: unverified users must confirm their email before accessing the dashboard.
+  // Better Auth's requireEmailVerification blocks new sign-ins, but existing sessions
+  // created before that flag was set can still reach here — so we enforce it explicitly.
+  if (!user.emailVerified) {
+    throw redirect("/verify-email");
+  }
+
   await ensurePromoEnrolled(user.id); // auto-enroll in 90-day promo if no subscription
   const unreadCount = await getUnreadCount(db, user.id);
 

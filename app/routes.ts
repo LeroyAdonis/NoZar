@@ -9,6 +9,7 @@ export default [
   route("login", "routes/login.tsx"),
   route("forgot-password", "routes/forgot-password.tsx"),
   route("reset-password", "routes/reset-password.tsx"),
+  route("verify-email", "routes/verify-email.tsx"),
   route("register", "routes/register.tsx"),
   route("r/:referralCode", "routes/r.$referralCode.tsx"),
   route("api/auth/*", "routes/api.auth.$.ts"),
