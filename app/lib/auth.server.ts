@@ -172,11 +172,18 @@ export const auth = betterAuth({
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
 
+      // Wrap in .catch so a Resend failure logs gracefully and doesn't
+      // surface an internal error to the user during password-reset flow.
       const promise = resend.emails.send({
         from: "NoZar <noreply@nozar.co.za>",
         to: user.email,
         subject: "Reset Your NoZar Password",
         html: getResetPasswordEmailHtml(url, user.name),
+      }).catch((err: unknown) => {
+        console.error(
+          "[auth] sendResetPassword failed:",
+          err instanceof Error ? err.message : err,
+        );
       });
 
       const wt = (globalThis as { waitUntil?: (p: Promise<unknown>) => void }).waitUntil;
@@ -188,16 +195,26 @@ export const auth = betterAuth({
     },
   },
   emailVerification: {
+    // Block sign-in for users who have not yet verified their email address.
+    // Better Auth defaults this to false; we must opt-in explicitly.
+    requireEmailVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
       // Skip email sending during Playwright E2E tests
       if (process.env.PLAYWRIGHT_TEST === "1") return;
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
+      // Wrap in .catch so a Resend domain/API-key failure logs gracefully
+      // and never breaks the sign-up response for the user.
       const promise = resend.emails.send({
         from: "NoZar <noreply@nozar.co.za>",
         to: user.email,
         subject: "Verify Your NoZar Email",
         html: getVerificationEmailHtml(url, user.name),
+      }).catch((err: unknown) => {
+        console.error(
+          "[auth] sendVerificationEmail failed:",
+          err instanceof Error ? err.message : err,
+        );
       });
       const wt = (globalThis as { waitUntil?: (p: Promise<unknown>) => void }).waitUntil;
       if (typeof wt === "function") {
