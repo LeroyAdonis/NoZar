@@ -85,6 +85,7 @@ export async function loader({ request }: Route.LoaderArgs) {
         .values({
           userId: user.id,
           displayName: user.name || "NoZar User",
+          avatarUrl: user.image ?? null,
         })
         .returning();
       profile = created;
@@ -125,6 +126,16 @@ export async function loader({ request }: Route.LoaderArgs) {
         throw insertErr;
       }
     }
+  }
+
+  // Backfill avatarUrl from users.image for Google OAuth users whose profile
+  // was created before this sync was implemented.
+  if (!profile.avatarUrl && user.image) {
+    await db
+      .update(profiles)
+      .set({ avatarUrl: user.image, updatedAt: new Date() })
+      .where(eq(profiles.userId, user.id));
+    profile = { ...profile, avatarUrl: user.image };
   }
 
   // Trade stats — count all trades where user is participant
@@ -740,7 +751,31 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
           </div>
 
           {/* Phone verification card */}
-          {!profile.phone && (
+          {profile.phone && profile.phoneVerified ? (
+            <div className="p-4 bg-[#0F172A] border border-white/10 rounded-2xl flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-emerald-400" />
+                <span className="font-mono text-sm text-slate-200">{profile.phone}</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-emerald-400">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                <span className="text-[10px] font-mono uppercase tracking-widest">Verified</span>
+              </div>
+            </div>
+          ) : profile.phone && !profile.phoneVerified ? (
+            <div className="p-4 bg-[#0F172A] border border-white/10 rounded-2xl flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Phone className="w-4 h-4 text-amber-400" />
+                <span className="font-mono text-sm text-slate-200">{profile.phone}</span>
+              </div>
+              <Link
+                to="/dashboard/verify-phone"
+                className="text-[10px] font-mono text-amber-400 uppercase tracking-widest hover:text-amber-300"
+              >
+                Unverified — verify →
+              </Link>
+            </div>
+          ) : (
             <div className="p-4 bg-[#0F172A] border border-white/10 rounded-2xl flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Phone className="w-4 h-4 text-slate-500" />
