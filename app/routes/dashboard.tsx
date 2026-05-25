@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Outlet, useLocation, useNavigation } from "react-router";
+import { Link, Outlet, useLocation, useNavigation, useNavigate } from "react-router";
 import {
   Bell,
   ShieldCheck,
@@ -24,7 +24,7 @@ import { LocationPromptModal } from "~/components/ui/location-prompt-modal";
 import { provinceToSlug, getClosestRegion, MVP_REGIONS } from "~/lib/regions";
 import { vapidPublicKey } from "~/lib/webpush.server";
 import { PushPermissionButton } from "~/components/ui/push-permission-button";
-import { WelcomeOverlay } from "~/components/ui/welcome-overlay";
+import { TutorialOverlay } from "~/components/ui/tutorial-overlay";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
@@ -161,14 +161,16 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
     setIsLocationDismissed(false);
   };
 
-  const [hasSeenWelcome, setHasSeenWelcome] = useState(() => {
+  const navigate = useNavigate();
+
+  const [hasSeenTutorial, setHasSeenTutorial] = useState(() => {
     if (typeof window === "undefined") return true;
-    return localStorage.getItem("nozar_welcome_seen") === "1";
+    return localStorage.getItem("nozar_tutorial_seen") === "1";
   });
 
-  const handleWelcomeDismiss = () => {
-    localStorage.setItem("nozar_welcome_seen", "1");
-    setHasSeenWelcome(true);
+  const handleTutorialDismiss = () => {
+    localStorage.setItem("nozar_tutorial_seen", "1");
+    setHasSeenTutorial(true);
   };
 
   const showLocationModal = !!user && needsLocation && !isLocationDismissed;
@@ -485,8 +487,11 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
         onClose={handleLocationDismiss}
       />
 
-      {!hasSeenWelcome && (
-        <WelcomeOverlay onDismiss={handleWelcomeDismiss} />
+      {!hasSeenTutorial && (
+        <TutorialOverlay
+          onDismiss={handleTutorialDismiss}
+          onNavigate={navigate}
+        />
       )}
 
       {/* Bottom navigation — mobile only (BottomNav itself adds md:hidden) */}

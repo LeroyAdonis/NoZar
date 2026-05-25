@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { Form, useNavigation, useFetcher, Link } from "react-router";
+import { Form, useNavigation, useFetcher, Link, useNavigate } from "react-router";
 import { eq, or, and, count, avg, inArray } from "drizzle-orm";
 import {
   Star,
@@ -448,6 +448,13 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [confirmArchiveId, setConfirmArchiveId] = useState<number | null>(null);
+  const navigate = useNavigate();
+
+  const handleReplayTutorial = () => {
+    localStorage.removeItem("nozar_tutorial_seen");
+    navigate("/dashboard");
+  };
+
   const avatarFetcher = useFetcher();
   const [avatarInput, setAvatarInput] = useState(profile.avatarUrl ?? "");
   // Hidden file input for avatar upload
@@ -757,6 +764,18 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
             >
               Upgrade →
             </Link>
+          </div>
+
+          {/* Tutorial row */}
+          <div className="p-4 bg-[#0F172A] border border-white/10 rounded-2xl flex items-center justify-between">
+            <span className="text-sm text-slate-400">Tutorial</span>
+            <button
+              type="button"
+              onClick={handleReplayTutorial}
+              className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest hover:text-emerald-300 transition-colors"
+            >
+              Replay tutorial →
+            </button>
           </div>
 
           {/* Sign out */}
