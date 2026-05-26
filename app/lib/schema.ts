@@ -8,6 +8,7 @@ import {
   jsonb,
   serial,
   unique,
+  index,
 } from "drizzle-orm/pg-core";
 
 // ─── Better Auth Managed Tables ────────────────────────────────
@@ -21,6 +22,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   referralCode: text("referral_code").unique(),
+  twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
 });
 
 export const sessions = pgTable("sessions", {
@@ -425,4 +427,40 @@ export const pushSubscriptions = pgTable("push_subscriptions", {
   p256dh: text("p256dh").notNull(),
   auth: text("auth").notNull(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+// ─── Device Anti-Abuse Tables ─────────────────────────────────
+
+export const deviceFingerprints = pgTable(
+  "device_fingerprints",
+  {
+    id: serial("id").primaryKey(),
+    fingerprintHash: text("fingerprint_hash").notNull(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    firstSeenAt: timestamp("first_seen_at").notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at").notNull().defaultNow(),
+    trustLevel: text("trust_level").notNull().default("unknown"), // unknown | trusted | flagged
+    registrationFingerprint: boolean("registration_fingerprint").notNull().default(false),
+  },
+  (t) => [
+    index("device_fp_hash_idx").on(t.fingerprintHash),
+    index("device_fp_user_idx").on(t.userId),
+    unique("device_fp_user_hash_uq").on(t.userId, t.fingerprintHash),
+  ],
+);
+
+// ─── Better Auth twoFactor Plugin Table ───────────────────────
+// Matches the schema expected by better-auth/plugins twoFactor with
+// drizzleAdapter({ usePlural: true }). Better Auth manages encryption
+// of `secret` and `backupCodes` using BETTER_AUTH_SECRET internally.
+
+export const twoFactors = pgTable("two_factors", {
+  id: text("id").primaryKey(),
+  secret: text("secret").notNull(),
+  backupCodes: text("backup_codes").notNull(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
 });
