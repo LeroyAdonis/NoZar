@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { twoFactor } from "better-auth/plugins";
 import { redirect } from "react-router";
 import { db } from "./db.server";
 import * as schema from "./schema";
@@ -128,6 +129,13 @@ function getVerificationEmailHtml(url: string, name: string): string {
 }
 
 export const auth = betterAuth({
+  // D-09: Built-in TOTP 2FA plugin. Adds twoFactors table + users.twoFactorEnabled.
+  // Better Auth encrypts the TOTP secret using BETTER_AUTH_SECRET (AES-256).
+  plugins: [
+    twoFactor({
+      issuer: "NoZar",
+    }),
+  ],
   database: drizzleAdapter(db, {
     provider: "pg",
     usePlural: true,
@@ -139,6 +147,85 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
+        // D-03: Check fingerprint before user is persisted.
+        // context.body carries extra signUp fields (fingerprintHash, deviceBypassToken).
+        // For OAuth registrations context is null — fingerprint check is skipped here
+        // and handled in the dashboard loader (D-06).
+        before: async (_user, context) => {
+          const body = (context as { body?: Record<string, unknown> } | null)?.body;
+          const rawHash = body?.fingerprintHash;
+          const fingerprintHash =
+            typeof rawHash === "string" && /^[a-zA-Z0-9]{1,64}$/.test(rawHash)
+              ? rawHash
+              : null;
+
+          // No fingerprint — allow (OAuth, no-JS, or first load). Skip check.
+          if (!fingerprintHash) return;
+
+          // D-05 bypass: if a valid one-time token is present, allow registration.
+          const rawBypass = body?.deviceBypassToken;
+          if (typeof rawBypass === "string" && rawBypass.length > 0) {
+            const { verifications } = await import("./schema");
+            const { eq, and, gt } = await import("drizzle-orm");
+            const key = `device_bypass:${rawBypass}`;
+            const [record] = await db
+              .select()
+              .from(verifications)
+              .where(
+                and(
+                  eq(verifications.identifier, key),
+                  gt(verifications.expiresAt, new Date()),
+                ),
+              )
+              .limit(1);
+            if (record) {
+              // Consume the token (one-time use — prevents replay)
+              await db.delete(verifications).where(eq(verifications.id, record.id));
+              return; // Bypass granted
+            }
+            // Invalid or expired token — fall through to fingerprint check
+          }
+
+          // Query existing accounts for this fingerprint (limit 3 to detect hard-block)
+          const { deviceFingerprints, trustProfiles } = await import("./schema");
+          const { eq: eqDf, and: andDf, gte } = await import("drizzle-orm");
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+          const existing = await db
+            .select({ userId: deviceFingerprints.userId })
+            .from(deviceFingerprints)
+            .where(
+              andDf(
+                eqDf(deviceFingerprints.fingerprintHash, fingerprintHash),
+                gte(deviceFingerprints.firstSeenAt, thirtyDaysAgo),
+              ),
+            )
+            .limit(3);
+
+          if (existing.length === 0) return; // New device — allow
+
+          const { APIError } = await import("better-auth");
+
+          if (existing.length >= 2) {
+            // D-07: Hard block — >2 accounts from same device in 30 days.
+            // Flag existing accounts for admin review.
+            const { eq: eqTp } = await import("drizzle-orm");
+            await Promise.all(
+              existing.map((e) =>
+                db
+                  .update(trustProfiles)
+                  .set({ flagged: true, updatedAt: new Date() })
+                  .where(eqTp(trustProfiles.userId, e.userId))
+                  .catch(() => {}), // Trust profile may not exist yet
+              ),
+            );
+            throw new APIError("FORBIDDEN", { message: "DEVICE_HARD_BLOCKED" });
+          }
+
+          // D-05: Soft block — duplicate fingerprint, phone OTP unlock available.
+          throw new APIError("BAD_REQUEST", { message: "DEVICE_ALREADY_REGISTERED" });
+        },
+
         after: async (user) => {
           const { users, profiles } = await import("./schema");
           const { eq } = await import("drizzle-orm");
