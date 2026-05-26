@@ -10,11 +10,11 @@ See: .planning/ (phase docs in .planning/phases/)
 ## Current Position
 
 Phase: 2 of N (02-device-identity-anti-abuse)
-Plan: 2 of 4 in current phase (next: 02-02)
+Plan: 3 of 4 in current phase (next: 02-03)
 Status: In progress
-Last activity: 2025-07-18 — Completed 02-01 (DB Schema & Migration)
+Last activity: 2025-07-18 — Completed 02-02 (Device Fingerprint Collection client-side)
 
-Progress: [██░░░░░░░░] ~10% (Phase 1 unknown, Phase 2 plan 1/4 done)
+Progress: [███░░░░░░░] ~15% (Phase 1 unknown, Phase 2 plans 2/4 done)
 
 ## Performance Metrics
 
@@ -36,6 +36,8 @@ Progress: [██░░░░░░░░] ~10% (Phase 1 unknown, Phase 2 plan 1
 - [02-01]: Drizzle composite unique (userId, fingerprintHash) enables upsert in Wave 3 fingerprint route
 - [02-01]: twoFactors.id is text (Better Auth manages IDs); trustLevel is unconstrained text validated in app layer
 - [02-01]: Better Auth CLI cross-check requires live DATABASE_URL — skipped; schema verified against node_modules source
+- [02-02]: deviceBypassToken spread-syntax workaround for Better Auth TS types that don't declare extra signUp fields
+- [02-02]: Register form hidden (not disabled) during OTP flow to prevent confusing double-submit
 
 ### Pending Todos
 
@@ -54,5 +56,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2025-07-18
-Stopped at: Completed 02-01-PLAN.md — DB schema + migration + package installs
+Stopped at: Completed 02-02-PLAN.md — FingerprintJS client-side collection in register+login
 Resume file: None

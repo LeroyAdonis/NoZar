@@ -28,8 +28,8 @@ Nozar is a South African barter/swap platform ("No ZAR"). This roadmap tracks fe
 
 Plans:
 - [x] 02-01: DB Schema & Migration (device_fingerprints, two_factors tables + packages)
-- [ ] 02-02: Auth Server Plugin Integration (twoFactor plugin + databaseHooks fingerprint check)
-- [ ] 02-03: Device Fingerprint Collection & API Route (client FingerprintJS + /api/device-fingerprint)
+- [x] 02-02: Device Fingerprint Collection (client-side) — FingerprintJS in register+login, duplicate-device inline UI
+- [ ] 02-03: Auth Server Plugin Integration (twoFactor plugin + databaseHooks + /api/device-fingerprint + /api/device-verify routes)
 - [ ] 02-04: 2FA UI (settings page, /two-factor challenge page)
 
 ## Progress
@@ -37,4 +37,4 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Interactive Tutorial | - | Complete | - |
-| 2. Device Identity & Anti-Abuse | 1/4 | In progress | - |
+| 2. Device Identity & Anti-Abuse | 2/4 | In progress | - |
