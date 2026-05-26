@@ -15,12 +15,13 @@ import type { Route } from "./+types/dashboard";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import { profiles } from "~/lib/schema";
-import { eq } from "drizzle-orm";
+import { eq, count } from "drizzle-orm";
 import { getUnreadCount } from "~/lib/notifications.server";
 import { ensurePromoEnrolled } from "~/lib/promo.server";
 import { BottomNav } from "~/components/ui/bottom-nav";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 import { LocationPromptModal } from "~/components/ui/location-prompt-modal";
+import { DeviceVerificationPrompt } from "~/components/ui/device-verification-prompt";
 import { provinceToSlug, getClosestRegion, MVP_REGIONS } from "~/lib/regions";
 import { vapidPublicKey } from "~/lib/webpush.server";
 import { PushPermissionButton } from "~/components/ui/push-permission-button";
@@ -51,7 +52,29 @@ export async function loader({ request }: Route.LoaderArgs) {
     .where(eq(profiles.userId, user.id))
     .limit(1))[0];
 
-  return { user, unreadCount, profile: profile ?? null, vapidPublicKey };
+  // D-06: Check if OAuth-only user needs device verification.
+  // For email/password users, fingerprints are recorded at registration.
+  // For Google OAuth users, fingerprints must be collected post-login.
+  const { accounts: accountsTable, deviceFingerprints } = await import("~/lib/schema");
+
+  const userAccounts = await db
+    .select({ providerId: accountsTable.providerId })
+    .from(accountsTable)
+    .where(eq(accountsTable.userId, user.id));
+
+  const isOAuthOnly = userAccounts.length > 0 &&
+    userAccounts.every((a) => a.providerId !== "credential");
+
+  let needsDeviceVerification = false;
+  if (isOAuthOnly) {
+    const [fpCount] = await db
+      .select({ c: count() })
+      .from(deviceFingerprints)
+      .where(eq(deviceFingerprints.userId, user.id));
+    needsDeviceVerification = (fpCount?.c ?? 0) === 0;
+  }
+
+  return { user, unreadCount, profile: profile ?? null, vapidPublicKey, needsDeviceVerification };
 }
 
 export async function action({ request }: Route.ActionArgs) {
@@ -182,6 +205,11 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   };
 
   const showLocationModal = !!user && needsLocation && !isLocationDismissed;
+
+  // D-06: Device verification prompt for OAuth-only users without a fingerprint
+  const { needsDeviceVerification } = loaderData;
+  const [isDevicePromptDismissed, setIsDevicePromptDismissed] = useState(false);
+  const showDevicePrompt = needsDeviceVerification && !isDevicePromptDismissed;
 
   const isNavigating = navigation.state !== "idle";
 
@@ -493,6 +521,12 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
       <LocationPromptModal
         isOpen={showLocationModal}
         onClose={handleLocationDismiss}
+      />
+
+      <DeviceVerificationPrompt
+        isOpen={showDevicePrompt}
+        onClose={() => setIsDevicePromptDismissed(true)}
+        onSuccess={() => setIsDevicePromptDismissed(true)}
       />
 
       {!hasSeenTutorial && (
