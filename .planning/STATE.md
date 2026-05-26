@@ -10,11 +10,11 @@ See: .planning/ (phase docs in .planning/phases/)
 ## Current Position
 
 Phase: 2 of N (02-device-identity-anti-abuse)
-Plan: 3 of 4 in current phase (next: 02-03)
+Plan: 4 of 4 in current phase (next: 02-04)
 Status: In progress
-Last activity: 2025-07-18 — Completed 02-02 (Device Fingerprint Collection client-side)
+Last activity: 2025-07-18 — Completed 02-03 (Anti-Abuse Enforcement: server-side hooks + API routes)
 
-Progress: [███░░░░░░░] ~15% (Phase 1 unknown, Phase 2 plans 2/4 done)
+Progress: [████░░░░░░] ~20% (Phase 1 complete, Phase 2 plans 3/4 done)
 
 ## Performance Metrics
 
@@ -37,7 +37,9 @@ Progress: [███░░░░░░░] ~15% (Phase 1 unknown, Phase 2 plans 
 - [02-01]: twoFactors.id is text (Better Auth manages IDs); trustLevel is unconstrained text validated in app layer
 - [02-01]: Better Auth CLI cross-check requires live DATABASE_URL — skipped; schema verified against node_modules source
 - [02-02]: deviceBypassToken spread-syntax workaround for Better Auth TS types that don't declare extra signUp fields
-- [02-02]: Register form hidden (not disabled) during OTP flow to prevent confusing double-submit
+- [02-03]: Dynamic imports inside databaseHooks.user.create.before to avoid circular dep with schema
+- [02-03]: One-time device_bypass bypass token stored in verifications table (5-min TTL, consumed on use)
+- [02-03]: OAuth gap check (isOAuthOnly + fpCount) added to dashboard loader to trigger DeviceVerificationPrompt
 
 ### Pending Todos
 
@@ -56,5 +58,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2025-07-18
-Stopped at: Completed 02-02-PLAN.md — FingerprintJS client-side collection in register+login
+Stopped at: Completed 02-03-PLAN.md — Anti-Abuse Enforcement (server-side hooks + API routes)
 Resume file: None
