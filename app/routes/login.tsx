@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import type { Route } from "./+types/login";
 import { getOptionalSession } from "~/lib/auth.server";
@@ -54,6 +54,18 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showResend, setShowResend] = useState(false);
   const [resendSent, setResendSent] = useState(false);
+  const [fingerprintHash, setFingerprintHash] = useState<string | null>(null);
+
+  useEffect(() => {
+    // SSR-safe: dynamic import runs only in the browser (D-01).
+    import("@fingerprintjs/fingerprintjs").then((FingerprintJSModule) => {
+      const FingerprintJS = FingerprintJSModule.default;
+      FingerprintJS.load()
+        .then((fp) => fp.get())
+        .then((result) => setFingerprintHash(result.visitorId))
+        .catch((err) => console.warn("[login] FingerprintJS failed:", err));
+    });
+  }, []);
 
   const handleResendVerification = async () => {
     if (!email) {
@@ -88,6 +100,16 @@ export default function LoginPage() {
         fetchOptions: {
           onSuccess: () => {
             setLoading(false);
+            // D-04: Fire-and-forget POST — does not block navigation.
+            // The server upserts device_fingerprints and returns duplicate status.
+            // Duplicate handling for OAuth users happens in the dashboard loader (D-06).
+            if (fingerprintHash) {
+              fetch("/api/device-fingerprint", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ fingerprintHash }),
+              }).catch((err) => console.warn("[login] fingerprint POST failed:", err));
+            }
             navigate("/dashboard");
           },
           onError: (ctx) => {
