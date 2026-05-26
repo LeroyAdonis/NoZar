@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, redirect, useNavigate } from "react-router";
 import type { Route } from "./+types/register";
 import { authClient } from "~/lib/auth.client";
@@ -30,7 +30,32 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
+  const [fingerprintHash, setFingerprintHash] = useState<string | null>(null);
+  // Duplicate-device flow state
+  const [deviceError, setDeviceError] = useState<"DEVICE_ALREADY_REGISTERED" | "DEVICE_HARD_BLOCKED" | null>(null);
+  const [devicePhone, setDevicePhone] = useState("");
+  const [deviceOtpSent, setDeviceOtpSent] = useState(false);
+  const [deviceOtp, setDeviceOtp] = useState("");
+  const [deviceBypassToken, setDeviceBypassToken] = useState<string | null>(null);
+  const [deviceVerifyLoading, setDeviceVerifyLoading] = useState(false);
+  const [deviceVerifyError, setDeviceVerifyError] = useState("");
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // FingerprintJS must never be imported server-side (uses browser APIs).
+    // Dynamic import inside useEffect ensures SSR-safe lazy loading (D-01).
+    import("@fingerprintjs/fingerprintjs").then((FingerprintJSModule) => {
+      const FingerprintJS = FingerprintJSModule.default;
+      FingerprintJS.load()
+        .then((fp) => fp.get())
+        .then((result) => setFingerprintHash(result.visitorId))
+        .catch((err) => {
+          // Fingerprint failure is non-fatal — registration still proceeds.
+          // The server will skip the fingerprint check when hash is absent.
+          console.warn("[register] FingerprintJS failed:", err);
+        });
+    });
+  }, []);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,36 +66,144 @@ export default function RegisterPage() {
       email,
       password,
       name,
+      // D-02: pass fingerprint hash as extra field — Better Auth ZodRecord accepts it
+      ...(fingerprintHash ? { fingerprintHash } : {}),
+      // D-05 bypass: included only when phone OTP was verified for duplicate-device unlock
+      ...(deviceBypassToken ? { deviceBypassToken } : {}),
       fetchOptions: {
-          onSuccess: async (ctx) => {
-            const cookies = parse(document.cookie);
-            const referrerId = cookies.referrerId;
-            if (referrerId && ctx.data?.user?.id) {
-              try {
-                await fetch("/api/refer/complete", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ referrerId, refereeId: ctx.data.user.id }),
-                });
-              } catch (e) {
-                console.error("Failed to record referral:", e);
-              }
+        onSuccess: async (ctx) => {
+          const cookies = parse(document.cookie);
+          const referrerId = cookies.referrerId;
+          if (referrerId && ctx.data?.user?.id) {
+            try {
+              await fetch("/api/refer/complete", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ referrerId, refereeId: ctx.data.user.id }),
+              });
+            } catch (e) {
+              console.error("Failed to record referral:", e);
             }
-            setLoading(false);
-            // If Better Auth auto-signed the user in (e.g. test mode or future config),
-            // navigate directly to dashboard. Otherwise, require email verification.
-            if (ctx.data?.session) {
-              navigate("/dashboard");
-            } else {
-              setVerificationSent(true);
-            }
-          },
+          }
+          setLoading(false);
+          // If Better Auth auto-signed the user in (e.g. test mode or future config),
+          // navigate directly to dashboard. Otherwise, require email verification.
+          if (ctx.data?.session) {
+            navigate("/dashboard");
+          } else {
+            setVerificationSent(true);
+          }
+        },
         onError: (ctx) => {
-          setError(ctx.error.message ?? "Registration failed");
+          const msg = ctx.error.message ?? "";
+          if (msg.includes("DEVICE_ALREADY_REGISTERED")) {
+            // D-03/D-05: Soft block — show inline phone verification UI
+            setDeviceError("DEVICE_ALREADY_REGISTERED");
+            setError("");
+          } else if (msg.includes("DEVICE_HARD_BLOCKED")) {
+            // D-07: Hard block — no unlock path
+            setDeviceError("DEVICE_HARD_BLOCKED");
+            setError("");
+          } else {
+            setError(msg || "Registration failed");
+          }
           setLoading(false);
         },
       },
     });
+  };
+
+  const handleDeviceSendOtp = async () => {
+    setDeviceVerifyError("");
+    if (!devicePhone.trim()) {
+      setDeviceVerifyError("Enter your SA phone number (e.g. 082 123 4567)");
+      return;
+    }
+    setDeviceVerifyLoading(true);
+    try {
+      const res = await fetch("/api/device-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sendOtp", phone: devicePhone.trim() }),
+      });
+      const data = await res.json() as { sent?: boolean; error?: string };
+      if (!res.ok || !data.sent) {
+        setDeviceVerifyError(data.error ?? "Could not send OTP. Check your number and try again.");
+      } else {
+        setDeviceOtpSent(true);
+      }
+    } catch {
+      setDeviceVerifyError("Network error. Please try again.");
+    } finally {
+      setDeviceVerifyLoading(false);
+    }
+  };
+
+  const handleDeviceVerifyOtp = async () => {
+    setDeviceVerifyError("");
+    if (!deviceOtp.trim()) {
+      setDeviceVerifyError("Enter the 6-digit code from your SMS");
+      return;
+    }
+    setDeviceVerifyLoading(true);
+    try {
+      const res = await fetch("/api/device-verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "verifyOtp", phone: devicePhone.trim(), code: deviceOtp.trim() }),
+      });
+      const data = await res.json() as { bypassToken?: string; error?: string };
+      if (!res.ok || !data.bypassToken) {
+        setDeviceVerifyError(data.error ?? "Invalid or expired code. Try again.");
+      } else {
+        // Token valid — store it and retry the sign-up automatically
+        setDeviceBypassToken(data.bypassToken);
+        setDeviceError(null);
+        setDeviceVerifyError("");
+        // Trigger re-submit with the bypass token now in state
+        setLoading(true);
+        // React state is async — use the token directly in the inline call
+        await authClient.signUp.email({
+          email,
+          password,
+          name,
+          ...(fingerprintHash ? { fingerprintHash } : {}),
+          ...(data.bypassToken ? { deviceBypassToken: data.bypassToken } : {}),
+          fetchOptions: {
+            onSuccess: async (ctx) => {
+              const cookies = parse(document.cookie);
+              const referrerId = cookies.referrerId;
+              if (referrerId && ctx.data?.user?.id) {
+                try {
+                  await fetch("/api/refer/complete", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ referrerId, refereeId: ctx.data.user.id }),
+                  });
+                } catch (e) {
+                  console.error("Failed to record referral:", e);
+                }
+              }
+              setLoading(false);
+              if (ctx.data?.session) {
+                navigate("/dashboard");
+              } else {
+                setVerificationSent(true);
+              }
+            },
+            onError: (ctx) => {
+              setError(ctx.error.message ?? "Registration failed after verification");
+              setDeviceError(null);
+              setLoading(false);
+            },
+          },
+        });
+      }
+    } catch {
+      setDeviceVerifyError("Network error. Please try again.");
+    } finally {
+      setDeviceVerifyLoading(false);
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -120,6 +253,93 @@ export default function RegisterPage() {
           </div>
         )}
 
+        {/* D-05: Inline duplicate-device state — not a toast, per CONTEXT.md */}
+        {deviceError === "DEVICE_ALREADY_REGISTERED" && (
+          <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 space-y-4">
+            <div className="space-y-1">
+              <p className="text-amber-400 text-xs font-mono uppercase tracking-widest font-bold">
+                Device Already Linked
+              </p>
+              <p className="text-slate-300 text-sm leading-relaxed">
+                This device is linked to an existing NoZar account. Verify your
+                phone number to continue creating a new account.
+              </p>
+            </div>
+
+            {deviceVerifyError && (
+              <p className="text-red-400 text-xs font-mono">{deviceVerifyError}</p>
+            )}
+
+            {!deviceOtpSent ? (
+              <div className="space-y-3">
+                <Input
+                  label="SA Phone Number"
+                  type="tel"
+                  autoComplete="tel"
+                  value={devicePhone}
+                  onChange={(e) => setDevicePhone(e.target.value)}
+                  placeholder="082 123 4567"
+                />
+                <Button
+                  type="button"
+                  variant="nozarOutline"
+                  size="lg"
+                  className="w-full"
+                  disabled={deviceVerifyLoading}
+                  onClick={handleDeviceSendOtp}
+                >
+                  {deviceVerifyLoading ? "Sending…" : "Send Verification Code"}
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-slate-400 text-xs">
+                  Code sent to {devicePhone}. Enter it below.
+                </p>
+                <Input
+                  label="Verification Code"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={deviceOtp}
+                  onChange={(e) => setDeviceOtp(e.target.value)}
+                  placeholder="123456"
+                />
+                <Button
+                  type="button"
+                  variant="nozar"
+                  size="lg"
+                  className="w-full"
+                  disabled={deviceVerifyLoading}
+                  onClick={handleDeviceVerifyOtp}
+                >
+                  {deviceVerifyLoading ? "Verifying…" : "Verify & Create Account"}
+                </Button>
+                <button
+                  type="button"
+                  className="text-xs text-slate-500 hover:text-emerald-400 underline w-full text-center"
+                  onClick={() => { setDeviceOtpSent(false); setDeviceOtp(""); setDeviceVerifyError(""); }}
+                >
+                  Use a different number
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {deviceError === "DEVICE_HARD_BLOCKED" && (
+          <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 space-y-2">
+            <p className="text-red-400 text-xs font-mono uppercase tracking-widest font-bold">
+              Registration Blocked
+            </p>
+            <p className="text-slate-300 text-sm leading-relaxed">
+              Too many accounts have been created from this device. Please contact
+              support if you believe this is an error.
+            </p>
+          </div>
+        )}
+
         {/* Email verification notice */}
         {verificationSent && (
           <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm text-center space-y-1">
@@ -139,6 +359,7 @@ export default function RegisterPage() {
         )}
 
         {/* Sign-Up Form */}
+        {!deviceError && (
         <form onSubmit={handleSignUp} className="space-y-4">
           {loading && <LoadingBar />}
           <Input
@@ -187,6 +408,7 @@ export default function RegisterPage() {
             )}
           </Button>
         </form>
+        )}
 
         {/* Divider */}
         <div className="flex items-center gap-3">
