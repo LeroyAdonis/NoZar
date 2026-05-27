@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "context-mode": {
+      "command": "npx",
+      "args": ["context-mode"],
+      "type": "stdio"
+    }
+  }
+}
