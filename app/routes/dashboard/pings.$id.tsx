@@ -1573,7 +1573,7 @@ export default function PingDetail({
         {isSubmitting && <LoadingBar className="mt-2" />}
         {/* Chat header */}
         <div className="flex items-center justify-between pt-4 pb-4 border-b border-white/5 shrink-0">
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 shrink-0">
             <Link
               to="/dashboard/pings"
               className="p-2 -ml-2 text-slate-400 hover:text-white transition-colors"
@@ -1611,16 +1611,16 @@ export default function PingDetail({
           </div>
           <div className="text-center min-w-0 flex-1 px-2">
             <div className="flex items-center gap-2 justify-center flex-wrap">
-              <h3 className="font-bold text-sm text-white truncate max-w-[120px] sm:max-w-none">
+              <h3 className="font-bold text-sm text-white truncate">
                 {counterparty.name}
               </h3>
               <TrustBadge level={myTrust.level} completedTrades={myTrust.completedTrades} averageRating={null} />
             </div>
-            <span className="text-[10px] font-mono text-slate-500 uppercase truncate block max-w-[140px] sm:max-w-none mx-auto">
+            <span className="text-[10px] font-mono text-slate-500 uppercase truncate block mx-auto">
               {listing.title}
             </span>
           </div>
-          <div className="w-8 h-8 rounded-full bg-[#0F172A] border border-emerald-500/30 flex items-center justify-center overflow-hidden">
+          <div className="w-8 h-8 rounded-full bg-[#0F172A] border border-emerald-500/30 flex items-center justify-center overflow-hidden shrink-0">
             {counterparty.image ? (
               <img
                 src={counterparty.image}
