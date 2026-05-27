@@ -7,7 +7,7 @@ Nozar is a South African barter/swap platform ("No ZAR"). This roadmap tracks fe
 ## Phases
 
 - [x] **Phase 1: Interactive Tutorial** — Onboarding tutorial (completed before this roadmap)
-- [ ] **Phase 2: Device Identity & Anti-Abuse** — Browser fingerprinting + multi-account detection + TOTP 2FA
+- [x] **Phase 2: Device Identity & Anti-Abuse** — Browser fingerprinting + multi-account detection + TOTP 2FA ✅
 - [ ] **Phase 3: React Native Mobile App** — Turborepo monorepo migration + full-parity Expo mobile app (NativeWind + RN Reusables + tRPC + Better Auth Expo SDK)
 
 ## Phase Details
@@ -31,7 +31,7 @@ Plans:
 - [x] 02-01: DB Schema & Migration (device_fingerprints, two_factors tables + packages)
 - [x] 02-02: Device Fingerprint Collection (client-side) — FingerprintJS in register+login, duplicate-device inline UI
 - [x] 02-03: Auth Server Plugin Integration (twoFactor plugin + databaseHooks + /api/device-fingerprint + /api/device-verify routes)
-- [ ] 02-04: 2FA UI (settings page, /two-factor challenge page)
+- [x] 02-04: 2FA UI (settings page, /two-factor challenge page) ✅
 
 ### Phase 3: React Native Mobile App
 **Goal**: Migrate to Turborepo monorepo and build a full-parity Expo React Native app (iOS + Android) backed by the existing Neon/React Router server via a new tRPC layer.
@@ -50,5 +50,5 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Interactive Tutorial | - | Complete | - |
-| 2. Device Identity & Anti-Abuse | 3/4 | In progress | - |
+| 2. Device Identity & Anti-Abuse | 4/4 | Complete ✅ | 2026-05-26 |
 | 3. React Native Mobile App | 0/? | Not started | - |
