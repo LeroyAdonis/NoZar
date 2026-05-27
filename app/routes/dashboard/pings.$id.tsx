@@ -1569,7 +1569,7 @@ export default function PingDetail({
         <div className="fixed inset-x-0 md:left-60 top-[73px] bottom-20 md:bottom-0 z-20 bg-[#030712] flex flex-col md:flex-row">
           {/* ── Left column: chat ───────────────────────────────────── */}
           <div className="flex flex-col flex-1 md:flex-none md:w-3/5 min-h-0 md:border-r md:border-white/5">
-      <div className="mx-auto w-full max-w-md px-4 flex flex-col h-full min-h-0 md:max-w-none md:mx-0 md:px-6">
+      <div className="mx-auto w-full max-w-md px-4 flex flex-col flex-1 min-h-0 md:max-w-none md:mx-0 md:px-6">
         {isSubmitting && <LoadingBar className="mt-2" />}
         {/* Chat header */}
         <div className="flex items-center justify-between pt-4 pb-4 border-b border-white/5 shrink-0">
@@ -1649,7 +1649,7 @@ export default function PingDetail({
         {/* Message Scroll Area */}
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto py-4 space-y-4 pr-2 min-h-0"
+          className="flex flex-col flex-1 overflow-y-auto overscroll-contain py-4 gap-3 pr-2 min-h-0"
         >
           {chatMessages.map((msg) => {
             // System messages — centered, muted
@@ -1671,16 +1671,16 @@ export default function PingDetail({
                 className={`flex ${isMe ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[80%] rounded-2xl p-3 ${
+                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                     isMe
-                      ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-50"
-                      : "bg-[#0F172A] border border-white/10 text-slate-300"
+                      ? "bg-emerald-500 text-[#030712] font-medium"
+                      : "bg-[#1E293B] border border-white/15 text-white"
                   }`}
                 >
-                  <p className="text-sm">{msg.text}</p>
+                  <p className="text-[15px] leading-relaxed">{msg.text}</p>
                   <span
                     className={`text-[8px] font-mono mt-1 block ${
-                      isMe ? "text-emerald-500/50 text-right" : "text-slate-500"
+                      isMe ? "text-[#030712]/60 text-right" : "text-slate-500"
                     }`}
                   >
                     {timeAgo(new Date(msg.createdAt))}
@@ -2128,7 +2128,7 @@ export default function PingDetail({
 
         {/* Chat Input Footer — hidden when trade is completed or cancelled */}
         {status !== "completed" && status !== "cancelled" && status !== "frozen" && (
-          <div className="pt-3 pb-2 shrink-0">
+          <div className="pt-3 pb-[max(env(safe-area-inset-bottom,0px),12px)] shrink-0">
             <MessageInput
               status={status}
               isSubmitting={isSubmitting}
@@ -2220,83 +2220,99 @@ function MessageInput({
   }, [isSubmitting]);
 
   return (
-    <div>
-      <div className="flex gap-2">
-      {/* Propose Handshake button — only in "proposed" (initial) state */}
+    <div className="space-y-2">
+      {/* Row 1 — Quick reply pills (horizontal scroll, proposed state only) */}
       {status === "proposed" && (
-        <Form method="post">
-          <input type="hidden" name="intent" value="proposeHandshake" />
+        <div className="relative">
+          <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <Form method="post" className="shrink-0">
+              <input type="hidden" name="intent" value="counterOffer" />
+              <input type="hidden" name="text" value="Can you add another item?" />
+              <button
+                type="submit"
+                className="px-3 py-1.5 rounded-full bg-[#1E293B] border border-white/10 text-xs text-slate-300 hover:border-emerald-500/50 transition-colors whitespace-nowrap"
+              >
+                Can you add another item?
+              </button>
+            </Form>
+            <Form method="post" className="shrink-0">
+              <input type="hidden" name="intent" value="counterOffer" />
+              <input type="hidden" name="text" value="No thanks." />
+              <button
+                type="submit"
+                className="px-3 py-1.5 rounded-full bg-[#1E293B] border border-white/10 text-xs text-slate-300 hover:border-emerald-500/50 transition-colors whitespace-nowrap"
+              >
+                No thanks.
+              </button>
+            </Form>
+            <Form method="post" className="shrink-0">
+              <input type="hidden" name="intent" value="counterOffer" />
+              <input type="hidden" name="text" value="What else do you have?" />
+              <button
+                type="submit"
+                className="px-3 py-1.5 rounded-full bg-[#1E293B] border border-white/10 text-xs text-slate-300 hover:border-emerald-500/50 transition-colors whitespace-nowrap"
+              >
+                What else do you have?
+              </button>
+            </Form>
+          </div>
+          {/* Right-edge fade hints at horizontal scroll */}
+          <div className="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-[#030712] to-transparent" />
+        </div>
+      )}
+
+      {/* Row 2 — Action buttons + text input + send */}
+      <div className="flex items-center gap-2">
+        {/* Propose Handshake button — only in "proposed" (initial) state */}
+        {status === "proposed" && (
+          <Form method="post" className="shrink-0">
+            <input type="hidden" name="intent" value="proposeHandshake" />
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="p-3 rounded-xl bg-[#0F172A] border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              title="Initiate Handshake"
+            >
+              <ShieldCheck className="w-5 h-5" />
+            </button>
+          </Form>
+        )}
+
+        {/* Balance Trade button — only in "proposed" state */}
+        {status === "proposed" && onBalanceClick && (
+          <button
+            type="button"
+            onClick={onBalanceClick}
+            className="shrink-0 p-3 rounded-xl bg-[#0F172A] border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
+            title="Balance the Trade"
+          >
+            <Scale className="w-5 h-5" />
+          </button>
+        )}
+
+        {/* Message text input + send */}
+        <Form ref={formRef} method="post" className="flex flex-1 gap-2 min-w-0">
+          <input type="hidden" name="intent" value="sendMessage" />
+          <input
+            type="text"
+            name="text"
+            placeholder="Encrypted transmission..."
+            required
+            autoComplete="off"
+            className="flex-1 min-w-0 bg-[#0F172A] border border-white/10 rounded-xl px-3 sm:px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50"
+          />
           <button
             type="submit"
-            disabled={isSubmitting}
-            className="p-3 rounded-xl bg-[#0F172A] border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            title="Initiate Handshake"
+            disabled={isSubmitting && submittingIntent === "sendMessage"}
+            className="shrink-0 p-3 rounded-xl bg-emerald-500 text-[#030712] hover:bg-emerald-400 transition-colors disabled:opacity-50"
           >
-            <ShieldCheck className="w-5 h-5" />
+            {isSubmitting && submittingIntent === "sendMessage" ? (
+              <Spinner className="w-5 h-5" />
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
           </button>
         </Form>
-      )}
-
-      {/* Balance Trade button — only in "proposed" state */}
-      {status === "proposed" && onBalanceClick && (
-        <button
-          type="button"
-          onClick={onBalanceClick}
-          className="p-3 rounded-xl bg-[#0F172A] border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 transition-colors"
-          title="Balance the Trade"
-        >
-          <Scale className="w-5 h-5" />
-        </button>
-      )}
-
-      {/* Counter-offer quick replies */}
-      <div className="flex flex-wrap gap-2 mb-2">
-        <Form method="post">
-          <input type="hidden" name="intent" value="counterOffer" />
-          <input type="hidden" name="text" value="Can you add another item?" />
-          <button type="submit" className="px-3 py-1.5 rounded-full bg-[#1E293B] border border-white/10 text-xs text-slate-300 hover:border-emerald-500/50 transition-colors">
-            Can you add another item?
-          </button>
-        </Form>
-        <Form method="post">
-          <input type="hidden" name="intent" value="counterOffer" />
-          <input type="hidden" name="text" value="No thanks." />
-          <button type="submit" className="px-3 py-1.5 rounded-full bg-[#1E293B] border border-white/10 text-xs text-slate-300 hover:border-emerald-500/50 transition-colors">
-            No thanks.
-          </button>
-        </Form>
-        <Form method="post">
-          <input type="hidden" name="intent" value="counterOffer" />
-          <input type="hidden" name="text" value="What else do you have?" />
-          <button type="submit" className="px-3 py-1.5 rounded-full bg-[#1E293B] border border-white/10 text-xs text-slate-300 hover:border-emerald-500/50 transition-colors">
-            What else do you have?
-          </button>
-        </Form>
-      </div>
-
-      {/* Message text input */}
-      <Form ref={formRef} method="post" className="flex flex-1 gap-2">
-        <input type="hidden" name="intent" value="sendMessage" />
-        <input
-          type="text"
-          name="text"
-          placeholder="Encrypted transmission..."
-          required
-          autoComplete="off"
-          className="flex-1 bg-[#0F172A] border border-white/10 rounded-xl px-3 sm:px-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500/50 min-w-0"
-        />
-        <button
-          type="submit"
-          disabled={isSubmitting && submittingIntent === "sendMessage"}
-          className="p-3 rounded-xl bg-emerald-500 text-[#030712] hover:bg-emerald-400 transition-colors disabled:opacity-50"
-        >
-          {isSubmitting && submittingIntent === "sendMessage" ? (
-            <Spinner className="w-5 h-5" />
-          ) : (
-            <Send className="w-5 h-5" />
-          )}
-        </button>
-      </Form>
       </div>
 
       {/* Newcomer message counter */}
