@@ -10,21 +10,29 @@ export interface NozarHaptics {
   medium(): void;
 }
 
-const HapticContext = createContext<NozarHaptics | null>(null);
+export interface NozarHapticsReturn extends NozarHaptics {
+  isSupported: boolean;
+}
+
+const HapticContext = createContext<NozarHapticsReturn | null>(null);
 
 export function HapticProvider({ children }: { children: React.ReactNode }) {
-  const { trigger } = useWebHaptics();
+  const { trigger, isSupported } = useWebHaptics({
+    debug: import.meta.env.DEV, // Enable debug audio feedback in development
+    showSwitch: import.meta.env.DEV // Show toggle switch in development
+  });
 
-  const value = useMemo<NozarHaptics>(
+  const value = useMemo<NozarHapticsReturn>(
     () => ({
-      lightTap: () => { trigger('light'); },
-      selection: () => { trigger('selection'); },
-      success: () => { trigger('success'); },
-      warning: () => { trigger('warning'); },
-      error: () => { trigger('error'); },
-      medium: () => { trigger('medium'); },
+      lightTap: () => { trigger?.('light'); },
+      selection: () => { trigger?.('selection'); },
+      success: () => { trigger?.('success'); },
+      warning: () => { trigger?.('warning'); },
+      error: () => { trigger?.('error'); },
+      medium: () => { trigger?.('medium'); },
+      isSupported
     }),
-    [trigger],
+    [trigger, isSupported]
   );
 
   return (
@@ -32,7 +40,7 @@ export function HapticProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useHaptics(): NozarHaptics {
+export function useHaptics(): NozarHapticsReturn {
   const ctx = useContext(HapticContext);
   if (ctx === null) {
     throw new Error(
