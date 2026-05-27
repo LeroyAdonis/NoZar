@@ -40,6 +40,7 @@ export default [
     route("billing", "routes/dashboard/billing.tsx"),
     route("verify-phone", "routes/dashboard/verify-phone.tsx"),
     route("refer", "routes/refer.tsx"),
+    route("settings/security", "routes/dashboard/settings-security.tsx"),
   ]),
   route("legal", "routes/legal.tsx", [
     route("terms", "routes/legal/terms.tsx"),
