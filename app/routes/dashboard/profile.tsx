@@ -20,6 +20,7 @@ import {
   ImagePlus,
   Plus,
   Phone,
+  ChevronRight,
 } from "lucide-react";
 
 import type { Route } from "./+types/profile";
@@ -828,6 +829,23 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
               Replay tutorial →
             </button>
           </div>
+
+          {/* Security settings */}
+          <Link
+            to="/dashboard/settings/security"
+            className="flex items-center justify-between p-4 rounded-xl border border-white/10 bg-[#0F172A] hover:bg-white/5 transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Security</p>
+                <p className="text-xs text-slate-400">Two-factor authentication</p>
+              </div>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-slate-300 transition-colors" />
+          </Link>
 
           {/* Sign out */}
           <div className="pt-2 pb-4">
