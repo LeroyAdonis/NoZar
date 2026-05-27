@@ -1,3 +1,6 @@
+import { useHaptics } from "~/components/ui/haptic-provider";
+import type { NozarHaptics } from "~/components/ui/haptic-provider";
+
 type ButtonVariant =
   | "nozar"
   | "nozarOutline"
@@ -16,6 +19,15 @@ type ButtonProps = {
   disabled?: boolean;
   type?: "button" | "submit" | "reset";
   onClick?: () => void;
+};
+
+const variantToHaptic: Record<ButtonVariant, keyof NozarHaptics> = {
+  nozar: "medium",
+  primary: "medium",
+  nozarOutline: "lightTap",
+  secondary: "lightTap",
+  ghost: "lightTap",
+  danger: "warning",
 };
 
 const variantStyles: Record<ButtonVariant, string> = {
@@ -44,11 +56,17 @@ export function Button({
   type = "button",
   onClick,
 }: ButtonProps) {
+  const haptics = useHaptics();
   return (
     <button
       type={type}
       disabled={disabled}
-      onClick={onClick}
+      onClick={() => {
+        if (!disabled) {
+          haptics[variantToHaptic[variant]]();
+        }
+        onClick?.();
+      }}
       className={`inline-flex items-center justify-center gap-2 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed ${sizeStyles[size]} ${variantStyles[variant]} ${className}`}
     >
       {children}

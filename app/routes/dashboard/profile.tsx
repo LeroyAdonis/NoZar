@@ -33,6 +33,7 @@ import {
 import { isBlobConfigured } from "~/lib/blob.server";
 import { getListingUsage } from "~/lib/tier-limits.server";
 import { Button } from "~/components/ui/button";
+import { useHaptics } from "~/components/ui/haptic-provider";
 import { Input } from "~/components/ui/input";
 import { Badge } from "~/components/ui/badge";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
@@ -460,6 +461,7 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [confirmArchiveId, setConfirmArchiveId] = useState<number | null>(null);
   const navigate = useNavigate();
+  const haptics = useHaptics();
 
   const handleReplayTutorial = () => {
     localStorage.removeItem("nozar_tutorial_seen");
@@ -487,9 +489,23 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
   // Auto-close the edit sheet when profile update succeeds
   useEffect(() => {
     if (navigation.state === "idle" && didUpdate) {
+      haptics.success();
       setShowEditSheet(false);
     }
   }, [navigation.state, didUpdate]);
+
+  // Fire error haptic when a profile action fails
+  useEffect(() => {
+    if (
+      actionData &&
+      "success" in actionData &&
+      actionData.success === false &&
+      "intent" in actionData &&
+      (actionData.intent === "updateProfile" || actionData.intent === "update-avatar")
+    ) {
+      haptics.error();
+    }
+  }, [actionData]);
 
   // Escape key closes the sheet
   useEffect(() => {

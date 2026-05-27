@@ -6,6 +6,7 @@ import {
   MessageSquare,
   User,
 } from "lucide-react";
+import { useHaptics } from "~/components/ui/haptic-provider";
 
 type NavTab = {
   id: string;
@@ -67,6 +68,7 @@ type BottomNavProps = {
 };
 
 export function BottomNav({ activeTab, isPending = false, hasUnread = false }: BottomNavProps) {
+  const haptics = useHaptics();
   return (
     <nav
       data-testid="bottom-nav"
@@ -86,7 +88,10 @@ export function BottomNav({ activeTab, isPending = false, hasUnread = false }: B
                   to={tab.href}
                   aria-disabled={isPending}
                   tabIndex={isPending ? -1 : undefined}
-                  onClick={isPending ? (e) => e.preventDefault() : undefined}
+                  onClick={(e) => {
+                    if (isPending) return e.preventDefault();
+                    haptics.selection();
+                  }}
                   className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center transition-all ${
                     isPending
                       ? "opacity-70 cursor-not-allowed"
@@ -113,7 +118,10 @@ export function BottomNav({ activeTab, isPending = false, hasUnread = false }: B
               to={tab.href}
               aria-disabled={isPending}
               tabIndex={isPending ? -1 : undefined}
-              onClick={isPending ? (e) => e.preventDefault() : undefined}
+              onClick={(e) => {
+                if (isPending) return e.preventDefault();
+                haptics.selection();
+              }}
               className={`relative flex flex-col items-center gap-1 p-2 transition-colors ${
                 isPending
                   ? "opacity-70 cursor-not-allowed"

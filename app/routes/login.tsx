@@ -7,6 +7,7 @@ import { redirect } from "react-router";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { LoginFormSkeleton } from "~/components/ui/skeleton";
+import { useHaptics } from "~/components/ui/haptic-provider";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const session = await getOptionalSession(request);
@@ -48,6 +49,7 @@ function getLoginErrorMessage(error: { message?: string; status?: number }): str
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const haptics = useHaptics();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -78,6 +80,7 @@ export default function LoginPage() {
         email,
         callbackURL: "/login",
       });
+      haptics.success();
       setResendSent(true);
       setError("");
     } catch {
@@ -99,6 +102,7 @@ export default function LoginPage() {
         password,
         fetchOptions: {
           onSuccess: () => {
+            haptics.success();
             setLoading(false);
             // D-04: Fire-and-forget POST — does not block navigation.
             // The server upserts device_fingerprints and returns duplicate status.
@@ -113,6 +117,7 @@ export default function LoginPage() {
             navigate("/dashboard");
           },
           onError: (ctx) => {
+            haptics.error();
             const msg = getLoginErrorMessage(ctx.error);
             if (msg === EMAIL_NOT_VERIFIED_SENTINEL) {
               setError(

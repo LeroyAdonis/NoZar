@@ -49,6 +49,7 @@ import { TrustBadge, type TrustLevel } from "~/components/ui/trust-badge";
 import { ReportModal } from "~/components/ui/report-modal";
 import { SafeZonePicker } from "~/components/ui/safezone-picker";
 import { BalancePile } from "~/components/ui/balance-pile";
+import { useHaptics } from "~/components/ui/haptic-provider";
 
 // ─── Meta ──────────────────────────────────────────────────────
 
@@ -978,6 +979,7 @@ export default function PingDetail({
     ? (navigation.formData?.get("intent") as string | null)
     : null;
   const status = trade.status;
+  const haptics = useHaptics();
 
   // ── SafeZone fetchers ─────────────────────────────────────
   const generateFetcher = useFetcher<{ ok?: boolean; error?: string }>();
@@ -1098,6 +1100,20 @@ export default function PingDetail({
       behavior: "smooth",
     });
   }, [chatMessages.length]);
+
+  // Haptic feedback on trade status transitions
+  const prevStatusRef = useRef(status);
+  useEffect(() => {
+    const prev = prevStatusRef.current;
+    if (prev !== status) {
+      if (status === "agreed" || status === "completed") {
+        haptics.success();
+      } else if (status === "cancelled" || status === "frozen") {
+        haptics.warning();
+      }
+      prevStatusRef.current = status;
+    }
+  }, [status]);
 
   /* ------------------------------------------------------------------ *
    *  Layout: fixed overlay between dashboard header (73px) and bottom   *
@@ -1241,6 +1257,7 @@ export default function PingDetail({
               <button
                 type="submit"
                 disabled={isSubmitting}
+                onClick={() => haptics.medium()}
                 className="w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50"
               >
                 {submittingIntent === "acceptHandshake" ? (
@@ -1379,6 +1396,7 @@ export default function PingDetail({
                       <button
                         type="submit"
                         disabled={isSubmitting}
+                        onClick={() => haptics.selection()}
                         className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 font-mono uppercase tracking-widest text-[10px] transition-all disabled:opacity-50"
                       >
                         {submittingIntent === "toggleReady" ? (
@@ -1397,6 +1415,7 @@ export default function PingDetail({
                     <button
                       type="submit"
                       disabled={isSubmitting}
+                      onClick={() => haptics.selection()}
                       className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-mono uppercase tracking-widest text-xs transition-all disabled:opacity-50"
                     >
                       {submittingIntent === "toggleReady" ? (
@@ -1438,6 +1457,7 @@ export default function PingDetail({
               <button
                 type="submit"
                 disabled={isSubmitting}
+                onClick={() => haptics.medium()}
                 className="w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50"
               >
                 {submittingIntent === "completeTrade" ? (
@@ -1574,7 +1594,8 @@ export default function PingDetail({
               <Form
                 method="post"
                 onSubmit={(e) => {
-                  if (!confirm("Cancel this trade?")) e.preventDefault();
+                  if (!confirm("Cancel this trade?")) return e.preventDefault();
+                  haptics.warning();
                 }}
               >
                 <input type="hidden" name="intent" value="cancelTrade" />
@@ -1792,6 +1813,7 @@ export default function PingDetail({
                 <button
                   type="submit"
                   disabled={isSubmitting}
+                  onClick={() => haptics.medium()}
                   className="w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50"
                 >
                   {submittingIntent === "acceptHandshake" ? (
@@ -1944,6 +1966,7 @@ export default function PingDetail({
                         <button
                           type="submit"
                           disabled={isSubmitting}
+                          onClick={() => haptics.selection()}
                           className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 font-mono uppercase tracking-widest text-[10px] transition-all disabled:opacity-50"
                         >
                           {submittingIntent === "toggleReady" ? (
@@ -1962,6 +1985,7 @@ export default function PingDetail({
                       <button
                         type="submit"
                         disabled={isSubmitting}
+                        onClick={() => haptics.selection()}
                         className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-mono uppercase tracking-widest text-xs transition-all disabled:opacity-50"
                       >
                         {submittingIntent === "toggleReady" ? (
@@ -2003,6 +2027,7 @@ export default function PingDetail({
                 <button
                   type="submit"
                   disabled={isSubmitting}
+                  onClick={() => haptics.medium()}
                   className="w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50"
                 >
                   {submittingIntent === "completeTrade" ? (
@@ -2133,6 +2158,7 @@ export default function PingDetail({
       isOpen={showReportModal}
       onClose={() => setShowReportModal(false)}
       onSubmit={(reason, description) => {
+        haptics.warning();
         const fd = new FormData();
         fd.set("intent", "reportTrade");
         fd.set("reason", reason);

@@ -1,6 +1,7 @@
 // app/components/ui/region-toggle.tsx
 import { useRef, useEffect } from "react";
 import { MVP_REGIONS, type RegionSlug, REGION_SLUGS } from "~/lib/regions";
+import { useHaptics } from "~/components/ui/haptic-provider";
 
 type RegionToggleProps = {
   activeRegion: RegionSlug;
@@ -10,6 +11,7 @@ type RegionToggleProps = {
 export function RegionToggle({ activeRegion, onChange }: RegionToggleProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const activeRef = useRef<HTMLButtonElement>(null);
+  const haptics = useHaptics();
 
   // Auto-scroll to active region on mount and when it changes
   useEffect(() => {
@@ -36,7 +38,10 @@ export function RegionToggle({ activeRegion, onChange }: RegionToggleProps) {
             key={slug}
             ref={isActive ? activeRef : undefined}
             type="button"
-            onClick={() => onChange(slug)}
+            onClick={() => {
+              haptics.selection();
+              onChange(slug);
+            }}
             className={`flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl sm:rounded-full text-[9px] sm:text-[10px] font-mono uppercase tracking-widest transition-all flex-shrink-0 snap-center ${
               isActive
                 ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"

@@ -1,5 +1,7 @@
+import { useEffect, useRef } from "react";
 import { MapPin, ShieldCheck, RotateCw } from "lucide-react";
 import { Spinner } from "./loading-indicator";
+import { useHaptics } from "~/components/ui/haptic-provider";
 
 export interface MeetupSpot {
   name: string;
@@ -16,6 +18,16 @@ interface Props {
 }
 
 export function SafeZonePicker({ spots, selected, onSelect, isGenerating, isConfirmed }: Props) {
+  const haptics = useHaptics();
+  const wasConfirmed = useRef(false);
+
+  useEffect(() => {
+    if (!wasConfirmed.current && isConfirmed) {
+      haptics.success();
+    }
+    wasConfirmed.current = !!isConfirmed;
+  }, [isConfirmed]);
+
   if (isConfirmed) {
     const spot = selected !== null && spots[selected];
     return (
@@ -86,7 +98,10 @@ export function SafeZonePicker({ spots, selected, onSelect, isGenerating, isConf
         {spots.map((spot, idx) => (
           <button
             key={idx}
-            onClick={() => onSelect(idx)}
+            onClick={() => {
+                haptics.selection();
+                onSelect(idx);
+              }}
             className={`w-full text-left p-4 transition-all ${
               selected === idx
                 ? "bg-emerald-500/10 border-l-2 border-l-emerald-500"

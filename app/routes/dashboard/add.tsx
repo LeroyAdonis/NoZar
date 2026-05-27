@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Form, Link, redirect, useFetcher, useNavigation } from "react-router";
+import { Form, Link, redirect, useFetcher, useNavigate, useNavigation } from "react-router";
 import { CameraCapture } from "~/components/ui/camera-capture";
 import {
   Monitor,
@@ -42,6 +42,7 @@ import { Input } from "~/components/ui/input";
 import { Textarea } from "~/components/ui/textarea";
 import { Button } from "~/components/ui/button";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
+import { useHaptics } from "~/components/ui/haptic-provider";
 
 // ─── Constants ─────────────────────────────────────────────────
 
@@ -287,7 +288,7 @@ Requirements:
     );
   }
 
-  throw redirect("/dashboard");
+  return { success: true };
 }
 
 // ─── Component ─────────────────────────────────────────────────
@@ -393,6 +394,24 @@ function AddAssetForm({
 
   const formRef = useRef<HTMLFormElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
+
+  const navigate = useNavigate();
+  const haptics = useHaptics();
+
+  // Navigate with haptic after successful listing creation
+  useEffect(() => {
+    if (actionData && "success" in actionData && (actionData as { success?: boolean }).success === true) {
+      haptics.success();
+      navigate("/dashboard");
+    }
+  }, [actionData]);
+
+  // Fire error haptic when validation errors are present
+  useEffect(() => {
+    if (errors && Object.keys(errors).length > 0) {
+      haptics.error();
+    }
+  }, [actionData]);
 
   // Separate fetchers for AI actions — don't reset the main form
   const aiFetcher = useFetcher();
@@ -983,6 +1002,7 @@ function AddAssetForm({
             type="button"
             onClick={() => {
               if (!selectedCategory) return;
+              haptics.selection();
               setStep(2);
               if (typeof window !== "undefined") {
                 window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1020,7 +1040,7 @@ function AddAssetForm({
           <div className="flex gap-3">
             <button
               type="button"
-              onClick={() => setStep(1)}
+              onClick={() => { haptics.selection(); setStep(1); }}
               className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-bold uppercase tracking-widest text-xs hover:bg-white/10 transition-colors"
             >
               ← Back

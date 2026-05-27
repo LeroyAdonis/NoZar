@@ -1,8 +1,11 @@
-import { Form, useLoaderData } from "react-router";
+import { useEffect } from "react";
+import { Form, useLoaderData, useSearchParams } from "react-router";
+import type { Route } from "./+types/billing";
 import { eq } from "drizzle-orm";
 import { CreditCard, Check, Lock, Zap, BarChart3, Shield, Layers, Rocket } from "lucide-react";
 
-import type { Route } from "./+types/billing";
+import { useHaptics } from "~/components/ui/haptic-provider";
+
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import { subscriptions } from "~/lib/schema";
@@ -117,6 +120,16 @@ export default function BillingPage() {
   const { planCode, listingCount, subscription, upgradeEnabled } =
     useLoaderData<typeof loader>();
 
+  const haptics = useHaptics();
+  const [searchParams] = useSearchParams();
+
+  // Fire success haptic once when PayFast returns with pf=success
+  useEffect(() => {
+    if (searchParams.get("pf") === "success") {
+      haptics.success();
+    }
+  }, [searchParams]);
+
   const currentTier = TIERS.find((t) => t.code === planCode) ?? TIERS[0];
   const usagePct = Math.min((listingCount / currentTier.listingLimit) * 100, 100);
   const overLimit = listingCount > currentTier.listingLimit;
@@ -158,6 +171,7 @@ export default function BillingPage() {
             <Form method="post" action="/api/pay/cancel">
               <button
                 type="submit"
+                onClick={() => haptics.warning()}
                 className="px-4 py-2 rounded-lg text-[10px] font-mono uppercase tracking-widest text-rose-400 border border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10 transition-colors"
               >
                 Cancel subscription

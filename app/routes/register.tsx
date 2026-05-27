@@ -7,6 +7,7 @@ import { parse } from "cookie";
 import { Input } from "~/components/ui/input";
 import { Button } from "~/components/ui/button";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
+import { useHaptics } from "~/components/ui/haptic-provider";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const session = await getOptionalSession(request);
@@ -40,6 +41,7 @@ export default function RegisterPage() {
   const [deviceVerifyLoading, setDeviceVerifyLoading] = useState(false);
   const [deviceVerifyError, setDeviceVerifyError] = useState("");
   const navigate = useNavigate();
+  const haptics = useHaptics();
 
   useEffect(() => {
     // FingerprintJS must never be imported server-side (uses browser APIs).
@@ -86,6 +88,7 @@ export default function RegisterPage() {
             }
           }
           setLoading(false);
+          haptics.success();
           // If Better Auth auto-signed the user in (e.g. test mode or future config),
           // navigate directly to dashboard. Otherwise, require email verification.
           if (ctx.data?.session) {
@@ -95,6 +98,7 @@ export default function RegisterPage() {
           }
         },
         onError: (ctx) => {
+          haptics.error();
           const msg = ctx.error.message ?? "";
           if (msg.includes("DEVICE_ALREADY_REGISTERED")) {
             // D-03/D-05: Soft block — show inline phone verification UI
@@ -185,6 +189,7 @@ export default function RegisterPage() {
                 }
               }
               setLoading(false);
+              haptics.success();
               if (ctx.data?.session) {
                 navigate("/dashboard");
               } else {
@@ -192,6 +197,7 @@ export default function RegisterPage() {
               }
             },
             onError: (ctx) => {
+              haptics.error();
               setError(ctx.error.message ?? "Registration failed after verification");
               setDeviceError(null);
               setLoading(false);

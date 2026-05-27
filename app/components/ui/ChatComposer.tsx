@@ -1,16 +1,22 @@
 "use client";
 import React, { useState } from 'react';
+import { useHaptics } from "~/components/ui/haptic-provider";
 
 export default function ChatComposer({ onSend }: { onSend: (text: string) => Promise<void> }) {
   const [text, setText] = useState('');
   const [sending, setSending] = useState(false);
+  const haptics = useHaptics();
 
   async function submit() {
     if (!text.trim()) return;
     setSending(true);
     try {
       await onSend(text.trim());
+      haptics.success();
       setText('');
+    } catch (err) {
+      haptics.error();
+      throw err;
     } finally {
       setSending(false);
     }

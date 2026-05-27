@@ -1,4 +1,5 @@
 import type { TradeThread } from "~/lib/types";
+import { useHaptics } from "~/components/ui/haptic-provider";
 
 type PingThreadProps = {
   thread: TradeThread;
@@ -29,11 +30,15 @@ function getStatusBadge(status: string): BadgeConfig {
 }
 
 export function PingThread({ thread, onClick }: PingThreadProps) {
+  const haptics = useHaptics();
   const badge = getStatusBadge(thread.status);
 
   return (
     <div
-      onClick={onClick}
+      onClick={() => {
+        haptics.lightTap();
+        onClick?.();
+      }}
       className="bg-[#0F172A] border border-white/10 rounded-3xl p-4 flex gap-4 cursor-pointer hover:border-emerald-500/30 transition-colors relative group"
     >
       {thread.unread && (
