@@ -1568,8 +1568,8 @@ export default function PingDetail({
         {/* Outer: fixed overlay — sidebar-offset on desktop, full-width on mobile */}
         <div className="fixed inset-x-0 md:left-60 top-[73px] bottom-20 md:bottom-0 z-20 bg-[#030712] flex flex-col md:flex-row">
           {/* ── Left column: chat ───────────────────────────────────── */}
-          <div className="flex flex-col flex-1 md:flex-none md:w-3/5 min-h-0 md:border-r md:border-white/5">
-      <div className="mx-auto w-full max-w-md px-4 flex flex-col flex-1 min-h-0 md:max-w-none md:mx-0 md:px-6">
+          <div className="flex flex-col flex-1 min-w-0 min-h-0 md:border-r md:border-white/5">
+      <div className="mx-auto w-full max-w-md px-4 flex flex-col flex-1 min-h-0 min-w-0 md:max-w-none md:mx-0 md:px-6">
         {isSubmitting && <LoadingBar className="mt-2" />}
         {/* Chat header */}
         <div className="flex items-center justify-between pt-4 pb-4 border-b border-white/5 shrink-0">
@@ -2143,7 +2143,7 @@ export default function PingDetail({
           </div>{/* end left chat column */}
 
           {/* ── Right column: trade status panel — desktop only ─────── */}
-          <div className="hidden md:flex flex-col w-2/5 overflow-y-auto px-6 py-6 gap-4 bg-[#0F172A]/20 border-l border-white/5">
+          <div className="hidden md:flex flex-col w-72 lg:w-80 shrink-0 overflow-y-auto px-6 py-6 gap-4 bg-[#0F172A]/20 border-l border-white/5">
             <div className="shrink-0 pb-3 border-b border-white/5">
               <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">
                 // Trade Status
