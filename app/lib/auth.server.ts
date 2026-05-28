@@ -340,10 +340,15 @@ export const SAFE_AUTH_SIGNIN_MESSAGE =
 export function isTransientDbError(error: unknown): boolean {
   if (!(error instanceof Error)) return false;
   const msg = error.message + String((error as { cause?: unknown }).cause ?? "");
+  // Better Auth wraps Neon connectivity errors as APIError with body.code = "FAILED_TO_GET_SESSION".
+  // The message is "Failed to get session" (human-readable), so we must check body.code directly.
+  const bodyCode =
+    (error as { body?: { code?: string } }).body?.code ?? "";
   return (
     msg.includes("fetch failed") ||
     msg.includes("Error connecting to database") ||
-    msg.includes("FAILED_TO_GET_SESSION")
+    msg.includes("FAILED_TO_GET_SESSION") ||
+    bodyCode === "FAILED_TO_GET_SESSION"
   );
 }
 
