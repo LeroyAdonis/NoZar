@@ -32,7 +32,8 @@ export default function ChatComposer({ onSend }: { onSend: (text: string) => Pro
 
   return (
     <div
-      className="flex gap-2 pt-3 pb-[max(env(safe-area-inset-bottom,0px),12px)] px-4 bg-[#030712] border-t border-white/5 shrink-0"
+      className="flex gap-2 pt-3 px-4 bg-[#030712] border-t border-white/5 shrink-0"
+      style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)' }}
     >
       <input
         className="flex-1 min-h-[44px] bg-[#0F172A] border border-white/10 rounded-xl px-4 py-2.5 text-[15px] text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors min-w-0"

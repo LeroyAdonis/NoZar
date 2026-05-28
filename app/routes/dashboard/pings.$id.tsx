@@ -1011,6 +1011,7 @@ export default function PingDetail({
   // ── Trust system state ────────────────────────────────────
   const [showReportModal, setShowReportModal] = useState(false);
   const [showBalancePile, setShowBalancePile] = useState(false);
+  const [showTradeStatus, setShowTradeStatus] = useState(false);
 
   // ── BalancePile: derive trade values from loaded items ────
   // The listing's owner contributes its estimated value to their side of the scale.
@@ -1566,10 +1567,10 @@ export default function PingDetail({
   return (
     <>
         {/* Outer: fixed overlay — sidebar-offset on desktop, full-width on mobile */}
-        <div className="fixed inset-x-0 md:left-60 top-[73px] bottom-20 md:bottom-0 z-20 bg-[#030712] flex flex-col md:flex-row">
+        <div className="fixed inset-x-0 lg:left-60 top-[73px] bottom-20 lg:bottom-0 z-20 bg-[#030712] flex flex-col lg:flex-row">
           {/* ── Left column: chat ───────────────────────────────────── */}
-          <div className="flex flex-col flex-1 min-w-0 min-h-0 md:border-r md:border-white/5">
-      <div className="mx-auto w-full max-w-md px-4 flex flex-col flex-1 min-h-0 min-w-0 md:max-w-none md:mx-0 md:px-6">
+          <div className="flex flex-col flex-1 min-w-0 min-h-0 lg:border-r lg:border-white/5">
+      <div className="mx-auto w-full max-w-md px-4 flex flex-col flex-1 min-h-0 min-w-0 lg:max-w-none lg:mx-0 lg:px-6">
         {isSubmitting && <LoadingBar className="mt-2" />}
         {/* Chat header */}
         <div className="flex items-center justify-between pt-4 pb-4 border-b border-white/5 shrink-0">
@@ -1646,6 +1647,42 @@ export default function PingDetail({
           </div>
         )}
 
+        {/* Mobile trade status chip — tap to open status sheet */}
+        {(() => {
+          const statusConfig: Record<string, { label: string; color: string; dot: boolean }> = {
+            proposed:       { label: "Stage 01 — Open Chat",       color: "text-slate-300",   dot: false },
+            negotiating:    { label: "Stage 02 — Handshake",       color: "text-amber-400",   dot: true  },
+            agreed:         { label: "Stage 03 — Agreed",          color: "text-emerald-400", dot: true  },
+            contact_shared: { label: "Stage 04 — Contact Shared",  color: "text-emerald-400", dot: true  },
+            completed:      { label: "Trade Completed",            color: "text-emerald-400", dot: false },
+            cancelled:      { label: "Trade Cancelled",            color: "text-red-400",     dot: false },
+            frozen:         { label: "Trade Frozen",               color: "text-red-400",     dot: false },
+          };
+          const cfg = statusConfig[status] ?? { label: status, color: "text-slate-400", dot: false };
+          return (
+            <button
+              type="button"
+              onClick={() => setShowTradeStatus(true)}
+              className="lg:hidden shrink-0 mt-2 mb-1 w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#0F172A] border border-white/10 hover:border-white/20 transition-colors"
+            >
+              <div className="flex items-center gap-2">
+                {cfg.dot && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                )}
+                <span className={`text-[11px] font-mono uppercase tracking-widest font-medium ${cfg.color}`}>
+                  {cfg.label}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-slate-500">
+                <span className="text-[9px] font-mono uppercase tracking-widest">Details</span>
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+                </svg>
+              </div>
+            </button>
+          );
+        })()}
+
         {/* Message Scroll Area */}
         <div
           ref={scrollRef}
@@ -1717,418 +1754,11 @@ export default function PingDetail({
             </div>
           )}
 
-          {/* Status panels — mobile only; desktop shows them in right column */}
-          <div className="md:hidden">
-
-          {/* Proposed — initial open-chat phase (Stage 01), mobile */}
-          {status === "proposed" && (
-            <div className="mt-6 p-5 rounded-2xl bg-[#0F172A] border border-slate-700/50 space-y-4">
-              <div className="flex justify-center">
-                <div className="w-10 h-10 rounded-full bg-slate-700/30 flex items-center justify-center border border-slate-600/30">
-                  <Handshake className="w-5 h-5 text-slate-300" />
-                </div>
-              </div>
-              <h4 className="text-center font-black uppercase tracking-tighter text-white text-sm">
-                Stage 01 — Open Chat
-              </h4>
-
-              {/* Trade summary */}
-              <div className="space-y-2">
-                <span className="font-mono uppercase tracking-widest text-[10px] text-slate-500 block">
-                  // Trade Summary
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-                    <span className="font-mono uppercase tracking-widest text-[9px] text-slate-500 block mb-1">You offer</span>
-                    <p className="text-xs text-white font-bold leading-snug">
-                      {listing.userId === currentUserId ? listing.title : "Your items"}
-                    </p>
-                    {yourValue > 0 && (
-                      <p className="text-[9px] font-mono text-emerald-400 mt-0.5">~R{yourValue.toLocaleString()}</p>
-                    )}
-                  </div>
-                  <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-                    <span className="font-mono uppercase tracking-widest text-[9px] text-slate-500 block mb-1">They offer</span>
-                    <p className="text-xs text-white font-bold leading-snug">
-                      {listing.userId !== currentUserId ? listing.title : "Their items"}
-                    </p>
-                    {theirValue > 0 && (
-                      <p className="text-[9px] font-mono text-emerald-400 mt-0.5">~R{theirValue.toLocaleString()}</p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Safe trading tips */}
-              <div className="space-y-2">
-                <span className="font-mono uppercase tracking-widest text-[10px] text-slate-500 block">
-                  // Safe Trading Tips
-                </span>
-                <ul className="space-y-1.5">
-                  {[
-                    "Use the Handshake flow to agree on terms",
-                    "Never share personal details in chat",
-                    "Use Balance Trade to compare values fairly",
-                    "Meet only at safe, well-lit public locations",
-                  ].map((tip) => (
-                    <li key={tip} className="flex items-start gap-2">
-                      <span className="text-emerald-500 text-[10px] font-mono mt-0.5 shrink-0">✓</span>
-                      <span className="text-[10px] font-mono text-slate-400">{tip}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Handshake prompt */}
-              <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-                <div className="flex items-start gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                  <p className="text-[10px] font-mono text-emerald-400 leading-relaxed">
-                    When both parties are ready, use{" "}
-                    <span className="font-bold text-emerald-300">Initiate Handshake</span>{" "}
-                    (🛡 button below) to lock in terms and proceed.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Handshake Stage: Negotiating — waiting for acceptance */}
-          {status === "negotiating" && (
-            <div className="mt-6 p-5 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
-              <div className="flex justify-center mb-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50 animate-pulse">
-                  <Unlock className="w-5 h-5 text-emerald-400" />
-                </div>
-              </div>
-              <h4 className="text-center font-bold text-white mb-2 uppercase tracking-wide">
-                Stage 02: Handshake Initiated
-              </h4>
-              <p className="text-center text-xs text-slate-400 mb-4">
-                Both parties must commit to reveal the Safe Zone meetup ticket
-                and identity verification.
-              </p>
-              <Form method="post">
-                <input type="hidden" name="intent" value="acceptHandshake" />
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  onClick={() => haptics.medium()}
-                  className="w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50"
-                >
-                  {submittingIntent === "acceptHandshake" ? (
-                    <span className="inline-flex items-center gap-2">
-                      <Spinner className="w-3.5 h-3.5" />
-                      Committing...
-                    </span>
-                  ) : (
-                    "Commit & Reveal"
-                  )}
-                </button>
-              </Form>
-            </div>
-          )}
-
-          {/* Handshake Stage: Agreed — Dual-Blind Contact + SafeZone */}
-          {status === "agreed" && (
-            <div className="mt-6 space-y-4">
-              {/* SafeZone section - always shown when agreed */}
-              <div className="space-y-3">
-                <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
-                  <ShieldCheck className="w-3 h-3 text-emerald-500" />
-                  Safe Meetup Zone
-                  <span className="ml-auto text-slate-600">
-                    TKT-{trade.id.toString().padStart(4, "0")}
-                  </span>
-                </span>
-
-                {spots.length === 0 ? (
-                  /* ── No spots yet: show generate button ── */
-                  <div className="rounded-2xl bg-[#0F172A] border border-white/10 overflow-hidden">
-                    {/* decorative pulse header */}
-                    <div className="w-full h-20 bg-[#030712] relative flex items-center justify-center overflow-hidden">
-                      <div className="absolute inset-0 opacity-10 bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.03)_10px,rgba(255,255,255,0.03)_20px)]" />
-                      <div className="w-20 h-20 rounded-full border border-cyan-500/20 absolute animate-ping" />
-                      <MapPin className="w-6 h-6 text-cyan-400 relative z-10" />
-                    </div>
-
-                    <div className="p-4 space-y-3">
-                      {generateFetcher.data?.error && (
-                        <p className="text-[10px] font-mono text-red-400 uppercase tracking-widest">
-                          {generateFetcher.data.error === "no_nvidia_key"
-                            ? "⚠ NVIDIA AI not configured — contact support"
-                            : "⚠ Could not generate spots — try again"}
-                        </p>
-                      )}
-                      <button
-                        type="button"
-                        disabled={isGeneratingSpots}
-                        onClick={() =>
-                          generateFetcher.submit(
-                            { intent: "generateSafeZone" },
-                            { method: "post" },
-                          )
-                        }
-                        className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-mono uppercase tracking-widest text-[10px] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                      >
-                        {isGeneratingSpots ? (
-                          <>
-                            <Spinner className="w-3 h-3" />
-                            Finding safe spots...
-                          </>
-                        ) : (
-                          "✦ Generate Safe Meetup Spots"
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  /* ── Spots loaded: show picker or confirmed view ── */
-                  <SafeZonePicker
-                    spots={mappedSpots}
-                    selected={optimisticSelectedIdx ?? null}
-                    onSelect={(idx) => {
-                      const spot = spots[idx];
-                      if (!spot) return;
-                      voteFetcher.submit(
-                        { intent: "voteMeetupSpot", spotId: String(spot.id) },
-                        { method: "post" },
-                      );
-                    }}
-                    isGenerating={isGeneratingSpots}
-                    isConfirmed={bothVoted && myVote != null && voteFetcher.state === "idle"}
-                  />
-                )}
-              </div>
-
-              {/* Contact Exchange — only after both parties voted */}
-              {bothVoted && (
-                <div className="rounded-2xl bg-[#0F172A] border border-white/10 p-5">
-                  <div className="flex items-center gap-2 mb-4">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    <h4 className="font-bold text-white uppercase tracking-wide text-sm">
-                      Contact Exchange
-                    </h4>
-                  </div>
-
-                  {/* Readiness Grid */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className={`text-center p-3 rounded-xl border transition-all ${
-                      isReady
-                        ? "bg-emerald-500/10 border-emerald-500/30"
-                        : "bg-white/5 border-white/10"
-                    }`}>
-                      <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">
-                        You
-                      </span>
-                      <span className={`text-sm font-bold ${
-                        isReady ? "text-emerald-400" : "text-slate-400"
-                      }`}>
-                        {isReady ? "✓ Ready" : "Not Ready"}
-                      </span>
-                    </div>
-                    <div className={`text-center p-3 rounded-xl border transition-all ${
-                      theyReady
-                        ? "bg-emerald-500/10 border-emerald-500/30"
-                        : "bg-white/5 border-white/10"
-                    }`}>
-                      <span className="text-[9px] font-mono text-slate-500 uppercase block mb-1">
-                        {counterparty.name}
-                      </span>
-                      <span className={`text-sm font-bold ${
-                        theyReady ? "text-emerald-400" : "text-slate-400"
-                      }`}>
-                        {theyReady ? "✓ Ready" : "Not Ready"}
-                      </span>
-                    </div>
-                  </div>
-
-                  {isReady && theyReady ? (
-                    /* Both ready — reveal contacts */
-                    <>
-                      <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 mb-3">
-                        <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                        <p className="text-xs font-mono text-emerald-400">
-                          Both parties ready! Proceed to contact sharing.
-                        </p>
-                      </div>
-                      <ShareContactForm isSubmitting={isSubmitting} submittingIntent={submittingIntent} />
-                    </>
-                  ) : isReady ? (
-                    <div className="space-y-2">
-                      <div className="text-center p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-                        <p className="text-xs font-mono text-emerald-400">
-                          Waiting for {counterparty.name} to confirm...
-                        </p>
-                      </div>
-                      <Form method="post">
-                        <input type="hidden" name="intent" value="toggleReady" />
-                        <button
-                          type="submit"
-                          disabled={isSubmitting}
-                          onClick={() => haptics.selection()}
-                          className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:bg-white/10 font-mono uppercase tracking-widest text-[10px] transition-all disabled:opacity-50"
-                        >
-                          {submittingIntent === "toggleReady" ? (
-                            <span className="inline-flex items-center gap-2">
-                              <Spinner className="w-3 h-3" /> Updating...
-                            </span>
-                          ) : (
-                            "Un-mark Ready"
-                          )}
-                        </button>
-                      </Form>
-                    </div>
-                  ) : (
-                    <Form method="post">
-                      <input type="hidden" name="intent" value="toggleReady" />
-                      <button
-                        type="submit"
-                        disabled={isSubmitting}
-                        onClick={() => haptics.selection()}
-                        className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-mono uppercase tracking-widest text-xs transition-all disabled:opacity-50"
-                      >
-                        {submittingIntent === "toggleReady" ? (
-                          <span className="inline-flex items-center gap-2">
-                            <Spinner className="w-3.5 h-3.5" /> Committing...
-                          </span>
-                        ) : (
-                          "I'm Ready — Exchange Contacts"
-                        )}
-                      </button>
-                    </Form>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Contact Shared — show complete button */}
-          {status === "contact_shared" && (
-            <div className="mt-6 p-5 rounded-2xl bg-[#0F172A] border border-emerald-500/30">
-              <div className="flex justify-center mb-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50">
-                  <Handshake className="w-5 h-5 text-emerald-400" />
-                </div>
-              </div>
-              <h4 className="text-center font-bold text-white mb-2 uppercase tracking-wide">
-                Contact Details Shared
-              </h4>
-              <p className="text-center text-xs text-slate-400 mb-4">
-                Coordinate your meetup, then mark the trade as complete.
-              </p>
-              <DisclosedContactsCard
-                disclosures={disclosures}
-                currentUserId={currentUserId}
-                counterpartyName={counterparty.name}
-              />
-              <Form method="post" className="mt-4">
-                <input type="hidden" name="intent" value="completeTrade" />
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  onClick={() => haptics.medium()}
-                  className="w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50"
-                >
-                  {submittingIntent === "completeTrade" ? (
-                    <span className="inline-flex items-center gap-2">
-                      <Spinner className="w-3.5 h-3.5" />
-                      Completing...
-                    </span>
-                  ) : (
-                    "Mark Trade Complete"
-                  )}
-                </button>
-              </Form>
-            </div>
-          )}
-
-          {/* Completed */}
-          {status === "completed" && (
-            <>
-              <div className="mt-6 p-5 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
-                <div className="flex justify-center mb-3">
-                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                  </div>
-                </div>
-                <h4 className="text-center font-bold text-emerald-400 mb-2 uppercase tracking-wide">
-                  Trade Completed
-                </h4>
-                <p className="text-center text-xs text-slate-400">
-                  This exchange has been successfully completed. Thank you for
-                  using NoZar!
-                </p>
-              </div>
-              {disclosures.length > 0 && (
-                <div className="mt-4">
-                  <DisclosedContactsCard
-                    disclosures={disclosures}
-                    currentUserId={currentUserId}
-                    counterpartyName={counterparty.name}
-                  />
-                </div>
-              )}
-
-              {/* Post-completion CTA */}
-              <div className="mt-4 rounded-2xl bg-[#0F172A] border border-white/10 p-5 space-y-3">
-                <span className="font-mono uppercase tracking-widest text-[10px] text-slate-500 block">
-                  // What&apos;s Next?
-                </span>
-                <Link
-                  to="/dashboard/add"
-                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all"
-                >
-                  + List Another Item
-                </Link>
-                <Link
-                  to="/dashboard/refer"
-                  className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#0F172A] border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 font-mono uppercase tracking-widest text-[10px] transition-all"
-                >
-                  Invite a Friend
-                </Link>
-              </div>
-            </>
-          )}
-
-          {/* Rating — show form if not yet rated, confirmation if already rated */}
-          {status === "completed" && !loaderData.hasRated && (
-            <RatingForm
-              isSubmitting={isSubmitting}
-              submittingIntent={submittingIntent}
-              counterpartyName={counterparty.name}
-            />
-          )}
-          {status === "completed" && loaderData.hasRated && (
-            <div className="mt-4 p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/20 text-center">
-              <span className="text-emerald-400 text-sm font-mono">
-                ★ You rated this trade {loaderData.existingRatingScore}/5
-              </span>
-            </div>
-          )}
-
-          {/* Cancelled */}
-          {status === "cancelled" && (
-            <div className="mt-6 p-5 rounded-2xl bg-red-500/5 border border-red-500/20">
-              <div className="flex justify-center mb-3">
-                <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center border border-red-500/50">
-                  <X className="w-5 h-5 text-red-400" />
-                </div>
-              </div>
-              <h4 className="text-center font-bold text-red-400 mb-2 uppercase tracking-wide">
-                Trade Cancelled
-              </h4>
-              <p className="text-center text-xs text-slate-400">
-                This trade has been cancelled.
-              </p>
-            </div>
-          )}
-          </div>{/* end md:hidden status panels */}
         </div>
 
         {/* Chat Input Footer — hidden when trade is completed or cancelled */}
         {status !== "completed" && status !== "cancelled" && status !== "frozen" && (
-          <div className="pt-3 pb-[max(env(safe-area-inset-bottom,0px),12px)] shrink-0">
+          <div className="pt-3 shrink-0" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)' }}>
             <MessageInput
               status={status}
               isSubmitting={isSubmitting}
@@ -2143,7 +1773,7 @@ export default function PingDetail({
           </div>{/* end left chat column */}
 
           {/* ── Right column: trade status panel — desktop only ─────── */}
-          <div className="hidden md:flex flex-col w-72 lg:w-80 shrink-0 overflow-y-auto px-6 py-6 gap-4 bg-[#0F172A]/20 border-l border-white/5">
+          <div className="hidden lg:flex flex-col w-72 lg:w-80 shrink-0 overflow-y-auto px-6 py-6 gap-4 bg-[#0F172A]/20 border-l border-white/5">
             <div className="shrink-0 pb-3 border-b border-white/5">
               <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">
                 // Trade Status
@@ -2152,6 +1782,42 @@ export default function PingDetail({
             {renderTradeStatusPanel()}
           </div>
     </div>
+
+    {/* Mobile Trade Status Bottom Sheet */}
+    {showTradeStatus && (
+      <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowTradeStatus(false)}
+        />
+        {/* Sheet */}
+        <div className="relative bg-[#0F172A] rounded-t-3xl border-t border-white/10 flex flex-col max-h-[85dvh]">
+          {/* Drag handle */}
+          <div className="flex justify-center pt-3 pb-1 shrink-0">
+            <div className="w-9 h-1 rounded-full bg-white/20" />
+          </div>
+          {/* Sheet header */}
+          <div className="flex items-center justify-between px-5 py-3 border-b border-white/5 shrink-0">
+            <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400">
+              // Trade Status
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowTradeStatus(false)}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="Close trade status"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          {/* Scrollable content */}
+          <div className="overflow-y-auto overscroll-contain px-5 py-4 space-y-4" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 20px)' }}>
+            {renderTradeStatusPanel()}
+          </div>
+        </div>
+      </div>
+    )}
 
     {/* Report Modal */}
     <ReportModal
