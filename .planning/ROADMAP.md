@@ -9,8 +9,7 @@ Nozar is a South African barter/swap platform ("No ZAR"). This roadmap tracks fe
 - [x] **Phase 1: Interactive Tutorial** — Onboarding tutorial (completed before this roadmap)
 - [x] **Phase 2: Device Identity & Anti-Abuse** — Browser fingerprinting + multi-account detection + TOTP 2FA ✅
 - [ ] **Phase 3: React Native Mobile App** — Turborepo monorepo migration + full-parity Expo mobile app (NativeWind + RN Reusables + tRPC + Better Auth Expo SDK)
-
-## Phase Details
+- [ ] **Phase 4: Trade Chat & Handshake UX Redesign** — Simplified "2/2 agreed" mechanic, inline CTA cards, responsive two-column tablet layout, bottom sheet fixes
 
 ### Phase 1: Interactive Tutorial
 **Goal**: User onboarding tutorial
@@ -45,6 +44,24 @@ Plans:
   5. Real-time chat works via SSE polyfill; push notifications delivered via Expo Push (EAS)
   6. PayFast subscription upgrade opens via expo-web-browser WebView with deep link return
 
+### Phase 4: Trade Chat & Handshake UX Redesign
+**Goal**: Redesign the Pings chat + handshake flow to be approachable for non-technical users, visually polished, and correctly responsive across mobile/tablet/desktop. Fix bottom sheet clipping bugs and replace the confusing two-step handshake with a symmetric "2/2 agreed" counter mechanic.
+**Depends on**: Phase 2
+**Success Criteria** (what must be TRUE):
+  1. Non-technical users can start, agree, and complete a trade without confusion
+  2. No content clipped behind bottom nav on any mobile screen ≥ 360px
+  3. Tablet (768px) shows two-column layout (chat + right panel with assets + status)
+  4. "Agree to Trade" shows visible 1/2 → 2/2 counter; deal locks when both tap
+  5. Inline CTA cards surface key actions at the right moments in the chat thread
+  6. `npm run typecheck` passes with no new errors
+**Plans**: 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Bottom sheet CSS fixes (balance-pile.tsx) + Profile safety section
+- [ ] 04-02-PLAN.md — pings.$id.tsx layout breakpoints (lg→md) + bottom sheet clipping + offerText TS fix
+- [ ] 04-03-PLAN.md — 2/2 handshake mechanic: HandshakeFlow component + agreeToTrade action intent
+- [ ] 04-04-PLAN.md — TradeSummaryCard component + inline CTA cards + one-time safety banner + typecheck
+
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -52,3 +69,4 @@ Plans:
 | 1. Interactive Tutorial | - | Complete | - |
 | 2. Device Identity & Anti-Abuse | 4/4 | Complete ✅ | 2026-05-26 |
 | 3. React Native Mobile App | 0/? | Not started | - |
+| 4. Trade Chat & Handshake UX Redesign | 0/? | Not started | - |
