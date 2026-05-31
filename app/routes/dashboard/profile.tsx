@@ -1,5 +1,3 @@
-"use client";
-
 import { useRef, useState, useEffect } from "react";
 import { Form, useNavigation, useFetcher, Link, useNavigate } from "react-router";
 import { eq, or, and, count, avg, inArray } from "drizzle-orm";
@@ -452,6 +450,15 @@ export async function action({ request }: Route.ActionArgs) {
   return { success: false, intent: "unknown" };
 }
 
+const SAFETY_TIPS = [
+  "Only meet in safe, well-lit public locations — cafés, shopping centres, police stations",
+  "Never share your home address in the chat",
+  "Use the 2/2 Agree mechanic to lock in deal terms before meeting",
+  "Use Balance Trade to compare values fairly before agreeing",
+  "If something feels off, cancel the trade — your safety comes first",
+  "Report suspicious behaviour using the 🚩 flag in any trade chat",
+];
+
 // ─── Component ─────────────────────────────────────────────────
 
 export default function Profile({ loaderData, actionData }: Route.ComponentProps) {
@@ -765,6 +772,26 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
               label="Your rating"
               value={stats.avgRating !== null ? stats.avgRating.toFixed(1) : "—"}
             />
+          </div>
+
+          {/* Safety & Trust — permanent safe trading guidelines */}
+          <div className="p-4 bg-[#0F172A] border border-emerald-500/20 rounded-2xl space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              </div>
+              <span className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest font-black">
+                Safe Trading Guidelines
+              </span>
+            </div>
+            <ul className="space-y-2">
+              {SAFETY_TIPS.map((tip) => (
+                <li key={tip} className="flex items-start gap-2">
+                  <span className="text-emerald-500 text-[10px] font-mono mt-0.5 shrink-0">✓</span>
+                  <span className="text-[11px] font-mono text-slate-400 leading-relaxed">{tip}</span>
+                </li>
+              ))}
+            </ul>
           </div>
 
           {/* Phone verification card */}

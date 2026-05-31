@@ -40,7 +40,6 @@ import { markThreadRead } from "~/lib/notifications.server";
 import { sendPushToUser } from "~/lib/webpush.server";
 import {
   newMessageEmail,
-  tradeAcceptedEmail,
   contactSharedEmail,
   tradeCompletedEmail,
 } from "~/lib/email.server";
@@ -50,6 +49,32 @@ import { ReportModal } from "~/components/ui/report-modal";
 import { SafeZonePicker } from "~/components/ui/safezone-picker";
 import { BalancePile } from "~/components/ui/balance-pile";
 import { useHaptics } from "~/components/ui/haptic-provider";
+import HandshakeFlow from "~/components/ui/HandshakeFlow";
+import TradeSummaryCard from "~/components/ui/TradeSummaryCard";
+
+// ─── CTA Cards ─────────────────────────────────────────────────
+
+type CTACard = {
+  id: string;
+  type: "cta";
+  variant: "agree" | "waiting-1of2" | "negotiating" | "share-contact";
+};
+
+function buildCTACards(status: string, isReady: boolean, theyReady: boolean): CTACard[] {
+  const cards: CTACard[] = [];
+  if (status === "proposed") {
+    if (!isReady) {
+      cards.push({ id: "cta-agree", type: "cta", variant: "agree" });
+    } else if (isReady && !theyReady) {
+      cards.push({ id: "cta-waiting", type: "cta", variant: "waiting-1of2" });
+    }
+  } else if (status === "negotiating") {
+    cards.push({ id: "cta-negotiating", type: "cta", variant: "negotiating" });
+  } else if (status === "agreed") {
+    cards.push({ id: "cta-share-contact", type: "cta", variant: "share-contact" });
+  }
+  return cards;
+}
 
 // ─── Meta ──────────────────────────────────────────────────────
 
@@ -325,7 +350,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     }
 
     case "counterOffer": {
-      const offerText = (formData.get("text") as string)?.trim();
+      const offerText = (formData.get("text") as string | null)?.trim() ?? "";
       if (!offerText) {
         return { error: "Counter-offer message cannot be empty" };
       }
@@ -346,58 +371,50 @@ export async function action({ request, params }: Route.ActionArgs) {
       return redirect("/dashboard/pings");
     }
 
-    case "proposeHandshake": {
+    case "agreeToTrade": {
       if (trade.status !== "proposed") {
-        return { error: "Handshake can only be proposed from initial state" };
+        return { error: "Handshake can only be agreed from proposed state" };
       }
 
+      // Upsert this user's readiness flag
       await db
-        .update(trades)
-        .set({ status: "negotiating", updatedAt: new Date() })
-        .where(eq(trades.id, tradeId));
+        .insert(readinessFlags)
+        .values({ tradeId, userId: user.id, ready: true })
+        .onConflictDoUpdate({
+          target: [readinessFlags.tradeId, readinessFlags.userId],
+          set: { ready: true },
+        });
 
-      await db.insert(messages).values({
-        tradeId,
-        senderId: user.id,
-        text: `${user.name} proposed a Secure Handshake`,
-        type: "system",
-      });
+      // Count how many parties have agreed
+      const [{ value: readyCount }] = await db
+        .select({ value: count() })
+        .from(readinessFlags)
+        .where(and(eq(readinessFlags.tradeId, tradeId), eq(readinessFlags.ready, true)));
 
-      return { ok: true };
-    }
+      if (readyCount >= 2) {
+        // Both agreed — advance to negotiating, clean up flags, insert system message
+        await db
+          .update(trades)
+          .set({ status: "negotiating", updatedAt: new Date() })
+          .where(eq(trades.id, tradeId));
 
-    case "acceptHandshake": {
-      if (trade.status !== "negotiating") {
-        return { error: "No handshake to accept" };
-      }
+        await db
+          .delete(readinessFlags)
+          .where(eq(readinessFlags.tradeId, tradeId));
 
-      await db
-        .update(trades)
-        .set({ status: "agreed", updatedAt: new Date() })
-        .where(eq(trades.id, tradeId));
-
-      await db.insert(messages).values({
-        tradeId,
-        senderId: user.id,
-        text: `${user.name} accepted the Handshake — mutual consensus reached`,
-        type: "system",
-      });
-
-      // Email initiator that handshake was accepted (non-blocking)
-      const counterpartyId_accept =
-        trade.initiatorId === user.id ? trade.responderId : trade.initiatorId;
-      const [[listForAccept], [cpForAccept]] = await Promise.all([
-        db.select({ title: listings.title }).from(listings).where(eq(listings.id, trade.listingId)).limit(1),
-        db.select({ email: users.email, name: users.name }).from(users).where(eq(users.id, counterpartyId_accept)).limit(1),
-      ]);
-      if (cpForAccept?.email) {
-        tradeAcceptedEmail({
-          to: cpForAccept.email,
-          recipientName: cpForAccept.name,
-          senderName: user.name,
+        await db.insert(messages).values({
           tradeId,
-          listingTitle: listForAccept?.title ?? "a listing",
-        }).catch(() => {});
+          senderId: user.id,
+          text: "Both parties agreed — deal locked in! 🎉",
+          type: "system",
+        });
+      } else {
+        await db.insert(messages).values({
+          tradeId,
+          senderId: user.id,
+          text: `${user.name} agreed to the trade — waiting for the other party`,
+          type: "system",
+        });
       }
 
       return { ok: true };
@@ -1012,6 +1029,17 @@ export default function PingDetail({
   const [showReportModal, setShowReportModal] = useState(false);
   const [showBalancePile, setShowBalancePile] = useState(false);
   const [showTradeStatus, setShowTradeStatus] = useState(false);
+  const [safetyBannerDismissed, setSafetyBannerDismissed] = useState(true);
+
+  useEffect(() => {
+    const dismissed = localStorage.getItem("nozar:safety-banner-dismissed");
+    if (!dismissed) setSafetyBannerDismissed(false);
+  }, []);
+
+  const handleDismissBanner = () => {
+    localStorage.setItem("nozar:safety-banner-dismissed", "1");
+    setSafetyBannerDismissed(true);
+  };
 
   // ── BalancePile: derive trade values from loaded items ────
   // The listing's owner contributes its estimated value to their side of the scale.
@@ -1183,94 +1211,44 @@ export default function PingDetail({
                 // Trade Summary
               </span>
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-                  <span className="font-mono uppercase tracking-widest text-[9px] text-slate-500 block mb-1">You offer</span>
-                  <p className="text-xs text-white font-bold leading-snug">
-                    {listing.userId === currentUserId ? listing.title : "Your items"}
-                  </p>
-                  {yourValue > 0 && (
-                    <p className="text-[9px] font-mono text-emerald-400 mt-0.5">~R{yourValue.toLocaleString()}</p>
-                  )}
-                </div>
-                <div className="p-3 rounded-xl bg-white/5 border border-white/10">
-                  <span className="font-mono uppercase tracking-widest text-[9px] text-slate-500 block mb-1">They offer</span>
-                  <p className="text-xs text-white font-bold leading-snug">
-                    {listing.userId !== currentUserId ? listing.title : "Their items"}
-                  </p>
-                  {theirValue > 0 && (
-                    <p className="text-[9px] font-mono text-emerald-400 mt-0.5">~R{theirValue.toLocaleString()}</p>
-                  )}
-                </div>
+                <TradeSummaryCard
+                  role="yours"
+                  title={listing.userId === currentUserId ? listing.title : "Your items"}
+                  estimatedValueZar={yourValue > 0 ? yourValue : null}
+                  type={listing.userId === currentUserId ? (listing.type ?? undefined) : undefined}
+                />
+                <TradeSummaryCard
+                  role="theirs"
+                  title={listing.userId !== currentUserId ? listing.title : "Their items"}
+                  estimatedValueZar={theirValue > 0 ? theirValue : null}
+                  type={listing.userId !== currentUserId ? (listing.type ?? undefined) : undefined}
+                />
               </div>
             </div>
 
-            {/* Safe trading tips */}
-            <div className="space-y-2">
-              <span className="font-mono uppercase tracking-widest text-[10px] text-slate-500 block">
-                // Safe Trading Tips
-              </span>
-              <ul className="space-y-1.5">
-                {[
-                  "Use the Handshake flow to agree on terms",
-                  "Never share personal details in chat",
-                  "Use Balance Trade to compare values fairly",
-                  "Meet only at safe, well-lit public locations",
-                ].map((tip) => (
-                  <li key={tip} className="flex items-start gap-2">
-                    <span className="text-emerald-500 text-[10px] font-mono mt-0.5 shrink-0">✓</span>
-                    <span className="text-[10px] font-mono text-slate-400">{tip}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Handshake prompt */}
-            <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
-              <div className="flex items-start gap-2">
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <p className="text-[10px] font-mono text-emerald-400 leading-relaxed">
-                  When both parties are ready, use{" "}
-                  <span className="font-bold text-emerald-300">Initiate Handshake</span>{" "}
-                  (🛡 button in the chat footer) to lock in terms and proceed.
-                </p>
-              </div>
-            </div>
+            {/* Agree to Trade — 2/2 handshake */}
+            <HandshakeFlow
+              tradeId={trade.id}
+              status={status}
+              isReady={isReady}
+              theyReady={theyReady}
+              isSubmitting={isSubmitting}
+              submittingIntent={submittingIntent}
+            />
           </div>
         )}
 
         {/* Handshake Stage: Negotiating */}
         {status === "negotiating" && (
-          <div className="p-5 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
-            <div className="flex justify-center mb-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center border border-emerald-500/50 animate-pulse">
-                <Unlock className="w-5 h-5 text-emerald-400" />
-              </div>
-            </div>
-            <h4 className="text-center font-bold text-white mb-2 uppercase tracking-wide">
-              Stage 02: Handshake Initiated
-            </h4>
-            <p className="text-center text-xs text-slate-400 mb-4">
-              Both parties must commit to reveal the Safe Zone meetup ticket
-              and identity verification.
-            </p>
-            <Form method="post">
-              <input type="hidden" name="intent" value="acceptHandshake" />
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                onClick={() => haptics.medium()}
-                className="w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all disabled:opacity-50"
-              >
-                {submittingIntent === "acceptHandshake" ? (
-                  <span className="inline-flex items-center gap-2">
-                    <Spinner className="w-3.5 h-3.5" />
-                    Committing...
-                  </span>
-                ) : (
-                  "Commit & Reveal"
-                )}
-              </button>
-            </Form>
+          <div className="p-5 rounded-2xl bg-[#0F172A] border border-slate-700/50 space-y-4">
+            <HandshakeFlow
+              tradeId={trade.id}
+              status={status}
+              isReady={isReady}
+              theyReady={theyReady}
+              isSubmitting={isSubmitting}
+              submittingIntent={submittingIntent}
+            />
           </div>
         )}
 
@@ -1567,9 +1545,9 @@ export default function PingDetail({
   return (
     <>
         {/* Outer: fixed overlay — sidebar-offset on desktop, full-width on mobile */}
-        <div className="fixed inset-x-0 lg:left-60 top-[73px] bottom-20 lg:bottom-0 z-20 bg-[#030712] flex flex-col lg:flex-row">
+        <div className="fixed inset-x-0 md:left-60 top-[73px] bottom-20 md:bottom-0 z-20 bg-[#030712] flex flex-col md:flex-row">
           {/* ── Left column: chat ───────────────────────────────────── */}
-          <div className="flex flex-col flex-1 min-w-0 min-h-0 lg:border-r lg:border-white/5">
+          <div className="flex flex-col flex-1 min-w-0 min-h-0 md:border-r md:border-white/5">
       <div className="mx-auto w-full max-w-md px-4 flex flex-col flex-1 min-h-0 min-w-0 lg:max-w-none lg:mx-0 lg:px-6">
         {isSubmitting && <LoadingBar className="mt-2" />}
         {/* Chat header */}
@@ -1651,7 +1629,7 @@ export default function PingDetail({
         {(() => {
           const statusConfig: Record<string, { label: string; color: string; dot: boolean }> = {
             proposed:       { label: "Stage 01 — Open Chat",       color: "text-slate-300",   dot: false },
-            negotiating:    { label: "Stage 02 — Handshake",       color: "text-amber-400",   dot: true  },
+            negotiating:    { label: "Stage 02 — Deal Agreed",     color: "text-emerald-400", dot: true  },
             agreed:         { label: "Stage 03 — Agreed",          color: "text-emerald-400", dot: true  },
             contact_shared: { label: "Stage 04 — Contact Shared",  color: "text-emerald-400", dot: true  },
             completed:      { label: "Trade Completed",            color: "text-emerald-400", dot: false },
@@ -1663,7 +1641,7 @@ export default function PingDetail({
             <button
               type="button"
               onClick={() => setShowTradeStatus(true)}
-              className="lg:hidden shrink-0 mt-2 mb-1 w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#0F172A] border border-white/10 hover:border-white/20 transition-colors"
+              className="md:hidden shrink-0 mt-2 mb-1 w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#0F172A] border border-white/10 hover:border-white/20 transition-colors"
             >
               <div className="flex items-center gap-2">
                 {cfg.dot && (
@@ -1688,6 +1666,70 @@ export default function PingDetail({
           ref={scrollRef}
           className="flex flex-col flex-1 overflow-y-auto overscroll-contain py-4 gap-3 pr-2 min-h-0"
         >
+          {/* One-time safety banner */}
+          {!safetyBannerDismissed && (
+            <div className="mx-4 mt-3 mb-1 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest mb-1">Safety Reminder</p>
+                <p className="text-[11px] font-mono text-slate-400 leading-relaxed">
+                  Only meet in safe, public locations. Never share your home address. Your safety comes first.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleDismissBanner}
+                className="text-[10px] font-mono text-slate-500 hover:text-slate-300 transition-colors shrink-0 mt-0.5"
+              >
+                Got it
+              </button>
+            </div>
+          )}
+
+          {/* Inline CTA cards */}
+          {buildCTACards(status, isReady, theyReady).map((card) => (
+            <div key={card.id}>
+              {card.variant === "agree" && (
+                <div className="mx-4 my-3 p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)] space-y-3">
+                  <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">
+                    New Trade Request
+                  </p>
+                  <p className="text-[13px] text-slate-300 text-center leading-relaxed">
+                    Both of you need to agree to lock in this trade.
+                  </p>
+                  <HandshakeFlow
+                    tradeId={trade.id}
+                    status={status}
+                    isReady={isReady}
+                    theyReady={theyReady}
+                    isSubmitting={isSubmitting}
+                    submittingIntent={submittingIntent}
+                  />
+                </div>
+              )}
+              {card.variant === "waiting-1of2" && (
+                <div className="mx-4 my-3 p-4 rounded-2xl bg-[#0F172A] border border-slate-700/50 space-y-2">
+                  <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">1/2 Agreed</p>
+                  <p className="text-[13px] text-slate-400 text-center leading-relaxed">
+                    ✓ You agreed — waiting for them to confirm.
+                  </p>
+                </div>
+              )}
+              {card.variant === "negotiating" && (
+                <div className="mx-4 my-3 p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)] space-y-2">
+                  <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">🎉 Deal Agreed!</p>
+                  <p className="text-[13px] text-slate-300 text-center">Both parties agreed. Share your contact info to arrange the meetup.</p>
+                </div>
+              )}
+              {card.variant === "share-contact" && (
+                <div className="mx-4 my-3 p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/30 space-y-3">
+                  <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">Arrange your meetup</p>
+                  <p className="text-[13px] text-slate-300 text-center leading-relaxed">Share your contact info to connect with your trade partner.</p>
+                  <ShareContactForm isSubmitting={isSubmitting} submittingIntent={submittingIntent} />
+                </div>
+              )}
+            </div>
+          ))}
+
           {chatMessages.map((msg) => {
             // System messages — centered, muted
             if (msg.type === "system") {
@@ -1761,6 +1803,7 @@ export default function PingDetail({
           <div className="pt-3 shrink-0" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)' }}>
             <MessageInput
               status={status}
+              isReady={isReady}
               isSubmitting={isSubmitting}
               submittingIntent={submittingIntent}
               myTrust={myTrust}
@@ -1773,7 +1816,7 @@ export default function PingDetail({
           </div>{/* end left chat column */}
 
           {/* ── Right column: trade status panel — desktop only ─────── */}
-          <div className="hidden lg:flex flex-col w-72 lg:w-80 shrink-0 overflow-y-auto px-6 py-6 gap-4 bg-[#0F172A]/20 border-l border-white/5">
+          <div className="hidden md:flex flex-col w-72 md:w-80 shrink-0 overflow-y-auto px-6 py-6 gap-4 bg-[#0F172A]/20 border-l border-white/5">
             <div className="shrink-0 pb-3 border-b border-white/5">
               <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">
                 // Trade Status
@@ -1785,14 +1828,14 @@ export default function PingDetail({
 
     {/* Mobile Trade Status Bottom Sheet */}
     {showTradeStatus && (
-      <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
+      <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
         {/* Backdrop */}
         <div
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
           onClick={() => setShowTradeStatus(false)}
         />
         {/* Sheet */}
-        <div className="relative bg-[#0F172A] rounded-t-3xl border-t border-white/10 flex flex-col max-h-[85dvh]">
+        <div className="relative bg-[#0F172A] rounded-t-3xl border-t border-white/10 flex flex-col max-h-[calc(85dvh-80px)]">
           {/* Drag handle */}
           <div className="flex justify-center pt-3 pb-1 shrink-0">
             <div className="w-9 h-1 rounded-full bg-white/20" />
@@ -1812,7 +1855,7 @@ export default function PingDetail({
             </button>
           </div>
           {/* Scrollable content */}
-          <div className="overflow-y-auto overscroll-contain px-5 py-4 space-y-4" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 20px)' }}>
+          <div className="overflow-y-auto overscroll-contain px-5 py-4 space-y-4 pb-[calc(env(safe-area-inset-bottom,0px)+80px)]">
             {renderTradeStatusPanel()}
           </div>
         </div>
@@ -1853,6 +1896,7 @@ export default function PingDetail({
 
 function MessageInput({
   status,
+  isReady,
   isSubmitting,
   submittingIntent,
   myTrust,
@@ -1860,6 +1904,7 @@ function MessageInput({
   onBalanceClick,
 }: {
   status: string;
+  isReady: boolean;
   isSubmitting: boolean;
   submittingIntent: string | null;
   myTrust?: { level: TrustLevel; completedTrades: number };
@@ -1929,15 +1974,15 @@ function MessageInput({
 
       {/* Row 2 — Action buttons + text input + send */}
       <div className="flex items-center gap-2">
-        {/* Propose Handshake button — only in "proposed" (initial) state */}
-        {status === "proposed" && (
+        {/* Agree to Trade button — only in "proposed" state (syncs with side panel HandshakeFlow) */}
+        {status === "proposed" && !isReady && (
           <Form method="post" className="shrink-0">
-            <input type="hidden" name="intent" value="proposeHandshake" />
+            <input type="hidden" name="intent" value="agreeToTrade" />
             <button
               type="submit"
               disabled={isSubmitting}
               className="p-3 rounded-xl bg-[#0F172A] border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              title="Initiate Handshake"
+              title="Agree to Trade"
             >
               <ShieldCheck className="w-5 h-5" />
             </button>
