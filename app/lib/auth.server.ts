@@ -36,7 +36,13 @@ function resolveBaseURL(): string | undefined {
   const vercelUrl = process.env.VERCEL_URL;
   if (vercelUrl) return `https://${vercelUrl}`;
 
-  // 4. Dev fallback
+  // 4. Production fallback — both nozar.co.za and www.nozar.co.za go here
+  // after Vercel's 308 redirect, so this is the canonical URL.
+  if (process.env.NODE_ENV === "production") {
+    return "https://www.nozar.co.za";
+  }
+
+  // 5. Dev fallback
   if (process.env.NODE_ENV !== "production") {
     console.warn(
       "[auth] BETTER_AUTH_URL is not set — falling back to http://localhost:5173. " +
