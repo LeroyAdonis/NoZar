@@ -7,6 +7,8 @@
  *   expiresAt  = now + 10 min
  *
  * AT docs: https://developers.africastalking.com/docs/sms/sending
+ *
+ * Production AT API key updated May 31 2025.
  */
 
 import { randomInt } from "node:crypto";
