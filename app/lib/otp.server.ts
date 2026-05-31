@@ -112,6 +112,12 @@ export async function sendOtp(phone: string): Promise<{ code: string }> {
       const text = await res.text();
       throw new Error(`Africa's Talking SMS error ${res.status}: ${text}`);
     }
+  } else {
+    console.warn(
+      "[otp] Africa's Talking not configured — OTP stored but NOT sent. " +
+        `Code for ${phone}: ${code}. ` +
+        "Set AFRICASTALKING_API_KEY and AFRICASTALKING_USERNAME in Vercel env vars.",
+    );
   }
 
   return { code };
