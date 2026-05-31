@@ -18,13 +18,25 @@ import * as schema from "./schema";
  *
  * Priority:
  *   1. BETTER_AUTH_URL env var (explicit, always wins)
- *   2. http://localhost:5173 in development (Vite default)
- *   3. undefined in production (Better Auth will attempt to infer from the request)
+ *   2. VERCEL_PROJECT_PRODUCTION_URL (Vercel production domain, e.g. www.nozar.co.za)
+ *   3. VERCEL_URL (Vercel deployment URL)
+ *   4. http://localhost:5173 in development (Vite default)
+ *   5. undefined (Better Auth will infer from the request — last resort)
  */
 function resolveBaseURL(): string | undefined {
-  const url = process.env.BETTER_AUTH_URL;
-  if (url) return url;
+  // 1. Explicit env var — always wins
+  const explicit = process.env.BETTER_AUTH_URL;
+  if (explicit) return explicit;
 
+  // 2. Vercel production URL (the custom domain like www.nozar.co.za)
+  const prodUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  if (prodUrl) return `https://${prodUrl}`;
+
+  // 3. Vercel deployment URL (works on preview deploys too)
+  const vercelUrl = process.env.VERCEL_URL;
+  if (vercelUrl) return `https://${vercelUrl}`;
+
+  // 4. Dev fallback
   if (process.env.NODE_ENV !== "production") {
     console.warn(
       "[auth] BETTER_AUTH_URL is not set — falling back to http://localhost:5173. " +
@@ -33,10 +45,10 @@ function resolveBaseURL(): string | undefined {
     return "http://localhost:5173";
   }
 
+  // 5. Last resort — Better Auth will infer from request headers
   console.error(
-    "[auth] BETTER_AUTH_URL is not set in production. " +
-      "Google OAuth callback URLs will be wrong and sign-in will fail. " +
-      "Set BETTER_AUTH_URL to the canonical public URL of this deployment.",
+    "[auth] BETTER_AUTH_URL / VERCEL_PROJECT_PRODUCTION_URL / VERCEL_URL are all unset. " +
+      "OAuth callbacks may resolve incorrectly. Set BETTER_AUTH_URL as a Vercel env var.",
   );
   return undefined;
 }
