@@ -154,6 +154,24 @@ export const auth = betterAuth({
       issuer: "NoZar",
     }),
   ],
+  // Trust both nozar.co.za and www.nozar.co.za so origin validation works
+  // regardless of which domain the user lands on. Also includes any Vercel
+  // deployment URL for preview environments.
+  trustedOrigins: (request) => {
+    const host = request.headers.get("host") || "";
+    const vercelUrl = process.env.VERCEL_URL;
+    // Deduplicate by using a Set
+    const origins = new Set([
+      "https://nozar.co.za",
+      "https://www.nozar.co.za",
+    ]);
+    // Always include the current request host so preview deploys work too
+    if (host) origins.add(`https://${host}`);
+    if (vercelUrl && !origins.has(`https://${vercelUrl}`)) {
+      origins.add(`https://${vercelUrl}`);
+    }
+    return Array.from(origins);
+  },
   database: drizzleAdapter(db, {
     provider: "pg",
     usePlural: true,
