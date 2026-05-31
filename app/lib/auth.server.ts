@@ -67,30 +67,77 @@ function getResetPasswordEmailHtml(url: string, name: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <style>
+    /* === Dark mode overrides ===
+     * Email clients (Gmail, Outlook, Apple Mail) auto-invert colours on
+     * dark-background emails, turning NoZar green (#10b981) into pink.
+     * These overrides keep the NoZar brand colours intact. */
+    :root { color-scheme: light dark; }
+
+    /* Apple Mail / iOS Mail */
+    @media (prefers-color-scheme: dark) {
+      .nz-body  { background-color: #030712 !important; }
+      .nz-card  { background-color: #0f172a !important; border-color: rgba(255,255,255,0.1) !important; }
+      .nz-green { color: #10b981 !important; }
+      .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+      .nz-white { color: #ffffff !important; }
+      .nz-slate { color: #94a3b8 !important; }
+      .nz-dim   { color: #475569 !important; }
+    }
+
+    /* Gmail dark mode */
+    [data-ogsc] .nz-body  { background-color: #030712 !important; }
+    [data-ogsc] .nz-card  { background-color: #0f172a !important; border-color: rgba(255,255,255,0.1) !important; }
+    [data-ogsc] .nz-green { color: #10b981 !important; }
+    [data-ogsc] .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+    [data-ogsc] .nz-white { color: #ffffff !important; }
+    [data-ogsc] .nz-slate { color: #94a3b8 !important; }
+    [data-ogsc] .nz-dim   { color: #475569 !important; }
+
+    /* Outlook.com dark mode */
+    [data-ogsb] .nz-body  { background-color: #030712 !important; }
+    [data-ogsb] .nz-card  { background-color: #0f172a !important; border-color: rgba(255,255,255,0.1) !important; }
+    [data-ogsb] .nz-green { color: #10b981 !important; }
+    [data-ogsb] .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+    [data-ogsb] .nz-white { color: #ffffff !important; }
+    [data-ogsb] .nz-slate { color: #94a3b8 !important; }
+    [data-ogsb] .nz-dim   { color: #475569 !important; }
+
+    /* Yahoo Mail dark mode */
+    .yahoo-dark .nz-body  { background-color: #030712 !important; }
+    .yahoo-dark .nz-card  { background-color: #0f172a !important; }
+    .yahoo-dark .nz-green { color: #10b981 !important; }
+    .yahoo-dark .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+    .yahoo-dark .nz-white { color: #ffffff !important; }
+    .yahoo-dark .nz-slate { color: #94a3b8 !important; }
+    .yahoo-dark .nz-dim   { color: #475569 !important; }
+  </style>
 </head>
-<body style="margin:0;padding:0;background-color:#030712;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<body class="nz-body" style="margin:0;padding:0;background-color:#030712;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:480px;margin:0 auto;padding:40px 20px;">
     <div style="text-align:center;margin-bottom:32px;">
-      <h1 style="font-size:24px;font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;color:#10b981;margin:0;">NoZar</h1>
+      <h1 class="nz-green" style="font-size:24px;font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;color:#10b981;margin:0;">NoZar</h1>
     </div>
-    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:32px;">
-      <h2 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 16px 0;">Reset Your Password</h2>
-      <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
+    <div class="nz-card" style="background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:32px;">
+      <h2 class="nz-white" style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 16px 0;">Reset Your Password</h2>
+      <p class="nz-slate" style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
         Hey ${escapeHtml(name)}, we received a request to reset your password.
         This link expires in 1 hour.
       </p>
       <div style="text-align:center;">
-        <a href="${escapeHtml(url)}"
+        <a href="${escapeHtml(url)}" class="nz-btn"
           style="display:inline-block;background:#10b981;color:#030712;font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:0.1em;
           text-decoration:none;padding:14px 32px;border-radius:12px;">
           Reset Password
         </a>
       </div>
-      <p style="color:#475569;font-size:12px;line-height:1.6;margin:24px 0 0 0;">
+      <p class="nz-dim" style="color:#475569;font-size:12px;line-height:1.6;margin:24px 0 0 0;">
         If you didn't request this, you can safely ignore this email.
       </p>
     </div>
-    <p style="color:#475569;font-size:11px;text-align:center;margin-top:24px;">
+    <p class="nz-dim" style="color:#475569;font-size:11px;text-align:center;margin-top:24px;">
       &copy; ${new Date().getFullYear()} NoZar. All rights reserved.
     </p>
   </div>
@@ -115,30 +162,65 @@ function getVerificationEmailHtml(url: string, name: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <style>
+    :root { color-scheme: light dark; }
+    @media (prefers-color-scheme: dark) {
+      .nz-body  { background-color: #030712 !important; }
+      .nz-card  { background-color: #0f172a !important; border-color: rgba(255,255,255,0.1) !important; }
+      .nz-green { color: #10b981 !important; }
+      .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+      .nz-white { color: #ffffff !important; }
+      .nz-slate { color: #94a3b8 !important; }
+      .nz-dim   { color: #475569 !important; }
+    }
+    [data-ogsc] .nz-body  { background-color: #030712 !important; }
+    [data-ogsc] .nz-card  { background-color: #0f172a !important; border-color: rgba(255,255,255,0.1) !important; }
+    [data-ogsc] .nz-green { color: #10b981 !important; }
+    [data-ogsc] .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+    [data-ogsc] .nz-white { color: #ffffff !important; }
+    [data-ogsc] .nz-slate { color: #94a3b8 !important; }
+    [data-ogsc] .nz-dim   { color: #475569 !important; }
+    [data-ogsb] .nz-body  { background-color: #030712 !important; }
+    [data-ogsb] .nz-card  { background-color: #0f172a !important; border-color: rgba(255,255,255,0.1) !important; }
+    [data-ogsb] .nz-green { color: #10b981 !important; }
+    [data-ogsb] .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+    [data-ogsb] .nz-white { color: #ffffff !important; }
+    [data-ogsb] .nz-slate { color: #94a3b8 !important; }
+    [data-ogsb] .nz-dim   { color: #475569 !important; }
+    .yahoo-dark .nz-body  { background-color: #030712 !important; }
+    .yahoo-dark .nz-card  { background-color: #0f172a !important; }
+    .yahoo-dark .nz-green { color: #10b981 !important; }
+    .yahoo-dark .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+    .yahoo-dark .nz-white { color: #ffffff !important; }
+    .yahoo-dark .nz-slate { color: #94a3b8 !important; }
+    .yahoo-dark .nz-dim   { color: #475569 !important; }
+  </style>
 </head>
-<body style="margin:0;padding:0;background-color:#030712;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<body class="nz-body" style="margin:0;padding:0;background-color:#030712;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:480px;margin:0 auto;padding:40px 20px;">
     <div style="text-align:center;margin-bottom:32px;">
-      <h1 style="font-size:24px;font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;color:#10b981;margin:0;">NoZar</h1>
+      <h1 class="nz-green" style="font-size:24px;font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;color:#10b981;margin:0;">NoZar</h1>
     </div>
-    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:32px;">
-      <h2 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 16px 0;">Verify Your Email</h2>
-      <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
+    <div class="nz-card" style="background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:32px;">
+      <h2 class="nz-white" style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 16px 0;">Verify Your Email</h2>
+      <p class="nz-slate" style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
         Hey ${escapeHtml(name)}, thanks for joining NoZar! Please verify your email address to activate your account.
         This link expires in 24 hours.
       </p>
       <div style="text-align:center;">
-        <a href="${escapeHtml(url)}"
+        <a href="${escapeHtml(url)}" class="nz-btn"
           style="display:inline-block;background:#10b981;color:#030712;font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:0.1em;
           text-decoration:none;padding:14px 32px;border-radius:12px;">
           Verify Email
         </a>
       </div>
-      <p style="color:#475569;font-size:12px;line-height:1.6;margin:24px 0 0 0;">
+      <p class="nz-dim" style="color:#475569;font-size:12px;line-height:1.6;margin:24px 0 0 0;">
         If you didn't create a NoZar account, you can safely ignore this email.
       </p>
     </div>
-    <p style="color:#475569;font-size:11px;text-align:center;margin-top:24px;">
+    <p class="nz-dim" style="color:#475569;font-size:11px;text-align:center;margin-top:24px;">
       &copy; ${new Date().getFullYear()} NoZar. All rights reserved.
     </p>
   </div>
