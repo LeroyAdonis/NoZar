@@ -312,9 +312,7 @@ export const auth = betterAuth({
       if (process.env.PLAYWRIGHT_TEST === "1") return;
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
-      // Wrap in .catch so a Resend domain/API-key failure logs gracefully
-      // and never breaks the sign-up response for the user.
-      const promise = resend.emails.send({
+      const result = await resend.emails.send({
         from: "NoZar <noreply@nozar.co.za>",
         to: user.email,
         subject: "Verify Your NoZar Email",
@@ -324,12 +322,10 @@ export const auth = betterAuth({
           "[auth] sendVerificationEmail failed:",
           err instanceof Error ? err.message : err,
         );
+        return null;
       });
-      const wt = (globalThis as { waitUntil?: (p: Promise<unknown>) => void }).waitUntil;
-      if (typeof wt === "function") {
-        wt(promise);
-      } else {
-        await promise;
+      if (result === null) {
+        console.error("[auth] sendVerificationEmail: Resend returned null — check API key or Resend dashboard");
       }
     },
     // In E2E tests, auto-sign-in so registration flows work end-to-end
