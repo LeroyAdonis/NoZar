@@ -8,7 +8,7 @@
  *
  * AT docs: https://developers.africastalking.com/docs/sms/sending
  *
- * Production AT API key updated May 31 2025.
+ * Production AT API key updated May 31 2025. Deploy v2.
  */
 
 import { randomInt } from "node:crypto";
