@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
 import { NozarMap } from "~/components/map/nozar-map";
+import { ListingsNearbyModal } from "~/components/ui/listings-nearby-modal";
 import { LocationPromptModal } from "~/components/ui/location-prompt-modal";
 import { RegionToggle } from "~/components/ui/region-toggle";
 import { requireAuth } from "~/lib/auth.server";
@@ -163,6 +164,7 @@ export default function Map({ loaderData }: Route.ComponentProps) {
   const [displayCenter, setDisplayCenter] = useState<MapCoordinates>(mapCenter);
   const [radiusKm, setRadiusKm] = useState(searchRadiusKm);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [showListingsModal, setShowListingsModal] = useState(false);
   const regionParam = searchParams.get("region");
 
   useEffect(() => {
@@ -401,9 +403,13 @@ export default function Map({ loaderData }: Route.ComponentProps) {
               </p>
             </div>
           ) : (
-            <div className="absolute bottom-20 right-4 z-10 rounded-full border border-white/10 bg-slate-900/90 px-3 py-1.5 text-xs font-medium text-slate-300 shadow-lg backdrop-blur sm:bottom-auto sm:right-6 sm:top-28">
+            <button
+              type="button"
+              onClick={() => setShowListingsModal(true)}
+              className="absolute bottom-20 right-4 z-10 rounded-full border border-white/10 bg-slate-900/90 px-3 py-1.5 text-xs font-medium text-slate-300 shadow-lg backdrop-blur transition-all hover:bg-slate-800/90 hover:text-white active:scale-95 sm:bottom-auto sm:right-6 sm:top-28"
+            >
               {filteredPins.length} {filteredPins.length === 1 ? "listing" : "listings"} in range
-            </div>
+            </button>
           )}
         </div>
       </div>
@@ -413,6 +419,14 @@ export default function Map({ loaderData }: Route.ComponentProps) {
         onClose={() => setShowLocationPrompt(false)}
         onSuccess={() => setShowLocationPrompt(false)}
         variant={usesFallbackLocation ? "setup" : "refresh"}
+      />
+
+      <ListingsNearbyModal
+        isOpen={showListingsModal}
+        onClose={() => setShowListingsModal(false)}
+        pins={filteredPins}
+        radarCenter={radarCenter}
+        radiusKm={radiusKm}
       />
     </div>
   );
