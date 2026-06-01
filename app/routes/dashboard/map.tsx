@@ -1,6 +1,6 @@
 import { eq, sql } from "drizzle-orm";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams, useFetcher } from "react-router";
 
 import { NozarMap } from "~/components/map/nozar-map";
 import { ListingsNearbyModal } from "~/components/ui/listings-nearby-modal";
@@ -44,11 +44,30 @@ function getSavedLocationLabel(savedLocation: SavedLocation, currentRegion: Regi
   return `Near ${MVP_REGIONS[currentRegion].label}`;
 }
 
-export function meta({}: Route.MetaArgs) {
+export async function meta({}: Route.MetaArgs) {
   return [
     { title: "Map — NoZar" },
     { name: "description", content: "Find swaps near your saved radar location" },
   ];
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const { user } = await requireAuth(request);
+  const formData = await request.formData();
+  const intent = formData.get("intent") as string | null;
+
+  if (intent === "setRadius") {
+    const km = parseInt(formData.get("km") as string, 10);
+    if (Number.isFinite(km) && km >= 10 && km <= 500) {
+      await db
+        .update(profiles)
+        .set({ searchRadiusKm: km })
+        .where(eq(profiles.userId, user.id));
+      return Response.json({ ok: true, km });
+    }
+  }
+
+  return Response.json({ ok: false }, { status: 400 });
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -177,6 +196,7 @@ export default function Map({ loaderData }: Route.ComponentProps) {
     searchRadiusKm,
     usesFallbackLocation,
   } = loaderData;
+  const fetcher = useFetcher();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [displayCenter, setDisplayCenter] = useState<MapCoordinates>(mapCenter);
@@ -357,7 +377,10 @@ export default function Map({ loaderData }: Route.ComponentProps) {
             apiKey={apiKey}
             center={radarCenter}
             onPinClick={handlePinClick}
-            onRadiusChange={setRadiusKm}
+            onRadiusChange={(km) => {
+              setRadiusKm(km);
+              fetcher.submit({ intent: "setRadius", km: String(km) }, { method: "post" });
+            }}
             pins={filteredPins}
             radarCenter={radarCenter}
             radarRadiusKm={radiusKm}

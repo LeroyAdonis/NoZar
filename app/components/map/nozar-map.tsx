@@ -70,7 +70,7 @@ const DARK_MAP_STYLE: google.maps.MapTypeStyle[] = [
 const JHB_CENTER = { lat: -26.2041, lng: 28.0473 };
 
 // Radius options shown in the floating selector (km)
-const RADIUS_OPTIONS = [10, 25, 50, 100] as const;
+const RADIUS_OPTIONS = [25, 50, 75, 100, 150] as const;
 
 /**
  * Build the "You are here" SVG as a data URL for use as a Marker icon.
