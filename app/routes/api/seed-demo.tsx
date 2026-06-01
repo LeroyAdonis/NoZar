@@ -171,7 +171,7 @@ export async function action({ request }: { request: Request }) {
     return Response.json({ error: "Invalid key" }, { status: 403 });
   }
 
-  // Check if already seeded
+  // Check if already seeded — if so, delete and re-seed to refresh images
   const existing = await db
     .select({ id: schema.users.id })
     .from(schema.users)
@@ -179,7 +179,10 @@ export async function action({ request }: { request: Request }) {
     .limit(1);
 
   if (existing.length > 0) {
-    return Response.json({ message: "Already seeded — delete demo users to re-seed" });
+    // Delete old demo users (cascades to profiles, listings, trades, etc.)
+    for (const u of existing) {
+      await db.delete(schema.users).where(eq(schema.users.id, u.id));
+    }
   }
 
   const users = [
