@@ -1214,13 +1214,21 @@ export default function PingDetail({
                 <TradeSummaryCard
                   role="yours"
                   title={listing.userId === currentUserId ? listing.title : "Your items"}
-                  estimatedValueZar={yourValue > 0 ? yourValue : null}
+                  estimatedValueZar={
+                    listing.userId === currentUserId
+                      ? (listing.estimatedValueZar ?? null)
+                      : (yourValue > 0 ? yourValue : null)
+                  }
                   type={listing.userId === currentUserId ? (listing.type ?? undefined) : undefined}
                 />
                 <TradeSummaryCard
                   role="theirs"
                   title={listing.userId !== currentUserId ? listing.title : "Their items"}
-                  estimatedValueZar={theirValue > 0 ? theirValue : null}
+                  estimatedValueZar={
+                    listing.userId !== currentUserId
+                      ? (listing.estimatedValueZar ?? null)
+                      : (theirValue > 0 ? theirValue : null)
+                  }
                   type={listing.userId !== currentUserId ? (listing.type ?? undefined) : undefined}
                 />
               </div>
@@ -1545,9 +1553,9 @@ export default function PingDetail({
   return (
     <>
         {/* Outer: fixed overlay — sidebar-offset on desktop, full-width on mobile */}
-        <div className="fixed inset-x-0 md:left-60 top-[73px] bottom-20 md:bottom-0 z-20 bg-[#030712] flex flex-col md:flex-row">
+        <div className="fixed inset-x-0 md:left-60 top-[73px] bottom-20 md:bottom-0 z-20 bg-[#030712] flex flex-col min-[970px]:flex-row">
           {/* ── Left column: chat ───────────────────────────────────── */}
-          <div className="flex flex-col flex-1 min-w-0 min-h-0 md:border-r md:border-white/5">
+          <div className="flex flex-col flex-1 min-w-0 min-h-0 min-[970px]:border-r min-[970px]:border-white/5">
       <div className="mx-auto w-full max-w-md px-4 flex flex-col flex-1 min-h-0 min-w-0 lg:max-w-none lg:mx-0 lg:px-6">
         {isSubmitting && <LoadingBar className="mt-2" />}
         {/* Chat header */}
@@ -1641,7 +1649,7 @@ export default function PingDetail({
             <button
               type="button"
               onClick={() => setShowTradeStatus(true)}
-              className="md:hidden shrink-0 mt-2 mb-1 w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#0F172A] border border-white/10 hover:border-white/20 transition-colors"
+              className="min-[970px]:hidden shrink-0 mt-2 mb-1 w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#0F172A] border border-white/10 hover:border-white/20 transition-colors"
             >
               <div className="flex items-center gap-2">
                 {cfg.dot && (
@@ -1816,7 +1824,7 @@ export default function PingDetail({
           </div>{/* end left chat column */}
 
           {/* ── Right column: trade status panel — desktop only ─────── */}
-          <div className="hidden md:flex flex-col w-72 md:w-80 shrink-0 overflow-y-auto px-6 py-6 gap-4 bg-[#0F172A]/20 border-l border-white/5">
+          <div className="hidden min-[970px]:flex flex-col w-72 min-[970px]:w-80 shrink-0 overflow-y-auto px-6 py-6 gap-4 bg-[#0F172A]/20 border-l border-white/5">
             <div className="shrink-0 pb-3 border-b border-white/5">
               <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">
                 // Trade Status
@@ -1828,7 +1836,7 @@ export default function PingDetail({
 
     {/* Mobile Trade Status Bottom Sheet */}
     {showTradeStatus && (
-      <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
+      <div className="min-[970px]:hidden fixed inset-0 z-50 flex flex-col justify-end">
         {/* Backdrop */}
         <div
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"

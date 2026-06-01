@@ -81,7 +81,7 @@ export function BalancePile({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-[#111827] border border-white/10 rounded-t-3xl max-h-[calc(85vh-80px)] overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+20px)]"
+        className="w-full max-w-md bg-[#111827] border border-white/10 rounded-t-3xl max-h-[calc(85dvh-80px)] overflow-y-auto pb-[calc(env(safe-area-inset-bottom,0px)+80px)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
