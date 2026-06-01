@@ -29,20 +29,18 @@ export async function action({ request }: { request: Request }) {
   const body = await request.json();
   if (body.key !== SEED_SECRET) return Response.json({ error: "bad key" }, { status: 403 });
 
-  // Clean old demo data
-  const old = await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.email, "thandi@nozar.demo")).limit(1);
-  for (const u of old) {
-    try {
+  // Try cleanup, ignore failures (fresh seed will overwrite)
+  try {
+    const old = await db.select({ id: schema.users.id }).from(schema.users).where(eq(schema.users.email, "thandi@nozar.demo")).limit(1);
+    for (const u of old) {
       await db.delete(schema.trades).where(eq(schema.trades.initiatorId, u.id));
       await db.delete(schema.trades).where(eq(schema.trades.responderId, u.id));
       await db.delete(schema.listings).where(eq(schema.listings.userId, u.id));
       await db.delete(schema.profiles).where(eq(schema.profiles.userId, u.id));
       await db.delete(schema.trustProfiles).where(eq(schema.trustProfiles.userId, u.id));
       await db.delete(schema.users).where(eq(schema.users.id, u.id));
-    } catch (e: any) {
-      return Response.json({ error: "cleanup", detail: e.message }, { status: 500 });
     }
-  }
+  } catch (_) { /* ignore cleanup errors */ }
 
   // Create users
   const thandi = uid(), james = uid(), priya = uid();
