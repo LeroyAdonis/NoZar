@@ -141,7 +141,7 @@ export default function Pings({ loaderData }: Route.ComponentProps) {
   const { threads } = loaderData;
 
   return (
-    <div className="max-w-xl mx-auto px-0 pt-6 sm:pt-8 pb-28 space-y-6">
+    <div className="max-w-2xl mx-auto px-3 sm:px-4 pt-4 sm:pt-6 pb-28 space-y-3">
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>
