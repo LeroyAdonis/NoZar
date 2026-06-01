@@ -56,13 +56,13 @@ export function ListingsNearbyModal({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 max-h-[75dvh] rounded-t-3xl border-t border-white/10 bg-[#0F172A] shadow-2xl"
+            className="fixed bottom-0 left-0 right-0 z-50 max-h-[85dvh] rounded-t-3xl border-t border-white/10 bg-[#0F172A] shadow-2xl"
           >
             {/* Handle */}
             <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-white/20" />
 
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+            <div className="flex items-center justify-between border-b border-white/5 px-4 py-3 sm:px-5 sm:py-4">
               <div>
                 <h3 className="text-base font-bold text-white">
                   {pins.length} {pins.length === 1 ? "listing" : "listings"} nearby
@@ -81,8 +81,7 @@ export function ListingsNearbyModal({
             </div>
 
             {/* List */}
-
-            <div className="overflow-y-auto px-3 py-2" style={{ maxHeight: "calc(75dvh - 100px)" }}>
+            <div className="overflow-y-auto px-3 pb-6" style={{ maxHeight: "calc(85dvh - 100px)" }}>
               {pins.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <MapPin className="mb-3 h-8 w-8 text-slate-600" />

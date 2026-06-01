@@ -68,7 +68,7 @@ export async function action({ request }: { request: Request }) {
   for (const u of USERS) {
     const prov = u.city === "Johannesburg" ? "Gauteng" : "Western Cape";
     await db.insert(s.users).values({ id: u.id, name: u.name, email: u.email, emailVerified: true, createdAt: ago(60), updatedAt: ago(1) });
-    await db.insert(s.profiles).values({ userId: u.id, displayName: u.name.split(" ")[0], suburb: u.sub, city: u.city, province: prov, lat: u.lat, lng: u.lng, searchRadiusKm: 25, bio: u.bio });
+    await db.insert(s.profiles).values({ userId: u.id, displayName: u.name.split(" ")[0], suburb: u.sub, city: u.city, province: prov, lat: u.lat, lng: u.lng, searchRadiusKm: 50, bio: u.bio });
     await db.insert(s.trustProfiles).values({ userId: u.id, level: u.level, completedTrades: u.tr, averageRating: u.rat, lastActiveAt: ago(1) });
   }
 
