@@ -156,6 +156,14 @@ export async function loader({ request }: Route.LoaderArgs) {
     savedLocation,
     searchRadiusKm: mapScope.searchRadiusKm,
     usesFallbackLocation: mapScope.usesFallbackLocation,
+    _debug: {
+      pinsCount: activeListings.length,
+      region: mapScope.currentRegion,
+      center: mapScope.center,
+      radius: mapScope.searchRadiusKm,
+      fallback: mapScope.usesFallbackLocation,
+      hasSavedCoords: userProfile?.lat != null && userProfile?.lng != null,
+    },
   };
 }
 
@@ -371,6 +379,15 @@ export default function Map({ loaderData }: Route.ComponentProps) {
                 ? "Save your current location to turn this into a profile-anchored search."
                 : "Moving the map does not change the actual search centre. Save a new location first."}
             </p>
+            {/* Debug info - always visible for troubleshooting */}
+            <details className="mt-2 rounded-lg border border-white/5 bg-white/5 p-2 text-[10px] font-mono text-slate-500">
+              <summary className="cursor-pointer text-white/60 hover:text-white/90">🔍 Debug</summary>
+              <p>Listings: {pins.length} | Filtered: {filteredPins.length}</p>
+              <p>Region: {currentRegion}</p>
+              <p>Center: {mapCenter.lat.toFixed(4)}, {mapCenter.lng.toFixed(4)}</p>
+              <p>Radius: {searchRadiusKm}km | Saved coords: {savedLocation ? "yes" : "no"}</p>
+              {savedLocation && <p>Saved: {savedLocation.lat.toFixed(4)}, {savedLocation.lng.toFixed(4)}</p>}
+            </details>
           </div>
 
           {/* FAB — bottom-right, icon-only on mobile */}
