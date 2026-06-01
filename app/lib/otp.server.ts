@@ -7,6 +7,8 @@
  *   expiresAt  = now + 10 min
  *
  * AT docs: https://developers.africastalking.com/docs/sms/sending
+ *
+ * Production AT API key updated May 31 2025. Deploy v2.
  */
 
 import { randomInt } from "node:crypto";
@@ -94,10 +96,10 @@ export async function sendOtp(phone: string): Promise<{ code: string }> {
   if (isOtpConfigured()) {
     const apiKey = process.env.AFRICASTALKING_API_KEY!;
     const username = process.env.AFRICASTALKING_USERNAME!;
-    const message = `Your NoZar verification code is ${code}. It expires in 10 minutes. Do not share it.`;
-
+    const message = `Your NoZar verification code is ${code}. It expires in 10 minutes.`;
     const body = new URLSearchParams({ username, to: phone, message });
 
+    // Try apiKey header first, fall back to Bearer token (both supported by AT)
     const res = await fetch(`${AT_BASE}/version1/messaging`, {
       method: "POST",
       headers: {
@@ -109,9 +111,31 @@ export async function sendOtp(phone: string): Promise<{ code: string }> {
     });
 
     if (!res.ok) {
-      const text = await res.text();
-      throw new Error(`Africa's Talking SMS error ${res.status}: ${text}`);
+      // Try Bearer auth as fallback (newer AT auth format)
+      const bearerRes = await fetch(`${AT_BASE}/version1/messaging`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          Accept: "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: body.toString(),
+      });
+      if (!bearerRes.ok) {
+        const text1 = await res.text();
+        const text2 = await bearerRes.text();
+        throw new Error(
+          `Africa's Talking SMS failed. apiKey header: ${res.status} ${text1}. ` +
+            `Bearer fallback: ${bearerRes.status} ${text2}.`,
+        );
+      }
     }
+  } else {
+    console.warn(
+      "[otp] Africa's Talking not configured — OTP stored but NOT sent. " +
+        `Code for ${phone}: ${code}. ` +
+        "Set AFRICASTALKING_API_KEY and AFRICASTALKING_USERNAME in Vercel env vars.",
+    );
   }
 
   return { code };

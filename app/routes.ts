@@ -26,6 +26,7 @@ export default [
   route("api/push-subscribe", "routes/api.push-subscribe.ts"),
   route("api/device-fingerprint", "routes/api.device-fingerprint.ts"),
   route("api/device-verify", "routes/api.device-verify.ts"),
+  route("api/test-email", "routes/api.test-email.ts"),
   route("dashboard", "routes/dashboard.tsx", [
     index("routes/dashboard/home.tsx"),
     route("asset/:id", "routes/dashboard/asset.$id.tsx"),

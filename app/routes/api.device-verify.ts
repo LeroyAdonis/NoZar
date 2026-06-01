@@ -43,7 +43,8 @@ export async function action({ request }: Route.ActionArgs) {
     try {
       await sendOtp(normalized);
     } catch (err) {
-      console.error("[device-verify] sendOtp failed:", err);
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error("[device-verify] sendOtp failed:", msg);
       return Response.json(
         { error: "Could not send verification code. Please try again." },
         { status: 500 },

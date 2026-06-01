@@ -19,6 +19,8 @@ import {
   Plus,
   Phone,
   ChevronRight,
+  Mail,
+  RefreshCw,
 } from "lucide-react";
 
 import type { Route } from "./+types/profile";
@@ -37,6 +39,7 @@ import { Input } from "~/components/ui/input";
 import { Badge } from "~/components/ui/badge";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 import { MVP_REGIONS, REGION_SLUGS } from "~/lib/regions";
+import { authClient } from "~/lib/auth.client";
 
 // ─── MVP provinces (WC & GP only) ──────────────────────────────
 const MVP_PROVINCES = REGION_SLUGS.map((slug) => MVP_REGIONS[slug].province);
@@ -471,9 +474,62 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
   const navigate = useNavigate();
   const haptics = useHaptics();
 
+  // ── Email change state ───────────────────────────────────────
+  const [showEmailChange, setShowEmailChange] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailPassword, setEmailPassword] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailLoading, setEmailLoading] = useState(false);
+
   const handleReplayTutorial = () => {
     localStorage.removeItem("nozar_tutorial_seen");
     navigate("/dashboard");
+  };
+
+  // ── Email change handler ─────────────────────────────────────
+  const handleChangeEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailError("");
+    setEmailLoading(true);
+    try {
+      const res = await authClient.changeEmail({
+        newEmail,
+        callbackURL: "/dashboard/profile",
+        fetchOptions: {
+          onSuccess: () => {
+            haptics.success();
+            setEmailSent(true);
+            setNewEmail("");
+            setEmailPassword("");
+            setEmailLoading(false);
+          },
+          onError: (ctx) => {
+            haptics.error();
+            setEmailError(ctx.error.message ?? "Could not change email.");
+            setEmailLoading(false);
+          },
+        },
+      });
+      // Better Auth wraps re-auth inside changeEmail using password
+      // via the sensitive session middleware — if it doesn't use
+      // fetchOptions, we check the returned data directly.
+      if (res?.error) {
+        setEmailError(res.error.message ?? "Could not change email.");
+        haptics.error();
+        setEmailLoading(false);
+      } else if (res?.data) {
+        haptics.success();
+        setEmailSent(true);
+        setNewEmail("");
+        setEmailPassword("");
+        setEmailLoading(false);
+      }
+    } catch (err) {
+      setEmailError(err instanceof Error ? err.message : "Could not change email.");
+      haptics.error();
+      setEmailLoading(false);
+    }
   };
 
   const avatarFetcher = useFetcher();
@@ -831,6 +887,86 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
               >
                 + Add &amp; verify →
               </Link>
+            </div>
+          )}
+
+          {/* Email card */}
+          <div className="p-4 bg-[#0F172A] border border-white/10 rounded-2xl flex items-center justify-between">
+            <div className="flex items-center gap-2 min-w-0">
+              <Mail className="w-4 h-4 text-slate-500 flex-shrink-0" />
+              <span className="text-sm text-slate-400 truncate">{user.email}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowEmailChange(!showEmailChange)}
+              className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest hover:text-emerald-300 transition-colors flex-shrink-0 ml-2"
+            >
+              {showEmailChange ? "Cancel" : "Change"}
+            </button>
+          </div>
+
+          {/* Change email form */}
+          {showEmailChange && (
+            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-5 space-y-4">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 block mb-1">
+                  Change Email
+                </span>
+                <p className="text-xs text-slate-500">
+                  Enter your new email and current password. A verification link will be sent to
+                  the new address.
+                </p>
+              </div>
+
+              {emailSent ? (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono text-center">
+                  ✓ Verification email sent — check your inbox for the link to confirm the change.
+                </div>
+              ) : (
+                <form onSubmit={handleChangeEmail} className="space-y-3">
+                  {emailError && (
+                    <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono">
+                      {emailError}
+                    </div>
+                  )}
+
+                  <Input
+                    variant="nozar"
+                    label="New Email"
+                    type="email"
+                    autoComplete="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    placeholder="new@email.com"
+                    required
+                  />
+
+                  <Input
+                    variant="nozar"
+                    label="Current Password"
+                    type="password"
+                    autoComplete="current-password"
+                    value={emailPassword}
+                    onChange={(e) => setEmailPassword(e.target.value)}
+                    placeholder="Enter your password to confirm"
+                    required
+                  />
+
+                  <Button
+                    type="submit"
+                    variant="nozar"
+                    size="md"
+                    disabled={emailLoading}
+                    className="w-full"
+                  >
+                    {emailLoading ? (
+                      <><Spinner /> Sending verification...</>
+                    ) : (
+                      "Send Verification Email"
+                    )}
+                  </Button>
+                </form>
+              )}
             </div>
           )}
 

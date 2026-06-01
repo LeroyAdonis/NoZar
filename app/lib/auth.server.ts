@@ -18,13 +18,31 @@ import * as schema from "./schema";
  *
  * Priority:
  *   1. BETTER_AUTH_URL env var (explicit, always wins)
- *   2. http://localhost:5173 in development (Vite default)
- *   3. undefined in production (Better Auth will attempt to infer from the request)
+ *   2. VERCEL_PROJECT_PRODUCTION_URL (Vercel production domain, e.g. www.nozar.co.za)
+ *   3. VERCEL_URL (Vercel deployment URL)
+ *   4. http://localhost:5173 in development (Vite default)
+ *   5. undefined (Better Auth will infer from the request — last resort)
  */
 function resolveBaseURL(): string | undefined {
-  const url = process.env.BETTER_AUTH_URL;
-  if (url) return url;
+  // 1. Explicit env var — always wins
+  const explicit = process.env.BETTER_AUTH_URL;
+  if (explicit) return explicit;
 
+  // 2. Vercel production URL (the custom domain like www.nozar.co.za)
+  const prodUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+  if (prodUrl) return `https://${prodUrl}`;
+
+  // 3. Vercel deployment URL (works on preview deploys too)
+  const vercelUrl = process.env.VERCEL_URL;
+  if (vercelUrl) return `https://${vercelUrl}`;
+
+  // 4. Production fallback — both nozar.co.za and www.nozar.co.za go here
+  // after Vercel's 308 redirect, so this is the canonical URL.
+  if (process.env.NODE_ENV === "production") {
+    return "https://www.nozar.co.za";
+  }
+
+  // 5. Dev fallback
   if (process.env.NODE_ENV !== "production") {
     console.warn(
       "[auth] BETTER_AUTH_URL is not set — falling back to http://localhost:5173. " +
@@ -33,10 +51,10 @@ function resolveBaseURL(): string | undefined {
     return "http://localhost:5173";
   }
 
+  // 5. Last resort — Better Auth will infer from request headers
   console.error(
-    "[auth] BETTER_AUTH_URL is not set in production. " +
-      "Google OAuth callback URLs will be wrong and sign-in will fail. " +
-      "Set BETTER_AUTH_URL to the canonical public URL of this deployment.",
+    "[auth] BETTER_AUTH_URL / VERCEL_PROJECT_PRODUCTION_URL / VERCEL_URL are all unset. " +
+      "OAuth callbacks may resolve incorrectly. Set BETTER_AUTH_URL as a Vercel env var.",
   );
   return undefined;
 }
@@ -49,30 +67,77 @@ function getResetPasswordEmailHtml(url: string, name: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <style>
+    /* === Dark mode overrides ===
+     * Email clients (Gmail, Outlook, Apple Mail) auto-invert colours on
+     * dark-background emails, turning NoZar green (#10b981) into pink.
+     * These overrides keep the NoZar brand colours intact. */
+    :root { color-scheme: light dark; }
+
+    /* Apple Mail / iOS Mail */
+    @media (prefers-color-scheme: dark) {
+      .nz-body  { background-color: #030712 !important; }
+      .nz-card  { background-color: #0f172a !important; border-color: rgba(255,255,255,0.1) !important; }
+      .nz-green { color: #10b981 !important; }
+      .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+      .nz-white { color: #ffffff !important; }
+      .nz-slate { color: #94a3b8 !important; }
+      .nz-dim   { color: #475569 !important; }
+    }
+
+    /* Gmail dark mode */
+    [data-ogsc] .nz-body  { background-color: #030712 !important; }
+    [data-ogsc] .nz-card  { background-color: #0f172a !important; border-color: rgba(255,255,255,0.1) !important; }
+    [data-ogsc] .nz-green { color: #10b981 !important; }
+    [data-ogsc] .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+    [data-ogsc] .nz-white { color: #ffffff !important; }
+    [data-ogsc] .nz-slate { color: #94a3b8 !important; }
+    [data-ogsc] .nz-dim   { color: #475569 !important; }
+
+    /* Outlook.com dark mode */
+    [data-ogsb] .nz-body  { background-color: #030712 !important; }
+    [data-ogsb] .nz-card  { background-color: #0f172a !important; border-color: rgba(255,255,255,0.1) !important; }
+    [data-ogsb] .nz-green { color: #10b981 !important; }
+    [data-ogsb] .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+    [data-ogsb] .nz-white { color: #ffffff !important; }
+    [data-ogsb] .nz-slate { color: #94a3b8 !important; }
+    [data-ogsb] .nz-dim   { color: #475569 !important; }
+
+    /* Yahoo Mail dark mode */
+    .yahoo-dark .nz-body  { background-color: #030712 !important; }
+    .yahoo-dark .nz-card  { background-color: #0f172a !important; }
+    .yahoo-dark .nz-green { color: #10b981 !important; }
+    .yahoo-dark .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+    .yahoo-dark .nz-white { color: #ffffff !important; }
+    .yahoo-dark .nz-slate { color: #94a3b8 !important; }
+    .yahoo-dark .nz-dim   { color: #475569 !important; }
+  </style>
 </head>
-<body style="margin:0;padding:0;background-color:#030712;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<body class="nz-body" style="margin:0;padding:0;background-color:#030712;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:480px;margin:0 auto;padding:40px 20px;">
     <div style="text-align:center;margin-bottom:32px;">
-      <h1 style="font-size:24px;font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;color:#10b981;margin:0;">NoZar</h1>
+      <h1 class="nz-green" style="font-size:24px;font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;color:#10b981;margin:0;">NoZar</h1>
     </div>
-    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:32px;">
-      <h2 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 16px 0;">Reset Your Password</h2>
-      <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
+    <div class="nz-card" style="background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:32px;">
+      <h2 class="nz-white" style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 16px 0;">Reset Your Password</h2>
+      <p class="nz-slate" style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
         Hey ${escapeHtml(name)}, we received a request to reset your password.
         This link expires in 1 hour.
       </p>
       <div style="text-align:center;">
-        <a href="${escapeHtml(url)}"
+        <a href="${escapeHtml(url)}" class="nz-btn"
           style="display:inline-block;background:#10b981;color:#030712;font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:0.1em;
           text-decoration:none;padding:14px 32px;border-radius:12px;">
           Reset Password
         </a>
       </div>
-      <p style="color:#475569;font-size:12px;line-height:1.6;margin:24px 0 0 0;">
+      <p class="nz-dim" style="color:#475569;font-size:12px;line-height:1.6;margin:24px 0 0 0;">
         If you didn't request this, you can safely ignore this email.
       </p>
     </div>
-    <p style="color:#475569;font-size:11px;text-align:center;margin-top:24px;">
+    <p class="nz-dim" style="color:#475569;font-size:11px;text-align:center;margin-top:24px;">
       &copy; ${new Date().getFullYear()} NoZar. All rights reserved.
     </p>
   </div>
@@ -97,30 +162,65 @@ function getVerificationEmailHtml(url: string, name: string): string {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <style>
+    :root { color-scheme: light dark; }
+    @media (prefers-color-scheme: dark) {
+      .nz-body  { background-color: #030712 !important; }
+      .nz-card  { background-color: #0f172a !important; border-color: rgba(255,255,255,0.1) !important; }
+      .nz-green { color: #10b981 !important; }
+      .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+      .nz-white { color: #ffffff !important; }
+      .nz-slate { color: #94a3b8 !important; }
+      .nz-dim   { color: #475569 !important; }
+    }
+    [data-ogsc] .nz-body  { background-color: #030712 !important; }
+    [data-ogsc] .nz-card  { background-color: #0f172a !important; border-color: rgba(255,255,255,0.1) !important; }
+    [data-ogsc] .nz-green { color: #10b981 !important; }
+    [data-ogsc] .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+    [data-ogsc] .nz-white { color: #ffffff !important; }
+    [data-ogsc] .nz-slate { color: #94a3b8 !important; }
+    [data-ogsc] .nz-dim   { color: #475569 !important; }
+    [data-ogsb] .nz-body  { background-color: #030712 !important; }
+    [data-ogsb] .nz-card  { background-color: #0f172a !important; border-color: rgba(255,255,255,0.1) !important; }
+    [data-ogsb] .nz-green { color: #10b981 !important; }
+    [data-ogsb] .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+    [data-ogsb] .nz-white { color: #ffffff !important; }
+    [data-ogsb] .nz-slate { color: #94a3b8 !important; }
+    [data-ogsb] .nz-dim   { color: #475569 !important; }
+    .yahoo-dark .nz-body  { background-color: #030712 !important; }
+    .yahoo-dark .nz-card  { background-color: #0f172a !important; }
+    .yahoo-dark .nz-green { color: #10b981 !important; }
+    .yahoo-dark .nz-btn   { background-color: #10b981 !important; color: #030712 !important; }
+    .yahoo-dark .nz-white { color: #ffffff !important; }
+    .yahoo-dark .nz-slate { color: #94a3b8 !important; }
+    .yahoo-dark .nz-dim   { color: #475569 !important; }
+  </style>
 </head>
-<body style="margin:0;padding:0;background-color:#030712;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+<body class="nz-body" style="margin:0;padding:0;background-color:#030712;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
   <div style="max-width:480px;margin:0 auto;padding:40px 20px;">
     <div style="text-align:center;margin-bottom:32px;">
-      <h1 style="font-size:24px;font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;color:#10b981;margin:0;">NoZar</h1>
+      <h1 class="nz-green" style="font-size:24px;font-weight:900;text-transform:uppercase;letter-spacing:-0.03em;color:#10b981;margin:0;">NoZar</h1>
     </div>
-    <div style="background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:32px;">
-      <h2 style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 16px 0;">Verify Your Email</h2>
-      <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
+    <div class="nz-card" style="background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:32px;">
+      <h2 class="nz-white" style="color:#ffffff;font-size:18px;font-weight:700;margin:0 0 16px 0;">Verify Your Email</h2>
+      <p class="nz-slate" style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
         Hey ${escapeHtml(name)}, thanks for joining NoZar! Please verify your email address to activate your account.
         This link expires in 24 hours.
       </p>
       <div style="text-align:center;">
-        <a href="${escapeHtml(url)}"
+        <a href="${escapeHtml(url)}" class="nz-btn"
           style="display:inline-block;background:#10b981;color:#030712;font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:0.1em;
           text-decoration:none;padding:14px 32px;border-radius:12px;">
           Verify Email
         </a>
       </div>
-      <p style="color:#475569;font-size:12px;line-height:1.6;margin:24px 0 0 0;">
+      <p class="nz-dim" style="color:#475569;font-size:12px;line-height:1.6;margin:24px 0 0 0;">
         If you didn't create a NoZar account, you can safely ignore this email.
       </p>
     </div>
-    <p style="color:#475569;font-size:11px;text-align:center;margin-top:24px;">
+    <p class="nz-dim" style="color:#475569;font-size:11px;text-align:center;margin-top:24px;">
       &copy; ${new Date().getFullYear()} NoZar. All rights reserved.
     </p>
   </div>
@@ -135,6 +235,10 @@ export const auth = betterAuth({
     twoFactor({
       issuer: "NoZar",
     }),
+  ],
+  trustedOrigins: [
+    "https://nozar.co.za",
+    "https://www.nozar.co.za",
   ],
   database: drizzleAdapter(db, {
     provider: "pg",
@@ -246,6 +350,31 @@ export const auth = betterAuth({
     },
   },
   user: {
+    changeEmail: {
+      enabled: true,
+      // For unverified users: update the email directly, then send a new
+      // verification email to the new address. This avoids a chicken-and-egg
+      // problem where an unverified user can't access the dashboard to change
+      // their email, but also can't verify because they typo'd the address.
+      updateEmailWithoutVerification: true,
+      // For verified users: send a confirmation email to the OLD address
+      // before proceeding with the change. We reuse Resend for this.
+      sendChangeEmailConfirmation: async ({ user, newEmail, url }) => {
+        const { Resend } = await import("resend");
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        await resend.emails.send({
+          from: "NoZar <noreply@nozar.co.za>",
+          to: user.email,
+          subject: "Confirm Your Email Change — NoZar",
+          html: getVerificationEmailHtml(url, user.name), // Reuse verify template
+        }).catch((err: unknown) => {
+          console.error(
+            "[auth] sendChangeEmailConfirmation failed:",
+            err instanceof Error ? err.message : err,
+          );
+        });
+      },
+    },
     additionalFields: {
       referralCode: {
         type: "string",
@@ -290,9 +419,7 @@ export const auth = betterAuth({
       if (process.env.PLAYWRIGHT_TEST === "1") return;
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
-      // Wrap in .catch so a Resend domain/API-key failure logs gracefully
-      // and never breaks the sign-up response for the user.
-      const promise = resend.emails.send({
+      const result = await resend.emails.send({
         from: "NoZar <noreply@nozar.co.za>",
         to: user.email,
         subject: "Verify Your NoZar Email",
@@ -302,12 +429,10 @@ export const auth = betterAuth({
           "[auth] sendVerificationEmail failed:",
           err instanceof Error ? err.message : err,
         );
+        return null;
       });
-      const wt = (globalThis as { waitUntil?: (p: Promise<unknown>) => void }).waitUntil;
-      if (typeof wt === "function") {
-        wt(promise);
-      } else {
-        await promise;
+      if (result === null) {
+        console.error("[auth] sendVerificationEmail: Resend returned null — check API key or Resend dashboard");
       }
     },
     // In E2E tests, auto-sign-in so registration flows work end-to-end
