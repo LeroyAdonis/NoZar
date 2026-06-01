@@ -44,7 +44,7 @@ function getSavedLocationLabel(savedLocation: SavedLocation, currentRegion: Regi
   return `Near ${MVP_REGIONS[currentRegion].label}`;
 }
 
-export async function meta({}: Route.MetaArgs) {
+export function meta({}: Route.MetaArgs) {
   return [
     { title: "Map — NoZar" },
     { name: "description", content: "Find swaps near your saved radar location" },
