@@ -7,11 +7,10 @@
 import { db } from "~/lib/db.server";
 import * as schema from "~/lib/schema";
 import { eq } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 const SEED_SECRET = "nozar-seed-2026";
 
-function uid() { return randomUUID(); }
+function uid() { return crypto.randomUUID(); }
 function daysAgo(n: number) { return new Date(Date.now() - n * 86400_000); }
 
 const PHOTOS: Record<string, string[]> = {
@@ -40,7 +39,7 @@ export async function action({ request }: { request: Request }) {
       await db.delete(schema.trustProfiles).where(eq(schema.trustProfiles.userId, u.id));
       await db.delete(schema.users).where(eq(schema.users.id, u.id));
     }
-  } catch (_) { /* ignore cleanup errors */ }
+  } catch (e) { /* ignore cleanup errors */ }
 
   // Create users
   const thandi = uid(), james = uid(), priya = uid();
