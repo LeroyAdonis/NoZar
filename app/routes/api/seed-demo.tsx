@@ -10,7 +10,6 @@ import { db } from "~/lib/db.server";
 import * as schema from "~/lib/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
-import { put } from "@vercel/blob";
 
 const SEED_SECRET = process.env.SEED_SECRET || "nozar-seed-2026";
 
@@ -23,36 +22,11 @@ function daysAgo(n: number) {
 }
 
 /**
- * Download an image from a URL and upload it to Vercel Blob.
- * Falls back to the source URL if Blob isn't configured.
+ * Generate image URLs directly from Unsplash (reliable CDN, free to hotlink).
+ * We use specific photo IDs for authentic product shots per item.
  */
-async function uploadImg(
-  unsplashId: string,
-  label: string,
-  index: number,
-): Promise<string> {
-  const url = `https://images.unsplash.com/photo-${unsplashId}?w=800&h=600&fit=crop&q=80`;
-  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
-
-  if (!blobToken) {
-    // No blob configured — use the Unsplash URL directly
-    return url;
-  }
-
-  try {
-    const resp = await fetch(url, { signal: AbortSignal.timeout(10_000) });
-    if (!resp.ok || !resp.body) throw new Error(`HTTP ${resp.status}`);
-
-    const blob = await put(`demo/${label}-${index}.jpg`, resp.body, {
-      access: "public",
-      addRandomSuffix: true,
-      contentType: "image/jpeg",
-    });
-    return blob.url;
-  } catch (err) {
-    console.warn(`[seed] Blob upload failed for ${label}/${index}:`, (err as Error).message);
-    return url; // fallback to source URL
-  }
+function img(unsplashId: string): string {
+  return `https://images.unsplash.com/photo-${unsplashId}?w=800&h=600&fit=crop&q=80`;
 }
 
 // Unsplash photo IDs for each listing (3 per item for variety)
@@ -262,10 +236,8 @@ export async function action({ request }: { request: Request }) {
     }).returning({ id: schema.listings.id });
     const lid = ins.id;
 
-    // Upload images in parallel
-    const urls = await Promise.all(
-      l.imgIds.map((photoId, i) => uploadImg(photoId, l.imgKey, i)),
-    );
+    // Generate image URLs (no upload needed — direct from Unsplash CDN)
+    const urls = l.imgIds.map(photoId => img(photoId));
 
     for (let i = 0; i < urls.length; i++) {
       await db.insert(schema.listingImages).values({
