@@ -103,7 +103,7 @@ export default function SupportChat() {
       {/* Floating trigger button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-20 md:bottom-6 right-4 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
+        className={`fixed bottom-28 sm:bottom-24 md:bottom-6 right-4 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-all duration-300 ${
           isOpen
             ? "bg-slate-700 rotate-90"
             : "bg-emerald-500 hover:bg-emerald-400 active:scale-95"
@@ -119,7 +119,7 @@ export default function SupportChat() {
 
       {/* Chat panel */}
       {isOpen && (
-        <div className="fixed bottom-36 md:bottom-24 right-4 z-50 w-[calc(100vw-2rem)] sm:w-[380px] h-[480px] max-h-[70vh] flex flex-col bg-[#0F172A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
+        <div className="fixed bottom-40 sm:bottom-[136px] md:bottom-24 right-4 z-50 w-[calc(100vw-2rem)] sm:w-[380px] h-[480px] max-h-[70vh] flex flex-col bg-[#0F172A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-5 duration-200">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/5 shrink-0">
             <div className="flex items-center gap-2.5">
