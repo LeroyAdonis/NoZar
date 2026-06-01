@@ -43,6 +43,16 @@ Plans:
   4. All 5 tab screens work on iOS and Android: Home (feed), Map, Add (+), Pings (chat + handshake), Profile
   5. Real-time chat works via SSE polyfill; push notifications delivered via Expo Push (EAS)
   6. PayFast subscription upgrade opens via expo-web-browser WebView with deep link return
+**Plans**: 7 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Turborepo monorepo scaffold (root workspace + packages/shared + apps/web import updates)
+- [ ] 03-02-PLAN.md — tRPC server layer + Better Auth 1.6.11 upgrade (expo() plugin + 5 domain routers)
+- [ ] 03-03-PLAN.md — Expo mobile scaffold + auth screens (Metro config + NativeWind v4 + Better Auth expoClient)
+- [ ] 03-04-PLAN.md — Core screens: Home feed + Asset Detail + Map (RN components + react-native-maps)
+- [ ] 03-05-PLAN.md — Add Listing form + Push notifications (expo-image-picker + expo-notifications + EAS push)
+- [ ] 03-06-PLAN.md — Pings: real-time chat + HandshakeFlow (SSE via @microsoft/fetch-event-source + 2/2 mechanic)
+- [ ] 03-07-PLAN.md — Profile + Billing + Phone verify (PayFast WebBrowser deep link + Africa's Talking OTP)
 
 ### Phase 4: Trade Chat & Handshake UX Redesign
 **Goal**: Redesign the Pings chat + handshake flow to be approachable for non-technical users, visually polished, and correctly responsive across mobile/tablet/desktop. Fix bottom sheet clipping bugs and replace the confusing two-step handshake with a symmetric "2/2 agreed" counter mechanic.
@@ -68,5 +78,5 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Interactive Tutorial | - | Complete | - |
 | 2. Device Identity & Anti-Abuse | 4/4 | Complete ✅ | 2026-05-26 |
-| 3. React Native Mobile App | 0/? | Not started | - |
+| 3. React Native Mobile App | 0/7 | Not started | - |
 | 4. Trade Chat & Handshake UX Redesign | 0/? | Not started | - |
