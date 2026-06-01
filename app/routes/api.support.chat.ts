@@ -56,9 +56,10 @@ export async function action({ request }: ActionFunctionArgs) {
 
   try {
     const answer = await callNvidiaModel(question, {
-      model: "meta/llama-3.3-70b-instruct",
+      model: "z-ai/glm-5.1",
       temperature: 0.3,
       maxTokens: 512,
+      systemPrompt,
     });
 
     // If AI couldn't answer, escalate to human support via email
