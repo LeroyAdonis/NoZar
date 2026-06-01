@@ -1560,9 +1560,9 @@ export default function PingDetail({
 
   return (
     <>
-        {/* Help toast — auto-dismisses, shown on mobile only */}
+        {/* Help toast — auto-dismisses, hidden once 2-column layout kicks in */}
         {showHelpToast && (
-          <div className="md:hidden fixed bottom-[148px] left-1/2 -translate-x-1/2 z-30 animate-in slide-in-from-bottom-5 fade-in duration-300 fill-mode-both">
+          <div className="min-[970px]:hidden fixed bottom-[148px] left-1/2 -translate-x-1/2 z-30 animate-in slide-in-from-bottom-5 fade-in duration-300 fill-mode-both">
             <div className="px-4 py-2.5 rounded-xl bg-[#0F172A] border border-white/10 shadow-xl flex items-center gap-2.5 whitespace-nowrap">
               <MessageCircle className="w-4 h-4 text-emerald-400 shrink-0" />
               <span className="text-xs text-slate-300">
@@ -2053,11 +2053,11 @@ function MessageInput({
           </button>
         </Form>
 
-        {/* Help icon — mobile only, opens support chat */}
+        {/* Help icon — stays in composer until 2-column layout kicks in */}
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent("hermes:open-support-chat"))}
-          className="md:hidden shrink-0 w-9 h-9 rounded-xl bg-[#0F172A] border border-white/10 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 transition-colors flex items-center justify-center"
+          className="min-[970px]:hidden shrink-0 w-9 h-9 rounded-xl bg-[#0F172A] border border-white/10 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 transition-colors flex items-center justify-center"
           title="Help & Support"
         >
           <MessageCircle className="w-4 h-4" />
