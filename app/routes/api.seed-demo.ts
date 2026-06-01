@@ -1,9 +1,8 @@
-// Seed/reset demo data. Pass {"key":"nozar-seed-2026"} to seed, {"key":"nozar-seed-2026","reset":true} to delete.
 import { db } from "~/lib/db.server";
-import { sql } from "drizzle-orm";
+import * as s from "~/lib/schema";
+import { eq } from "drizzle-orm";
 
-const K = "nozar-seed-2026";
-const DEMO_EMAILS = ["thandi@nozar.demo", "james@nozar.demo", "priya@nozar.demo"];
+const KEY = "nozar-seed-2026";
 
 function uid() { return crypto.randomUUID(); }
 function ago(n: number) { return new Date(Date.now() - n * 86400_000); }
@@ -11,43 +10,47 @@ function img(id: string) { return `https://images.unsplash.com/photo-${id}?w=800
 
 export async function action({ request }: { request: Request }) {
   const body = await request.json();
-  if (body.key !== K) return Response.json({ error: "bad key" }, { status: 403 });
+  if (body.key !== KEY) return Response.json({ error: "bad key" }, { status: 403 });
 
-  // ── RESET mode: delete all demo data ──
+  const DEMO = ["thandi@nozar.demo", "james@nozar.demo", "priya@nozar.demo"];
+
+  // Reset mode
   if (body.reset) {
-    for (const email of DEMO_EMAILS) {
-      const [u] = await db.execute(sql`SELECT id FROM users WHERE email = ${email} LIMIT 1`);
-      if (!u?.id) continue;
-      const id = u.id;
-      await db.execute(sql`DELETE FROM ratings WHERE rater_id = ${id} OR ratee_id = ${id}`);
-      await db.execute(sql`DELETE FROM thread_read_cursors WHERE user_id = ${id}`);
-      await db.execute(sql`DELETE FROM messages WHERE sender_id = ${id}`);
-      await db.execute(sql`DELETE FROM trade_items WHERE user_id = ${id}`);
-      await db.execute(sql`DELETE FROM trade_reports WHERE reporter_id = ${id}`);
-      await db.execute(sql`DELETE FROM readiness_flags WHERE user_id = ${id}`);
-      await db.execute(sql`DELETE FROM meetup_votes WHERE user_id = ${id}`);
-      await db.execute(sql`DELETE FROM contact_disclosures WHERE user_id = ${id}`);
-      await db.execute(sql`DELETE FROM trades WHERE initiator_id = ${id} OR responder_id = ${id}`);
-      await db.execute(sql`DELETE FROM listing_images WHERE listing_id IN (SELECT id FROM listings WHERE user_id = ${id})`);
-      await db.execute(sql`DELETE FROM listings WHERE user_id = ${id}`);
-      await db.execute(sql`DELETE FROM trust_profiles WHERE user_id = ${id}`);
-      await db.execute(sql`DELETE FROM profiles WHERE user_id = ${id}`);
-      await db.execute(sql`DELETE FROM users WHERE id = ${id}`);
+    for (const email of DEMO) {
+      const rows = await db.select({ id: s.users.id }).from(s.users).where(eq(s.users.email, email)).limit(1);
+      if (!rows.length) continue;
+      const id = rows[0].id;
+      await db.delete(s.ratings).where(eq(s.ratings.raterId, id));
+      await db.delete(s.ratings).where(eq(s.ratings.rateeId, id));
+      await db.delete(s.threadReadCursors).where(eq(s.threadReadCursors.userId, id));
+      await db.delete(s.messages).where(eq(s.messages.senderId, id));
+      await db.delete(s.tradeItems).where(eq(s.tradeItems.userId, id));
+      await db.delete(s.tradeReports).where(eq(s.tradeReports.reporterId, id));
+      await db.delete(s.readinessFlags).where(eq(s.readinessFlags.userId, id));
+      await db.delete(s.meetupVotes).where(eq(s.meetupVotes.userId, id));
+      await db.delete(s.contactDisclosures).where(eq(s.contactDisclosures.userId, id));
+      await db.delete(s.trades).where(eq(s.trades.initiatorId, id));
+      await db.delete(s.trades).where(eq(s.trades.responderId, id));
+      await db.delete(s.listingImages).where(eq(s.listingImages.listingId, -1)); // no-op cleanup as listing cascade handles these
+      await db.delete(s.listings).where(eq(s.listings.userId, id));
+      await db.delete(s.trustProfiles).where(eq(s.trustProfiles.userId, id));
+      await db.delete(s.profiles).where(eq(s.profiles.userId, id));
+      await db.delete(s.users).where(eq(s.users.id, id));
     }
-    return Response.json({ message: "Demo data reset." });
+    return Response.json({ message: "Reset." });
   }
 
-  // ── SEED mode: only if not already seeded ──
-  const check = await db.execute(sql`SELECT id FROM users WHERE email = ${DEMO_EMAILS[0]} LIMIT 1`);
-  if (check.length > 0) return Response.json({ message: "Already seeded. Use {reset:true} first." });
+  // Seed mode — skip if already exists
+  const hit = await db.select({ id: s.users.id }).from(s.users).where(eq(s.users.email, DEMO[0])).limit(1);
+  if (hit.length) return Response.json({ message: "Already seeded — call with reset:true first." });
 
   const USERS = [
-    { id: uid(), name: "Thandi Mokoena", email: DEMO_EMAILS[0], s: "Observatory", c: "Cape Town", la: -33.9375, lo: 18.4712, l: "verified", t: 4, r: 4.8, b: "Cape Town. Designer & photographer." },
-    { id: uid(), name: "James van der Merwe", email: DEMO_EMAILS[1], s: "Stellenbosch Central", c: "Stellenbosch", la: -33.9371, lo: 18.8601, l: "verified", t: 2, r: 4.5, b: "Stellenbosch. Mountain biker & tech nerd." },
-    { id: uid(), name: "Priya Naidoo", email: DEMO_EMAILS[2], s: "Durbanville", c: "Cape Town", la: -33.8342, lo: 18.6476, l: "newcomer", t: 1, r: 4.0, b: "Durbanville. Yoga instructor & plant mom." },
+    { id: uid(), name: "Thandi Mokoena", email: DEMO[0], sub: "Observatory", city: "Cape Town", lat: -33.9375, lng: 18.4712, level: "verified" as const, tr: 4, rat: 4.8, bio: "Cape Town. Designer & photographer." },
+    { id: uid(), name: "James van der Merwe", email: DEMO[1], sub: "Stellenbosch Central", city: "Stellenbosch", lat: -33.9371, lng: 18.8601, level: "verified" as const, tr: 2, rat: 4.5, bio: "Stellenbosch. Mountain biker & tech nerd." },
+    { id: uid(), name: "Priya Naidoo", email: DEMO[2], sub: "Durbanville", city: "Cape Town", lat: -33.8342, lng: 18.6476, level: "newcomer" as const, tr: 1, rat: 4.0, bio: "Durbanville. Yoga instructor & plant mom." },
   ];
 
-  const PH = {
+  const PH: Record<string, string[]> = {
     c: ["1516035069371-29a1b244cc32","1502920917128-1aa500764cbd","1510127034890-ba27508e9f1c"],
     b: ["1576436185224-2c6690bda11b","1485965120184-e220f721d03e","1561736778-92e52a7769ef"],
     d: ["1626785774573-4b799315345d","1561070791-2526d30994b5","1453928582365-b6ad33cbcf64"],
@@ -57,9 +60,9 @@ export async function action({ request }: { request: Request }) {
   };
 
   for (const u of USERS) {
-    await db.execute(sql`INSERT INTO users (id, name, email, email_verified, created_at, updated_at) VALUES (${u.id}, ${u.name}, ${u.email}, true, ${ago(60)}, ${ago(1)})`);
-    await db.execute(sql`INSERT INTO profiles (user_id, display_name, suburb, city, province, lat, lng, search_radius_km, bio) VALUES (${u.id}, ${u.name.split(" ")[0]}, ${u.s}, ${u.c}, 'Western Cape', ${u.la}, ${u.lo}, 25, ${u.b})`);
-    await db.execute(sql`INSERT INTO trust_profiles (user_id, level, completed_trades, average_rating, last_active_at) VALUES (${u.id}, ${u.l}, ${u.t}, ${u.r}, ${ago(1)})`);
+    await db.insert(s.users).values({ id: u.id, name: u.name, email: u.email, emailVerified: true, createdAt: ago(60), updatedAt: ago(1) });
+    await db.insert(s.profiles).values({ userId: u.id, displayName: u.name.split(" ")[0], suburb: u.sub, city: u.city, province: "Western Cape", lat: u.lat, lng: u.lng, searchRadiusKm: 25, bio: u.bio });
+    await db.insert(s.trustProfiles).values({ userId: u.id, level: u.level, completedTrades: u.tr, averageRating: u.rat, lastActiveAt: ago(1) });
   }
 
   const ITEMS = [
@@ -73,33 +76,20 @@ export async function action({ request }: { request: Request }) {
 
   const ids: number[] = [];
   for (const item of ITEMS) {
-    const uid = USERS[item.u].id;
-    const res = await db.execute(sql`INSERT INTO listings (user_id, title, description, category, estimated_value_zar, condition, seeking_description, type, status, lat, lng, created_at, updated_at) VALUES (${uid}, ${item.t}, ${item.d}, ${item.ca}, ${item.v}, ${item.co}, ${item.s}, ${item.tp}, 'active', ${USERS[item.u].la}, ${USERS[item.u].lo}, ${ago(14)}, ${ago(1)}) RETURNING id`);
-    const lid = Number(res[0].id);
-    for (let i = 0; i < PH[item.ph as keyof typeof PH].length; i++) {
-      await db.execute(sql`INSERT INTO listing_images (listing_id, url, "order") VALUES (${lid}, ${img(PH[item.ph as keyof typeof PH][i])}, ${i})`);
-    }
-    ids.push(lid);
+    const u = USERS[item.u];
+    const [ins] = await db.insert(s.listings).values({ userId: u.id, title: item.t, description: item.d, category: item.ca, estimatedValueZar: item.v, condition: item.co, seekingDescription: item.s, type: item.tp, status: "active", lat: u.lat, lng: u.lng, createdAt: ago(14), updatedAt: ago(1) }).returning({ id: s.listings.id });
+    for (let i = 0; i < PH[item.ph].length; i++) await db.insert(s.listingImages).values({ listingId: ins.id, url: img(PH[item.ph][i]), order: i });
+    ids.push(ins.id);
   }
 
-  const [t1] = USERS, [j1] = [USERS[1]], [p1] = [USERS[2]];
-  const tr1 = await db.execute(sql`INSERT INTO trades (initiator_id, responder_id, listing_id, status, created_at, updated_at) VALUES (${t1.id}, ${j1.id}, ${ids[0]}, 'completed', ${ago(10)}, ${ago(8)}) RETURNING id`);
-  const t1id = Number(tr1[0].id);
-  await db.execute(sql`INSERT INTO messages (trade_id, sender_id, text, type, created_at) VALUES (${t1id}, ${t1.id}, 'Hey James! Keen to swap my camera for your bike. R1,300 gap — balance with cash?', 'text', ${ago(10)})`);
-  await db.execute(sql`INSERT INTO messages (trade_id, sender_id, text, type, created_at) VALUES (${t1id}, ${j1.id}, 'Shot Thandi! Works for me. The bike is ready to ride 😎', 'text', ${ago(10)})`);
-  await db.execute(sql`INSERT INTO messages (trade_id, sender_id, text, type, created_at) VALUES (${t1id}, ${t1.id}, 'Both parties agreed — deal locked in! 🎉', 'system', ${ago(9)})`);
-  await db.execute(sql`INSERT INTO messages (trade_id, sender_id, text, type, created_at) VALUES (${t1id}, ${t1.id}, 'Trade marked as completed!', 'system', ${ago(8)})`);
-  await db.execute(sql`INSERT INTO ratings (trade_id, rater_id, ratee_id, score, comment) VALUES (${t1id}, ${t1.id}, ${j1.id}, 5, 'Smooth trade!')`);
-  await db.execute(sql`INSERT INTO ratings (trade_id, rater_id, ratee_id, score, comment) VALUES (${t1id}, ${j1.id}, ${t1.id}, 5, 'Camera is perfect 👊')`);
+  const [t, j, p] = USERS;
+  const [t1] = await db.insert(s.trades).values({ initiatorId: t.id, responderId: j.id, listingId: ids[0], status: "completed", createdAt: ago(10), updatedAt: ago(8) }).returning({ id: s.trades.id });
+  await db.insert(s.messages).values([{ tradeId: t1.id, senderId: t.id, text: "Hey James! Keen to swap my camera for your bike. R1,300 gap — balance with cash?", type: "text", createdAt: ago(10) }, { tradeId: t1.id, senderId: j.id, text: "Shot Thandi! Works for me. The bike's ready to ride 😎", type: "text", createdAt: ago(10) }, { tradeId: t1.id, senderId: t.id, text: "Both parties agreed — deal locked in! 🎉", type: "system", createdAt: ago(9) }, { tradeId: t1.id, senderId: t.id, text: "Trade marked as completed!", type: "system", createdAt: ago(8) }]);
+  await db.insert(s.ratings).values([{ tradeId: t1.id, raterId: t.id, rateeId: j.id, score: 5, comment: "Smooth trade!" }, { tradeId: t1.id, raterId: j.id, rateeId: t.id, score: 5, comment: "Camera is perfect 👊" }]);
 
-  const tr2 = await db.execute(sql`INSERT INTO trades (initiator_id, responder_id, listing_id, status, created_at, updated_at) VALUES (${p1.id}, ${t1.id}, ${ids[3]}, 'completed', ${ago(7)}, ${ago(5)}) RETURNING id`);
-  const t2id = Number(tr2[0].id);
-  await db.execute(sql`INSERT INTO messages (trade_id, sender_id, text, type, created_at) VALUES (${t2id}, ${p1.id}, 'Hi Thandi! Swap a full brand package for my leather sofa?', 'text', ${ago(7)})`);
-  await db.execute(sql`INSERT INTO messages (trade_id, sender_id, text, type, created_at) VALUES (${t2id}, ${t1.id}, 'Yes absolutely! That sofa is gorgeous 😍', 'text', ${ago(7)})`);
-  await db.execute(sql`INSERT INTO messages (trade_id, sender_id, text, type, created_at) VALUES (${t2id}, ${p1.id}, 'Both parties agreed! 🎉', 'system', ${ago(6)})`);
-  await db.execute(sql`INSERT INTO messages (trade_id, sender_id, text, type, created_at) VALUES (${t2id}, ${p1.id}, 'Trade completed!', 'system', ${ago(5)})`);
-  await db.execute(sql`INSERT INTO ratings (trade_id, rater_id, ratee_id, score, comment) VALUES (${t2id}, ${p1.id}, ${t1.id}, 4, 'Beautiful brand guide!')`);
-  await db.execute(sql`INSERT INTO ratings (trade_id, rater_id, ratee_id, score, comment) VALUES (${t2id}, ${t1.id}, ${p1.id}, 5, 'Sofa is perfect!')`);
+  const [t2] = await db.insert(s.trades).values({ initiatorId: p.id, responderId: t.id, listingId: ids[3], status: "completed", createdAt: ago(7), updatedAt: ago(5) }).returning({ id: s.trades.id });
+  await db.insert(s.messages).values([{ tradeId: t2.id, senderId: p.id, text: "Hi Thandi! Swap a full brand package for my leather sofa?", type: "text", createdAt: ago(7) }, { tradeId: t2.id, senderId: t.id, text: "Yes absolutely! That sofa is gorgeous 😍", type: "text", createdAt: ago(7) }, { tradeId: t2.id, senderId: p.id, text: "Both parties agreed! 🎉", type: "system", createdAt: ago(6) }, { tradeId: t2.id, senderId: p.id, text: "Trade completed!", type: "system", createdAt: ago(5) }]);
+  await db.insert(s.ratings).values([{ tradeId: t2.id, raterId: p.id, rateeId: t.id, score: 4, comment: "Beautiful brand guide!" }, { tradeId: t2.id, raterId: t.id, rateeId: p.id, score: 5, comment: "Sofa is perfect!" }]);
 
   return Response.json({ message: "Seeded with real images 📸", users: 3, listings: ITEMS.length, trades: 2 });
 }
