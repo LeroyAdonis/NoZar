@@ -1,6 +1,6 @@
 /**
- * Protected endpoint to seed demo data.
- * Only callable with a secret key so it can't be abused in production.
+ * Protected endpoint to seed demo data with real product images
+ * uploaded to Vercel Blob for reliable hosting.
  *
  * Trigger: curl -X POST https://nozar.co.za/api/seed-demo \
  *   -H "Content-Type: application/json" \
@@ -10,6 +10,7 @@ import { db } from "~/lib/db.server";
 import * as schema from "~/lib/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
+import { put } from "@vercel/blob";
 
 const SEED_SECRET = process.env.SEED_SECRET || "nozar-seed-2026";
 
@@ -17,13 +18,148 @@ function uid() {
   return randomUUID();
 }
 
-function img(name: string, w = 800, h = 600) {
-  return `https://picsum.photos/seed/${name}/${w}/${h}`;
-}
-
 function daysAgo(n: number) {
   return new Date(Date.now() - n * 86400_000);
 }
+
+/**
+ * Download an image from a URL and upload it to Vercel Blob.
+ * Falls back to the source URL if Blob isn't configured.
+ */
+async function uploadImg(
+  unsplashId: string,
+  label: string,
+  index: number,
+): Promise<string> {
+  const url = `https://images.unsplash.com/photo-${unsplashId}?w=800&h=600&fit=crop&q=80`;
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+
+  if (!blobToken) {
+    // No blob configured — use the Unsplash URL directly
+    return url;
+  }
+
+  try {
+    const resp = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    if (!resp.ok || !resp.body) throw new Error(`HTTP ${resp.status}`);
+
+    const blob = await put(`demo/${label}-${index}.jpg`, resp.body, {
+      access: "public",
+      addRandomSuffix: true,
+      contentType: "image/jpeg",
+    });
+    return blob.url;
+  } catch (err) {
+    console.warn(`[seed] Blob upload failed for ${label}/${index}:`, (err as Error).message);
+    return url; // fallback to source URL
+  }
+}
+
+// Unsplash photo IDs for each listing (3 per item for variety)
+const ITEM_IMAGES: Record<string, string[]> = {
+  "canon-eos-200d": [
+    "1516035069371-29a1b244cc32",
+    "1502920917128-1aa500764cbd",
+    "1510127034890-ba27508e9f1c",
+  ],
+  "giant-talon-3": [
+    "1576436185224-2c6690bda11b",
+    "1485965120184-e220f721d03e",
+    "1561736778-92e52a7769ef",
+  ],
+  "brand-design": [
+    "1626785774573-4b799315345d",
+    "1561070791-2526d30994b5",
+    "1453928582365-b6ad33cbcf64",
+  ],
+  "leather-sofa": [
+    "1555041469-a586c61ea9bc",
+    "1493663284031-b7e3aefcae8e",
+    "1540574163026-643ea20ade25",
+  ],
+  "macbook-pro-2019": [
+    "1517336714731-489689fd1ca8",
+    "1496181133206-80ce9b88a853",
+    "1629131726692-1accd0c53ce0",
+  ],
+  "yoga-pass": [
+    "1545205597-3d9d02c29597",
+    "1506126613408-eca07ce68773",
+    "1552196563-55cd4e45efb3",
+  ],
+};
+
+interface ListingSeed {
+  userId: string;
+  title: string;
+  description: string;
+  category: string;
+  estimatedValueZar: number;
+  condition: string;
+  seekingDescription: string;
+  type: string;
+  lat: number;
+  lng: number;
+  imgKey: string;
+  imgIds: string[];
+}
+
+const LISTINGS: ListingSeed[] = [
+  {
+    userId: "", // filled below
+    title: "Canon EOS 200D DSLR Camera",
+    description: "Lightweight DSLR with 24.2MP sensor, 18-55mm kit lens, EF-S 55-250mm telephoto lens, bag, and 2 extra batteries. Bought in 2022, well looked after. Perfect for photography beginners or content creators.",
+    category: "Electronics", estimatedValueZar: 4500, condition: "Good",
+    seekingDescription: "Looking for a laptop (MacBook or Windows ultrabook) or photography gear + cash difference.",
+    type: "item", lat: -33.9375, lng: 18.4712,
+    imgKey: "canon-eos-200d", imgIds: ITEM_IMAGES["canon-eos-200d"],
+  },
+  {
+    userId: "",
+    title: "Giant Talon 3 Mountain Bike",
+    description: "29er hardtail with hydraulic disc brakes, SRAM 12-speed drivetrain. Ride-ready with new tyres fitted last month. Perfect for Table Mountain trails or Jonkershoek.",
+    category: "Sports", estimatedValueZar: 3200, condition: "Good",
+    seekingDescription: "Open to offers — looking for camera equipment, power tools, or a laptop.",
+    type: "item", lat: -33.9371, lng: 18.8601,
+    imgKey: "giant-talon-3", imgIds: ITEM_IMAGES["giant-talon-3"],
+  },
+  {
+    userId: "",
+    title: "Professional Logo & Brand Design",
+    description: "Custom logo design + brand guide including colour palette, typography, and social media kit. 3 rounds of revisions. Designed for 15+ local SA startups. Portfolio available on request.",
+    category: "Services", estimatedValueZar: 1500, condition: "New",
+    seekingDescription: "Barter for furniture, home decor, or photography services.",
+    type: "service", lat: -33.9375, lng: 18.4712,
+    imgKey: "brand-design", imgIds: ITEM_IMAGES["brand-design"],
+  },
+  {
+    userId: "",
+    title: "Leather 3-Seater Sofa — Cognac Brown",
+    description: "Genuine leather, bought from @Home in 2023. Cognac brown, in excellent condition — no scratches or stains. Includes 2 matching scatter cushions. Moving and can't take it with me.",
+    category: "Home & Garden", estimatedValueZar: 6000, condition: "Like New",
+    seekingDescription: "Looking for a laptop for my daughter's studies, or furniture exchange.",
+    type: "item", lat: -33.8342, lng: 18.6476,
+    imgKey: "leather-sofa", imgIds: ITEM_IMAGES["leather-sofa"],
+  },
+  {
+    userId: "",
+    title: "MacBook Pro 2019 — 16-inch",
+    description: "Intel Core i7, 16GB RAM, 512GB SSD. Space grey. Includes original charger and Tomtoc sleeve. Battery at 82 cycles. Upgrading to M-series, so this needs a new home.",
+    category: "Electronics", estimatedValueZar: 12000, condition: "Good",
+    seekingDescription: "Open to trades — especially camera gear (mirrorless or DSLR), or a mechanical keyboard + cash.",
+    type: "item", lat: -33.9371, lng: 18.8601,
+    imgKey: "macbook-pro-2019", imgIds: ITEM_IMAGES["macbook-pro-2019"],
+  },
+  {
+    userId: "",
+    title: "Monthly Yoga Pass — 4 Sessions",
+    description: "Vinyasa flow at Zen Studio in Durbanville. Valid for 4 sessions in a calendar month. Includes mat hire. Suitable for all levels — beginners welcome!",
+    category: "Services", estimatedValueZar: 500, condition: "New",
+    seekingDescription: "Swap for art prints, plants, or homemade preserves!",
+    type: "service", lat: -33.8342, lng: 18.6476,
+    imgKey: "yoga-pass", imgIds: ITEM_IMAGES["yoga-pass"],
+  },
+];
 
 export async function action({ request }: { request: Request }) {
   if (request.method !== "POST") {
@@ -43,7 +179,7 @@ export async function action({ request }: { request: Request }) {
     .limit(1);
 
   if (existing.length > 0) {
-    return Response.json({ message: "Already seeded" });
+    return Response.json({ message: "Already seeded — delete demo users to re-seed" });
   }
 
   const users = [
@@ -70,6 +206,7 @@ export async function action({ request }: { request: Request }) {
     },
   ];
 
+  // 1. Insert users, profiles, trust profiles
   for (const u of users) {
     await db.insert(schema.users).values({
       id: u.id, name: u.name, email: u.email, emailVerified: true,
@@ -86,17 +223,17 @@ export async function action({ request }: { request: Request }) {
     });
   }
 
-  const listings = [
-    { userId: users[0].id, title: "Canon EOS 200D DSLR Camera", description: "Lightweight DSLR with 24.2MP sensor, 18-55mm kit lens, EF-S 55-250mm telephoto lens, bag, and 2 extra batteries. Bought in 2022, well looked after.", category: "Electronics", estimatedValueZar: 4500, condition: "Good", seekingDescription: "Looking for a laptop (MacBook or Windows ultrabook) or photography gear + cash difference.", type: "item", lat: -33.9375, lng: 18.4712, imgSeed: "canon-eos-200d" },
-    { userId: users[1].id, title: "Giant Talon 3 Mountain Bike", description: "29er hardtail with hydraulic disc brakes, SRAM 12-speed drivetrain. Ride-ready with new tyres fitted last month.", category: "Sports", estimatedValueZar: 3200, condition: "Good", seekingDescription: "Open to offers — looking for camera equipment, power tools, or a laptop.", type: "item", lat: -33.9371, lng: 18.8601, imgSeed: "giant-talon-3" },
-    { userId: users[0].id, title: "Professional Logo & Brand Design", description: "Custom logo design + brand guide including colour palette, typography, and social media kit. 3 rounds of revisions. Designed for 15+ local SA startups.", category: "Services", estimatedValueZar: 1500, condition: "New", seekingDescription: "Barter for furniture, home decor, or photography services.", type: "service", lat: -33.9375, lng: 18.4712, imgSeed: "brand-design" },
-    { userId: users[2].id, title: "Leather 3-Seater Sofa — Cognac Brown", description: "Genuine leather, bought from @Home in 2023. Cognac brown, in excellent condition with 2 matching scatter cushions.", category: "Home & Garden", estimatedValueZar: 6000, condition: "Like New", seekingDescription: "Looking for a laptop for my daughter's studies, or furniture exchange.", type: "item", lat: -33.8342, lng: 18.6476, imgSeed: "leather-sofa" },
-    { userId: users[1].id, title: "MacBook Pro 2019 — 16-inch", description: "Intel Core i7, 16GB RAM, 512GB SSD. Space grey. Includes original charger and Tomtoc sleeve. Battery at 82 cycles.", category: "Electronics", estimatedValueZar: 12000, condition: "Good", seekingDescription: "Open to trades — especially camera gear (mirrorless or DSLR), or a mechanical keyboard + cash.", type: "item", lat: -33.9371, lng: 18.8601, imgSeed: "macbook-pro-2019" },
-    { userId: users[2].id, title: "Monthly Yoga Pass — 4 Sessions", description: "Vinyasa flow at Zen Studio in Durbanville. Valid for 4 sessions in a calendar month. Includes mat hire. Suitable for all levels.", category: "Services", estimatedValueZar: 500, condition: "New", seekingDescription: "Swap for art prints, plants, or homemade preserves!", type: "service", lat: -33.8342, lng: 18.6476, imgSeed: "yoga-pass" },
-  ];
+  // Assign users to listings
+  LISTINGS[0].userId = users[0].id; // Camera → Thandi
+  LISTINGS[1].userId = users[1].id; // Bike → James
+  LISTINGS[2].userId = users[0].id; // Brand design → Thandi
+  LISTINGS[3].userId = users[2].id; // Sofa → Priya
+  LISTINGS[4].userId = users[1].id; // MacBook → James
+  LISTINGS[5].userId = users[2].id; // Yoga → Priya
 
+  // 2. Insert listings with real images
   const listingIds: number[] = [];
-  for (const l of listings) {
+  for (const l of LISTINGS) {
     const [ins] = await db.insert(schema.listings).values({
       userId: l.userId, title: l.title, description: l.description,
       category: l.category, estimatedValueZar: l.estimatedValueZar,
@@ -105,13 +242,23 @@ export async function action({ request }: { request: Request }) {
       createdAt: daysAgo(14), updatedAt: daysAgo(1),
     }).returning({ id: schema.listings.id });
     const lid = ins.id;
-    for (let i = 0; i < 3; i++) {
-      await db.insert(schema.listingImages).values({ listingId: lid, url: img(`${l.imgSeed}-${i}`, 800, 600), order: i });
+
+    // Upload images in parallel
+    const urls = await Promise.all(
+      l.imgIds.map((photoId, i) => uploadImg(photoId, l.imgKey, i)),
+    );
+
+    for (let i = 0; i < urls.length; i++) {
+      await db.insert(schema.listingImages).values({
+        listingId: lid,
+        url: urls[i],
+        order: i,
+      });
     }
     listingIds.push(lid);
   }
 
-  // Trade 1: Thandi's camera ↔ James's bike + R1,300
+  // 3. Trade 1: Thandi's camera ↔ James's bike + R1,300
   const [t1] = await db.insert(schema.trades).values({
     initiatorId: users[0].id, responderId: users[1].id, listingId: listingIds[0],
     status: "completed", createdAt: daysAgo(10), updatedAt: daysAgo(8),
@@ -132,7 +279,7 @@ export async function action({ request }: { request: Request }) {
     { userId: users[1].id, tradeId: t1.id, lastReadAt: daysAgo(8) },
   ]);
 
-  // Trade 2: Priya's sofa ↔ Thandi's design services
+  // 4. Trade 2: Priya's sofa ↔ Thandi's design services
   const [t2] = await db.insert(schema.trades).values({
     initiatorId: users[2].id, responderId: users[0].id, listingId: listingIds[3],
     status: "completed", createdAt: daysAgo(7), updatedAt: daysAgo(5),
@@ -154,15 +301,15 @@ export async function action({ request }: { request: Request }) {
   ]);
 
   return Response.json({
-    message: "Seeded successfully",
+    message: "Seeded with real product images 📸",
     users: users.map(u => u.name),
-    listings: listings.length,
+    listings: LISTINGS.length,
     trades: 2,
   });
 }
 
 export async function loader() {
   return Response.json({
-    message: "Send a POST with {\"key\":\"<secret>\"} to seed demo data.",
+    message: 'Send a POST with {"key":"<secret>"} to seed demo data with real product images.',
   });
 }
