@@ -171,7 +171,7 @@ export async function action({ request }: { request: Request }) {
     return Response.json({ error: "Invalid key" }, { status: 403 });
   }
 
-  // Check if already seeded — if so, delete and re-seed to refresh images
+  // Check if already seeded — clean up for re-seed
   const existing = await db
     .select({ id: schema.users.id })
     .from(schema.users)
@@ -179,8 +179,24 @@ export async function action({ request }: { request: Request }) {
     .limit(1);
 
   if (existing.length > 0) {
-    // Delete old demo users (cascades to profiles, listings, trades, etc.)
+    // Delete in dependency order — many FK refs don't cascade
     for (const u of existing) {
+      await db.delete(schema.threadReadCursors).where(eq(schema.threadReadCursors.userId, u.id));
+      await db.delete(schema.ratings).where(eq(schema.ratings.raterId, u.id));
+      await db.delete(schema.ratings).where(eq(schema.ratings.rateeId, u.id));
+      await db.delete(schema.messages).where(eq(schema.messages.senderId, u.id));
+      await db.delete(schema.tradeItems).where(eq(schema.tradeItems.userId, u.id));
+      await db.delete(schema.tradeReports).where(eq(schema.tradeReports.reporterId, u.id));
+      await db.delete(schema.readinessFlags).where(eq(schema.readinessFlags.userId, u.id));
+      await db.delete(schema.meetupVotes).where(eq(schema.meetupVotes.userId, u.id));
+      await db.delete(schema.contactDisclosures).where(eq(schema.contactDisclosures.userId, u.id));
+      // Trades reference users without cascade — delete them first
+      await db.delete(schema.trades).where(eq(schema.trades.initiatorId, u.id));
+      await db.delete(schema.trades).where(eq(schema.trades.responderId, u.id));
+      // Listings cascade to listingImages, so delete listings next
+      await db.delete(schema.listings).where(eq(schema.listings.userId, u.id));
+      await db.delete(schema.trustProfiles).where(eq(schema.trustProfiles.userId, u.id));
+      await db.delete(schema.profiles).where(eq(schema.profiles.userId, u.id));
       await db.delete(schema.users).where(eq(schema.users.id, u.id));
     }
   }
