@@ -42,6 +42,15 @@ export function BalancePile({
   const gap = theirValue - yourValue;
   const currentItemsCount = selectedListings.length + (customService.trim() ? 1 : 0);
 
+  // Live preview of pending additions
+  const pendingValue = selectedListings.reduce((sum, id) => {
+    const l = userListings.find((x) => x.id === id);
+    return sum + (l?.estimatedValueZar ?? 0);
+  }, 0) + (Number(customValue) || 0);
+
+  const previewYourValue = yourValue + pendingValue;
+  const previewGap = theirValue - previewYourValue;
+
   const handleAddFromListings = (listing: Listing) => {
     if (currentItemsCount >= maxItems) return;
     if (selectedListings.includes(listing.id)) {
@@ -101,20 +110,58 @@ export function BalancePile({
         <div className="p-5 space-y-3">
           <div className="grid grid-cols-3 gap-2">
             <div className="text-center p-3 bg-white/5 rounded-xl">
-              <span className="text-[9px] font-mono text-slate-500 uppercase">Their</span>
+              <span className="text-[9px] font-mono text-slate-500 uppercase">Theirs</span>
               <p className="text-sm font-bold text-white">~R{theirValue.toLocaleString()}</p>
             </div>
             <div className="text-center p-3 bg-white/5 rounded-xl">
-              <span className="text-[9px] font-mono text-slate-500 uppercase">Gap</span>
-              <p className={`text-sm font-bold ${gap > 0 ? "text-amber-400" : "text-emerald-400"}`}>
-                {gap !== 0 ? `~R${Math.abs(gap).toLocaleString()}` : "✓"}
+              <span className="text-[9px] font-mono text-slate-500 uppercase">
+                {pendingValue > 0 ? "New Gap" : "Gap"}
+              </span>
+              <p className={`text-sm font-bold ${
+                pendingValue > 0
+                  ? previewGap === 0
+                    ? "text-emerald-400"
+                    : Math.abs(previewGap) < Math.abs(gap)
+                      ? "text-amber-300"
+                      : "text-amber-400"
+                  : gap > 0
+                    ? "text-amber-400"
+                    : "text-emerald-400"
+              }`}>
+                {(() => {
+                  const activeGap = pendingValue > 0 ? previewGap : gap;
+                  if (activeGap === 0) return "✓ Even";
+                  return `~R${Math.abs(activeGap).toLocaleString()}`;
+                })()}
               </p>
             </div>
             <div className="text-center p-3 bg-white/5 rounded-xl">
               <span className="text-[9px] font-mono text-slate-500 uppercase">Yours</span>
-              <p className="text-sm font-bold text-white">~R{yourValue.toLocaleString()}</p>
+              <p className="text-sm font-bold text-white">
+                ~R{yourValue.toLocaleString()}
+                {pendingValue > 0 && (
+                  <span className="text-emerald-400 text-[10px] ml-1">+{pendingValue.toLocaleString()}</span>
+                )}
+              </p>
             </div>
           </div>
+
+          {/* Direction indicator */}
+          {(() => {
+            const activeGap = pendingValue > 0 ? previewGap : gap;
+            if (activeGap === 0) {
+              return <p className="text-center text-[10px] font-mono text-emerald-400">✓ Values match</p>;
+            }
+            const youOwe = activeGap > 0;
+            return (
+              <p className="text-center text-[10px] font-mono text-amber-400">
+                {youOwe
+                  ? `You need R${Math.abs(activeGap).toLocaleString()} more to match their offer`
+                  : `They need R${Math.abs(activeGap).toLocaleString()} more to match your offer`
+                }
+              </p>
+            );
+          })()}
 
           {/* Mode Buttons */}
           {!mode && (
@@ -214,10 +261,15 @@ export function BalancePile({
         {/* Preview + Submit */}
         {(selectedListings.length > 0 || customService.trim()) && (
           <div className="p-5 border-t border-white/5">
-            <span className="text-[10px] font-mono text-slate-400 uppercase">
-              Your pile ({currentItemsCount}/{maxItems})
-            </span>
-            <div className="flex flex-wrap gap-2 mb-4 mt-2">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] font-mono text-slate-400 uppercase">
+                Your pile ({currentItemsCount}/{maxItems})
+              </span>
+              <span className="text-[10px] font-mono text-emerald-400">
+                +R{pendingValue.toLocaleString()}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2 mb-4">
               {selectedListings.map((id) => {
                 const l = userListings.find((x) => x.id === id);
                 return (
@@ -239,7 +291,10 @@ export function BalancePile({
               onClick={handleAccept}
               className="w-full py-3 rounded-xl bg-emerald-500 text-[#030712] font-black uppercase tracking-widest text-xs hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all"
             >
-              ⚖️ Submit Balanced Offer
+              {previewGap === 0
+                ? "⚖️ Balanced — Submit Offer"
+                : `⚖️ Submit (gap: R${Math.abs(previewGap).toLocaleString()})`
+              }
             </button>
           </div>
         )}
