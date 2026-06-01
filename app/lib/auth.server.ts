@@ -350,6 +350,31 @@ export const auth = betterAuth({
     },
   },
   user: {
+    changeEmail: {
+      enabled: true,
+      // For unverified users: update the email directly, then send a new
+      // verification email to the new address. This avoids a chicken-and-egg
+      // problem where an unverified user can't access the dashboard to change
+      // their email, but also can't verify because they typo'd the address.
+      updateEmailWithoutVerification: true,
+      // For verified users: send a confirmation email to the OLD address
+      // before proceeding with the change. We reuse Resend for this.
+      sendChangeEmailConfirmation: async ({ user, newEmail, url }) => {
+        const { Resend } = await import("resend");
+        const resend = new Resend(process.env.RESEND_API_KEY);
+        await resend.emails.send({
+          from: "NoZar <noreply@nozar.co.za>",
+          to: user.email,
+          subject: "Confirm Your Email Change — NoZar",
+          html: getVerificationEmailHtml(url, user.name), // Reuse verify template
+        }).catch((err: unknown) => {
+          console.error(
+            "[auth] sendChangeEmailConfirmation failed:",
+            err instanceof Error ? err.message : err,
+          );
+        });
+      },
+    },
     additionalFields: {
       referralCode: {
         type: "string",
