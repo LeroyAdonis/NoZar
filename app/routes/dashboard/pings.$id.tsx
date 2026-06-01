@@ -1669,11 +1669,75 @@ export default function PingDetail({
           );
         })()}
 
-        {/* Message Scroll Area — messages only */}
+        {/* Message Scroll Area */}
         <div
           ref={scrollRef}
           className="flex flex-col flex-1 overflow-y-auto overscroll-contain py-3 gap-3 min-h-0"
         >
+          {/* One-time safety banner */}
+          {!safetyBannerDismissed && (
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest mb-1">Safety Reminder</p>
+                <p className="text-[11px] font-mono text-slate-400 leading-relaxed">
+                  Only meet in safe, public locations. Never share your home address. Your safety comes first.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleDismissBanner}
+                className="text-[10px] font-mono text-slate-500 hover:text-slate-300 transition-colors shrink-0 mt-0.5"
+              >
+                Got it
+              </button>
+            </div>
+          )}
+
+          {/* Inline CTA cards */}
+          {buildCTACards(status, isReady, theyReady).map((card) => (
+            <div key={card.id}>
+              {card.variant === "agree" && (
+                <div className="p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)] space-y-3">
+                  <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">
+                    New Trade Request
+                  </p>
+                  <p className="text-[13px] text-slate-300 text-center leading-relaxed">
+                    Both of you need to agree to lock in this trade.
+                  </p>
+                  <HandshakeFlow
+                    tradeId={trade.id}
+                    status={status}
+                    isReady={isReady}
+                    theyReady={theyReady}
+                    isSubmitting={isSubmitting}
+                    submittingIntent={submittingIntent}
+                  />
+                </div>
+              )}
+              {card.variant === "waiting-1of2" && (
+                <div className="p-4 rounded-2xl bg-[#0F172A] border border-slate-700/50 space-y-2">
+                  <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">1/2 Agreed</p>
+                  <p className="text-[13px] text-slate-400 text-center leading-relaxed">
+                    ✓ You agreed — waiting for them to confirm.
+                  </p>
+                </div>
+              )}
+              {card.variant === "negotiating" && (
+                <div className="p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)] space-y-2">
+                  <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">🎉 Deal Agreed!</p>
+                  <p className="text-[13px] text-slate-300 text-center">Both parties agreed. Share your contact info to arrange the meetup.</p>
+                </div>
+              )}
+              {card.variant === "share-contact" && (
+                <div className="p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/30 space-y-3">
+                  <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">Arrange your meetup</p>
+                  <p className="text-[13px] text-slate-300 text-center leading-relaxed">Share your contact info to connect with your trade partner.</p>
+                  <ShareContactForm isSubmitting={isSubmitting} submittingIntent={submittingIntent} />
+                </div>
+              )}
+            </div>
+          ))}
+
           {chatMessages.map((msg) => {
             // System messages — centered, muted
             if (msg.type === "system") {
@@ -1740,73 +1804,6 @@ export default function PingDetail({
             </div>
           )}
 
-        </div>
-
-        {/* Fixed action strip — safety banner + CTA cards, always visible */}
-        <div className="shrink-0 space-y-0 px-3 sm:px-4 lg:px-8">
-          {/* One-time safety banner */}
-          {!safetyBannerDismissed && (
-            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start justify-between gap-3 mb-2">
-              <div className="flex-1">
-                <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest mb-1">Safety Reminder</p>
-                <p className="text-[11px] font-mono text-slate-400 leading-relaxed">
-                  Only meet in safe, public locations. Never share your home address. Your safety comes first.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={handleDismissBanner}
-                className="text-[10px] font-mono text-slate-500 hover:text-slate-300 transition-colors shrink-0 mt-0.5"
-              >
-                Got it
-              </button>
-            </div>
-          )}
-
-          {/* Inline CTA cards */}
-          {buildCTACards(status, isReady, theyReady).map((card) => (
-            <div key={card.id} className="mb-2">
-              {card.variant === "agree" && (
-                <div className="p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)] space-y-3">
-                  <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">
-                    New Trade Request
-                  </p>
-                  <p className="text-[13px] text-slate-300 text-center leading-relaxed">
-                    Both of you need to agree to lock in this trade.
-                  </p>
-                  <HandshakeFlow
-                    tradeId={trade.id}
-                    status={status}
-                    isReady={isReady}
-                    theyReady={theyReady}
-                    isSubmitting={isSubmitting}
-                    submittingIntent={submittingIntent}
-                  />
-                </div>
-              )}
-              {card.variant === "waiting-1of2" && (
-                <div className="p-4 rounded-2xl bg-[#0F172A] border border-slate-700/50 space-y-2">
-                  <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">1/2 Agreed</p>
-                  <p className="text-[13px] text-slate-400 text-center leading-relaxed">
-                    ✓ You agreed — waiting for them to confirm.
-                  </p>
-                </div>
-              )}
-              {card.variant === "negotiating" && (
-                <div className="p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)] space-y-2">
-                  <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">🎉 Deal Agreed!</p>
-                  <p className="text-[13px] text-slate-300 text-center">Both parties agreed. Share your contact info to arrange the meetup.</p>
-                </div>
-              )}
-              {card.variant === "share-contact" && (
-                <div className="p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/30 space-y-3">
-                  <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">Arrange your meetup</p>
-                  <p className="text-[13px] text-slate-300 text-center leading-relaxed">Share your contact info to connect with your trade partner.</p>
-                  <ShareContactForm isSubmitting={isSubmitting} submittingIntent={submittingIntent} />
-                </div>
-              )}
-            </div>
-          ))}
         </div>
 
         {/* Chat Input Footer — hidden when trade is completed, cancelled, or frozen */}
