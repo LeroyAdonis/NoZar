@@ -16,6 +16,7 @@ import {
   X,
   ShieldAlert,
   Scale,
+  MessageCircle,
 } from "lucide-react";
 import type { Route } from "./+types/pings.$id";
 import { requireAuth } from "~/lib/auth.server";
@@ -1030,6 +1031,13 @@ export default function PingDetail({
   const [showBalancePile, setShowBalancePile] = useState(false);
   const [showTradeStatus, setShowTradeStatus] = useState(false);
   const [safetyBannerDismissed, setSafetyBannerDismissed] = useState(true);
+  const [showHelpToast, setShowHelpToast] = useState(true);
+
+  // Auto-dismiss help toast after 5s
+  useEffect(() => {
+    const timer = setTimeout(() => setShowHelpToast(false), 5000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const dismissed = localStorage.getItem("nozar:safety-banner-dismissed");
@@ -1552,6 +1560,18 @@ export default function PingDetail({
 
   return (
     <>
+        {/* Help toast — auto-dismisses, shown on mobile only */}
+        {showHelpToast && (
+          <div className="md:hidden fixed bottom-[148px] left-1/2 -translate-x-1/2 z-30 animate-in slide-in-from-bottom-5 fade-in duration-300 fill-mode-both">
+            <div className="px-4 py-2.5 rounded-xl bg-[#0F172A] border border-white/10 shadow-xl flex items-center gap-2.5 whitespace-nowrap">
+              <MessageCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="text-xs text-slate-300">
+                Need help? Tap <span className="text-emerald-400 font-bold">?</span> in the chat bar
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Outer: fixed overlay — sidebar-offset on desktop, full-width on mobile */}
         <div className="fixed inset-x-0 md:left-60 top-[73px] bottom-[72px] md:bottom-0 z-20 bg-[#030712] flex flex-col min-[970px]:flex-row">
           {/* ── Left column: chat ───────────────────────────────────── */}
@@ -2032,6 +2052,16 @@ function MessageInput({
             )}
           </button>
         </Form>
+
+        {/* Help icon — mobile only, opens support chat */}
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent("hermes:open-support-chat"))}
+          className="md:hidden shrink-0 w-9 h-9 rounded-xl bg-[#0F172A] border border-white/10 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 transition-colors flex items-center justify-center"
+          title="Help & Support"
+        >
+          <MessageCircle className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Newcomer message counter */}
