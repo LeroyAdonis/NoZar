@@ -26,6 +26,7 @@ import { provinceToSlug, getClosestRegion, MVP_REGIONS } from "~/lib/regions";
 import { vapidPublicKey } from "~/lib/webpush.server";
 import { PushPermissionButton } from "~/components/ui/push-permission-button";
 import { TutorialOverlay } from "~/components/ui/tutorial-overlay";
+import SupportChat from "~/components/ui/support-chat";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
@@ -535,6 +536,8 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
           onNavigate={navigate}
         />
       )}
+
+      <SupportChat />
 
       {/* Bottom navigation — mobile only (BottomNav itself adds md:hidden) */}
       <BottomNav activeTab={activeTab} isPending={isNavigating} hasUnread={unreadCount > 0} />
