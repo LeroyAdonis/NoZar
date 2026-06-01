@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router";
 
@@ -100,43 +100,53 @@ export async function loader({ request }: Route.LoaderArgs) {
       userId: profiles.userId,
       userName: profiles.displayName,
       userAvatar: profiles.avatarUrl,
+      ownerProvince: profiles.province,
     })
     .from(listings)
     .innerJoin(profiles, eq(listings.userId, profiles.userId))
-    .where(
-      and(
-        eq(listings.status, "active"),
-        isNotNull(listings.lat),
-        isNotNull(listings.lng),
-      ),
-    );
+    .where(eq(listings.status, "active"));
+
+  // ─── Province centers for fallback when a listing has no coords ───
+  const PROVINCE_CENTERS: Record<string, { lat: number; lng: number }> = {
+    "Western Cape": { lat: -33.9249, lng: 18.4241 },
+    "Gauteng": { lat: -26.2041, lng: 28.0473 },
+    "KwaZulu-Natal": { lat: -29.8587, lng: 31.0218 },
+    "Eastern Cape": { lat: -33.957, lng: 25.6 },
+    "Free State": { lat: -29.1, lng: 26.3 },
+    "Limpopo": { lat: -23.9, lng: 29.5 },
+    "Mpumalanga": { lat: -25.5, lng: 30.5 },
+    "North West": { lat: -25.5, lng: 25.7 },
+    "Northern Cape": { lat: -29.5, lng: 22.5 },
+  };
+  function listingLocation(listing: typeof activeListings[number]): { lat: number; lng: number } {
+    if (listing.lat != null && listing.lng != null) return { lat: listing.lat, lng: listing.lng };
+    const center = listing.ownerProvince ? PROVINCE_CENTERS[listing.ownerProvince] : null;
+    if (center) return center;
+    return { lat: -26.2041, lng: 28.0473 }; // fallback to JHB
+  }
 
   const pins = activeListings
-    .filter(
-      (listing): listing is typeof listing & { lat: number; lng: number } =>
-        listing.lat !== null && listing.lng !== null,
-    )
-    .filter((listing) =>
-      isWithinMapScope(
-        { lat: listing.lat, lng: listing.lng },
-        mapScope.center,
-        mapScope.searchRadiusKm,
-      ),
-    )
-    .map((listing) => ({
-      id: listing.id,
-      lat: listing.lat,
-      lng: listing.lng,
-      title: listing.title,
-      type: listing.type as "item" | "service",
-      description: listing.description,
-      imageUrl: listing.imageUrl,
-      user: {
-        id: listing.userId,
-        name: listing.userName,
-        avatarUrl: listing.userAvatar,
-      },
-    }));
+    .filter((listing) => {
+      const loc = listingLocation(listing);
+      return isWithinMapScope(loc, mapScope.center, mapScope.searchRadiusKm);
+    })
+    .map((listing) => {
+      const loc = listingLocation(listing);
+      return {
+        id: listing.id,
+        lat: loc.lat,
+        lng: loc.lng,
+        title: listing.title,
+        type: listing.type as "item" | "service",
+        description: listing.description,
+        imageUrl: listing.imageUrl,
+        user: {
+          id: listing.userId,
+          name: listing.userName,
+          avatarUrl: listing.userAvatar,
+        },
+      };
+    });
 
   return {
     apiKey: process.env.GOOGLE_MAPS_API_KEY ?? "",
