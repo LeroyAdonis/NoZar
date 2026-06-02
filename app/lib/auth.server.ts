@@ -384,6 +384,11 @@ export const auth = betterAuth({
   },
     emailAndPassword: {
     enabled: true,
+    // Better Auth checks THIS requireEmailVerification for sign-up email
+    // sending (via sendOnSignUp fallback) AND sign-in blocking in v1.6.11.
+    // Do NOT move — it lives in emailAndPassword per Better Auth's internal
+    // route checks (sign-up.mjs line 239, sign-in.mjs line 229).
+    requireEmailVerification: true,
     async sendResetPassword({ user, url }) {
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
@@ -411,6 +416,10 @@ export const auth = betterAuth({
     },
   },
   emailVerification: {
+    // Send verification email immediately on sign-up.
+    // Better Auth checks this FIRST (sign-up.mjs line 239), falling back
+    // to emailAndPassword.requireEmailVerification only if unset.
+    sendOnSignUp: true,
     // Block sign-in for users who have not yet verified their email address.
     // Better Auth defaults this to false; we must opt-in explicitly.
     requireEmailVerification: true,

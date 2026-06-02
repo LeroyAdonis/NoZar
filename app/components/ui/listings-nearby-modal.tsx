@@ -81,7 +81,7 @@ export function ListingsNearbyModal({
             </div>
 
             {/* List */}
-            <div className="overflow-y-auto px-3 pb-6" style={{ maxHeight: "calc(85dvh - 100px)" }}>
+            <div className="overflow-y-auto px-3 pb-[76px] md:pb-6" style={{ maxHeight: "calc(85dvh - 100px)" }}>
               {pins.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <MapPin className="mb-3 h-8 w-8 text-slate-600" />
