@@ -1,8 +1,9 @@
-import { and, eq, isNotNull, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router";
+import { Link, useNavigate, useSearchParams, useFetcher } from "react-router";
 
 import { NozarMap } from "~/components/map/nozar-map";
+import { ListingsNearbyModal } from "~/components/ui/listings-nearby-modal";
 import { LocationPromptModal } from "~/components/ui/location-prompt-modal";
 import { RegionToggle } from "~/components/ui/region-toggle";
 import { requireAuth } from "~/lib/auth.server";
@@ -48,6 +49,25 @@ export function meta({}: Route.MetaArgs) {
     { title: "Map — NoZar" },
     { name: "description", content: "Find swaps near your saved radar location" },
   ];
+}
+
+export async function action({ request }: Route.ActionArgs) {
+  const { user } = await requireAuth(request);
+  const formData = await request.formData();
+  const intent = formData.get("intent") as string | null;
+
+  if (intent === "setRadius") {
+    const km = parseInt(formData.get("km") as string, 10);
+    if (Number.isFinite(km) && km >= 10 && km <= 500) {
+      await db
+        .update(profiles)
+        .set({ searchRadiusKm: km })
+        .where(eq(profiles.userId, user.id));
+      return Response.json({ ok: true, km });
+    }
+  }
+
+  return Response.json({ ok: false }, { status: 400 });
 }
 
 export async function loader({ request }: Route.LoaderArgs) {
@@ -99,43 +119,53 @@ export async function loader({ request }: Route.LoaderArgs) {
       userId: profiles.userId,
       userName: profiles.displayName,
       userAvatar: profiles.avatarUrl,
+      ownerProvince: profiles.province,
     })
     .from(listings)
     .innerJoin(profiles, eq(listings.userId, profiles.userId))
-    .where(
-      and(
-        eq(listings.status, "active"),
-        isNotNull(listings.lat),
-        isNotNull(listings.lng),
-      ),
-    );
+    .where(eq(listings.status, "active"));
+
+  // ─── Province centers for fallback when a listing has no coords ───
+  const PROVINCE_CENTERS: Record<string, { lat: number; lng: number }> = {
+    "Western Cape": { lat: -33.9249, lng: 18.4241 },
+    "Gauteng": { lat: -26.2041, lng: 28.0473 },
+    "KwaZulu-Natal": { lat: -29.8587, lng: 31.0218 },
+    "Eastern Cape": { lat: -33.957, lng: 25.6 },
+    "Free State": { lat: -29.1, lng: 26.3 },
+    "Limpopo": { lat: -23.9, lng: 29.5 },
+    "Mpumalanga": { lat: -25.5, lng: 30.5 },
+    "North West": { lat: -25.5, lng: 25.7 },
+    "Northern Cape": { lat: -29.5, lng: 22.5 },
+  };
+  function listingLocation(listing: typeof activeListings[number]): { lat: number; lng: number } {
+    if (listing.lat != null && listing.lng != null) return { lat: listing.lat, lng: listing.lng };
+    const center = listing.ownerProvince ? PROVINCE_CENTERS[listing.ownerProvince] : null;
+    if (center) return center;
+    return { lat: -26.2041, lng: 28.0473 }; // fallback to JHB
+  }
 
   const pins = activeListings
-    .filter(
-      (listing): listing is typeof listing & { lat: number; lng: number } =>
-        listing.lat !== null && listing.lng !== null,
-    )
-    .filter((listing) =>
-      isWithinMapScope(
-        { lat: listing.lat, lng: listing.lng },
-        mapScope.center,
-        mapScope.searchRadiusKm,
-      ),
-    )
-    .map((listing) => ({
-      id: listing.id,
-      lat: listing.lat,
-      lng: listing.lng,
-      title: listing.title,
-      type: listing.type as "item" | "service",
-      description: listing.description,
-      imageUrl: listing.imageUrl,
-      user: {
-        id: listing.userId,
-        name: listing.userName,
-        avatarUrl: listing.userAvatar,
-      },
-    }));
+    .filter((listing) => {
+      const loc = listingLocation(listing);
+      return isWithinMapScope(loc, mapScope.center, mapScope.searchRadiusKm);
+    })
+    .map((listing) => {
+      const loc = listingLocation(listing);
+      return {
+        id: listing.id,
+        lat: loc.lat,
+        lng: loc.lng,
+        title: listing.title,
+        type: listing.type as "item" | "service",
+        description: listing.description,
+        imageUrl: listing.imageUrl,
+        user: {
+          id: listing.userId,
+          name: listing.userName,
+          avatarUrl: listing.userAvatar,
+        },
+      };
+    });
 
   return {
     apiKey: process.env.GOOGLE_MAPS_API_KEY ?? "",
@@ -145,6 +175,14 @@ export async function loader({ request }: Route.LoaderArgs) {
     savedLocation,
     searchRadiusKm: mapScope.searchRadiusKm,
     usesFallbackLocation: mapScope.usesFallbackLocation,
+    _debug: {
+      pinsCount: activeListings.length,
+      region: mapScope.currentRegion,
+      center: mapScope.center,
+      radius: mapScope.searchRadiusKm,
+      fallback: mapScope.usesFallbackLocation,
+      hasSavedCoords: userProfile?.lat != null && userProfile?.lng != null,
+    },
   };
 }
 
@@ -158,11 +196,13 @@ export default function Map({ loaderData }: Route.ComponentProps) {
     searchRadiusKm,
     usesFallbackLocation,
   } = loaderData;
+  const fetcher = useFetcher();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [displayCenter, setDisplayCenter] = useState<MapCoordinates>(mapCenter);
   const [radiusKm, setRadiusKm] = useState(searchRadiusKm);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [showListingsModal, setShowListingsModal] = useState(false);
   const regionParam = searchParams.get("region");
 
   useEffect(() => {
@@ -337,7 +377,10 @@ export default function Map({ loaderData }: Route.ComponentProps) {
             apiKey={apiKey}
             center={radarCenter}
             onPinClick={handlePinClick}
-            onRadiusChange={setRadiusKm}
+            onRadiusChange={(km) => {
+              setRadiusKm(km);
+              fetcher.submit({ intent: "setRadius", km: String(km) }, { method: "post" });
+            }}
             pins={filteredPins}
             radarCenter={radarCenter}
             radarRadiusKm={radiusKm}
@@ -359,6 +402,15 @@ export default function Map({ loaderData }: Route.ComponentProps) {
                 ? "Save your current location to turn this into a profile-anchored search."
                 : "Moving the map does not change the actual search centre. Save a new location first."}
             </p>
+            {/* Debug info - always visible for troubleshooting */}
+            <details className="mt-2 rounded-lg border border-white/5 bg-white/5 p-2 text-[10px] font-mono text-slate-500">
+              <summary className="cursor-pointer text-white/60 hover:text-white/90">🔍 Debug</summary>
+              <p>Listings: {pins.length} | Filtered: {filteredPins.length}</p>
+              <p>Region: {currentRegion}</p>
+              <p>Center: {mapCenter.lat.toFixed(4)}, {mapCenter.lng.toFixed(4)}</p>
+              <p>Radius: {searchRadiusKm}km | Saved coords: {savedLocation ? "yes" : "no"}</p>
+              {savedLocation && <p>Saved: {savedLocation.lat.toFixed(4)}, {savedLocation.lng.toFixed(4)}</p>}
+            </details>
           </div>
 
           {/* FAB — bottom-right, icon-only on mobile */}
@@ -401,9 +453,13 @@ export default function Map({ loaderData }: Route.ComponentProps) {
               </p>
             </div>
           ) : (
-            <div className="absolute bottom-20 right-4 z-10 rounded-full border border-white/10 bg-slate-900/90 px-3 py-1.5 text-xs font-medium text-slate-300 shadow-lg backdrop-blur sm:bottom-auto sm:right-6 sm:top-28">
+            <button
+              type="button"
+              onClick={() => setShowListingsModal(true)}
+              className="absolute bottom-20 right-4 z-10 rounded-full border border-white/10 bg-slate-900/90 px-3 py-1.5 text-xs font-medium text-slate-300 shadow-lg backdrop-blur transition-all hover:bg-slate-800/90 hover:text-white active:scale-95 sm:bottom-auto sm:right-6 sm:top-28"
+            >
               {filteredPins.length} {filteredPins.length === 1 ? "listing" : "listings"} in range
-            </div>
+            </button>
           )}
         </div>
       </div>
@@ -413,6 +469,14 @@ export default function Map({ loaderData }: Route.ComponentProps) {
         onClose={() => setShowLocationPrompt(false)}
         onSuccess={() => setShowLocationPrompt(false)}
         variant={usesFallbackLocation ? "setup" : "refresh"}
+      />
+
+      <ListingsNearbyModal
+        isOpen={showListingsModal}
+        onClose={() => setShowListingsModal(false)}
+        pins={filteredPins}
+        radarCenter={radarCenter}
+        radiusKm={radiusKm}
       />
     </div>
   );

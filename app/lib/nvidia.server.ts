@@ -6,10 +6,11 @@ export type NvidiaCallOptions = {
   model?: string;
   maxTokens?: number;
   temperature?: number;
+  systemPrompt?: string;
 };
 
 // Recommended default for NIM
-const DEFAULT_MODEL = "meta/llama-3.3-70b-instruct";
+const DEFAULT_MODEL = "z-ai/glm-5.1";
 
 async function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -23,9 +24,17 @@ export async function callNvidiaModel(prompt: string, options: NvidiaCallOptions
   // OpenAI-compatible endpoint
   const url = "https://integrate.api.nvidia.com/v1/chat/completions";
 
-  const payload = {
+  const payload: {
+    model: string;
+    messages: Array<{ role: string; content: string }>;
+    max_tokens: number;
+    temperature: number;
+  } = {
     model,
     messages: [
+      ...(options.systemPrompt
+        ? [{ role: "system" as const, content: options.systemPrompt }]
+        : []),
       { role: "user", content: prompt }
     ],
     max_tokens: options.maxTokens ?? 1024,

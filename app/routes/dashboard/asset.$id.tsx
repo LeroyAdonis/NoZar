@@ -175,6 +175,7 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
     userInventory?.length === 1 ? userInventory[0].id : null
   );
   const [showOfferSheet, setShowOfferSheet] = useState(false);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   const sheetRef = useRef<HTMLDivElement>(null);
 
@@ -424,6 +425,16 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
               className="max-w-[90vw] max-h-[85vh] relative z-[110] p-1 bg-white/5 rounded-3xl border border-white/10 shadow-[0_0_100px_rgba(16,185,129,0.1)]"
               onClick={e => e.stopPropagation()}
+              onTouchStart={e => setTouchStartX(e.touches[0].clientX)}
+              onTouchEnd={e => {
+                if (touchStartX === null || images.length <= 1) return;
+                const dx = e.changedTouches[0].clientX - touchStartX;
+                if (Math.abs(dx) > 60) {
+                  if (dx > 0) prevImage();
+                  else nextImage();
+                }
+                setTouchStartX(null);
+              }}
             >
               <img
                 src={currentImage}

@@ -35,14 +35,12 @@ export function TrustBadge({ level, completedTrades, averageRating, className }:
   }
 
   // Newcomer
-  const progress = Math.min((completedTrades / 1) * 100, 100);
   return (
     <span className={`${base} gap-1 bg-slate-700/40 border border-slate-600/20 ${className}`}>
       <Shield className="w-3 h-3 text-slate-400" />
       <span className="text-[9xs] font-mono text-slate-400 uppercase tracking-widest">
         Newcomer
       </span>
-      <span className="text-[9xs] font-mono text-slate-500">{progress.toFixed(0)}% to ✓)</span>
     </span>
   );
 }

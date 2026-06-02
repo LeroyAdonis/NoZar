@@ -158,7 +158,7 @@ async function cmdLookup(args: Record<string, string | boolean>) {
     console.log(`\n── Auth Methods ───────────────`);
     for (const acct of userAccounts) {
       const provider = acct.providerId === "credential" ? "Email/Password" : acct.providerId;
-      console.log(`  ${provider}${acct.email ? ` (${acct.email})` : ""}`);
+      console.log(`  ${provider}`);
     }
   }
 
@@ -216,14 +216,8 @@ async function cmdChangeEmail(args: Record<string, string | boolean>) {
     return;
   }
 
-  // Update email in users table
+  // Update email in users table. Accounts table has no email column (Better Auth stores it on users).
   await db.update(users).set({ email: newEmail.toLowerCase(), emailVerified: false }).where(eq(users.id, user.id));
-
-  // Also update accounts table if credential account exists
-  await db
-    .update(accounts)
-    .set({ email: newEmail.toLowerCase() })
-    .where(and(eq(accounts.userId, user.id), eq(accounts.providerId, "credential")));
 
   console.log(`✅ Email changed: ${user.email} → ${newEmail.toLowerCase()}`);
   console.log(`ℹ️  User must verify the new email before signing in.`);
@@ -428,7 +422,7 @@ async function cmdCheckOtp(args: Record<string, string | boolean>) {
     for (const otp of recentOtps) {
       const phone = otp.identifier.replace("phone_otp:", "");
       const expired = new Date(otp.expiresAt) < new Date();
-      console.log(`  ${phone}: code=${otp.value} ${expired ? "⏰ expired" : "⏳ active"} (${otp.createdAt.toISOString()})`);
+      console.log(`  ${phone}: code=${otp.value} ${expired ? "⏰ expired" : "⏳ active"} (${otp.createdAt?.toISOString() ?? "(unknown)"})`);
     }
   } else {
     console.log(`\n  No recent OTP records found`);

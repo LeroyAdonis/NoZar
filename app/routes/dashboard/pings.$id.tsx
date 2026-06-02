@@ -16,6 +16,7 @@ import {
   X,
   ShieldAlert,
   Scale,
+  MessageCircle,
 } from "lucide-react";
 import type { Route } from "./+types/pings.$id";
 import { requireAuth } from "~/lib/auth.server";
@@ -1030,6 +1031,13 @@ export default function PingDetail({
   const [showBalancePile, setShowBalancePile] = useState(false);
   const [showTradeStatus, setShowTradeStatus] = useState(false);
   const [safetyBannerDismissed, setSafetyBannerDismissed] = useState(true);
+  const [showHelpToast, setShowHelpToast] = useState(true);
+
+  // Auto-dismiss help toast after 5s
+  useEffect(() => {
+    const timer = setTimeout(() => setShowHelpToast(false), 5000);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const dismissed = localStorage.getItem("nozar:safety-banner-dismissed");
@@ -1552,11 +1560,23 @@ export default function PingDetail({
 
   return (
     <>
+        {/* Help toast — auto-dismisses, hidden once 2-column layout kicks in */}
+        {showHelpToast && (
+          <div className="min-[970px]:hidden fixed bottom-[148px] left-1/2 -translate-x-1/2 z-30 animate-in slide-in-from-bottom-5 fade-in duration-300 fill-mode-both">
+            <div className="px-4 py-2.5 rounded-xl bg-[#0F172A] border border-white/10 shadow-xl flex items-center gap-2.5 whitespace-nowrap">
+              <MessageCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span className="text-xs text-slate-300">
+                Need help? Tap <span className="text-emerald-400 font-bold">?</span> in the chat bar
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Outer: fixed overlay — sidebar-offset on desktop, full-width on mobile */}
-        <div className="fixed inset-x-0 md:left-60 top-[73px] bottom-20 md:bottom-0 z-20 bg-[#030712] flex flex-col min-[970px]:flex-row">
+        <div className="fixed inset-x-0 md:left-60 top-[73px] bottom-[72px] md:bottom-0 z-20 bg-[#030712] flex flex-col min-[970px]:flex-row">
           {/* ── Left column: chat ───────────────────────────────────── */}
           <div className="flex flex-col flex-1 min-w-0 min-h-0 min-[970px]:border-r min-[970px]:border-white/5">
-      <div className="mx-auto w-full max-w-md px-4 flex flex-col flex-1 min-h-0 min-w-0 lg:max-w-none lg:mx-0 lg:px-6">
+      <div className="w-full px-3 sm:px-4 flex flex-col flex-1 min-h-0 min-w-0 lg:max-w-4xl lg:px-8">
         {isSubmitting && <LoadingBar className="mt-2" />}
         {/* Chat header */}
         <div className="flex items-center justify-between pt-4 pb-4 border-b border-white/5 shrink-0">
@@ -1672,11 +1692,11 @@ export default function PingDetail({
         {/* Message Scroll Area */}
         <div
           ref={scrollRef}
-          className="flex flex-col flex-1 overflow-y-auto overscroll-contain py-4 gap-3 pr-2 min-h-0"
+          className="flex flex-col flex-1 overflow-y-auto overscroll-contain py-3 gap-3 min-h-0"
         >
           {/* One-time safety banner */}
           {!safetyBannerDismissed && (
-            <div className="mx-4 mt-3 mb-1 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start justify-between gap-3">
+            <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-start justify-between gap-3">
               <div className="flex-1">
                 <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest mb-1">Safety Reminder</p>
                 <p className="text-[11px] font-mono text-slate-400 leading-relaxed">
@@ -1697,7 +1717,7 @@ export default function PingDetail({
           {buildCTACards(status, isReady, theyReady).map((card) => (
             <div key={card.id}>
               {card.variant === "agree" && (
-                <div className="mx-4 my-3 p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)] space-y-3">
+                <div className="p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)] space-y-3">
                   <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">
                     New Trade Request
                   </p>
@@ -1715,7 +1735,7 @@ export default function PingDetail({
                 </div>
               )}
               {card.variant === "waiting-1of2" && (
-                <div className="mx-4 my-3 p-4 rounded-2xl bg-[#0F172A] border border-slate-700/50 space-y-2">
+                <div className="p-4 rounded-2xl bg-[#0F172A] border border-slate-700/50 space-y-2">
                   <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">1/2 Agreed</p>
                   <p className="text-[13px] text-slate-400 text-center leading-relaxed">
                     ✓ You agreed — waiting for them to confirm.
@@ -1723,13 +1743,13 @@ export default function PingDetail({
                 </div>
               )}
               {card.variant === "negotiating" && (
-                <div className="mx-4 my-3 p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)] space-y-2">
+                <div className="p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.1)] space-y-2">
                   <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">🎉 Deal Agreed!</p>
                   <p className="text-[13px] text-slate-300 text-center">Both parties agreed. Share your contact info to arrange the meetup.</p>
                 </div>
               )}
               {card.variant === "share-contact" && (
-                <div className="mx-4 my-3 p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/30 space-y-3">
+                <div className="p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/30 space-y-3">
                   <p className="text-[10px] font-mono text-emerald-400 uppercase tracking-widest text-center">Arrange your meetup</p>
                   <p className="text-[13px] text-slate-300 text-center leading-relaxed">Share your contact info to connect with your trade partner.</p>
                   <ShareContactForm isSubmitting={isSubmitting} submittingIntent={submittingIntent} />
@@ -1758,7 +1778,7 @@ export default function PingDetail({
                 className={`flex ${isMe ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[80%] rounded-2xl px-4 py-3 ${
+                  className={`max-w-[88%] md:max-w-[75%] rounded-2xl px-3.5 py-2.5 ${
                     isMe
                       ? "bg-emerald-500 text-[#030712] font-medium"
                       : "bg-[#1E293B] border border-white/15 text-white"
@@ -1806,7 +1826,7 @@ export default function PingDetail({
 
         </div>
 
-        {/* Chat Input Footer — hidden when trade is completed or cancelled */}
+        {/* Chat Input Footer — hidden when trade is completed, cancelled, or frozen */}
         {status !== "completed" && status !== "cancelled" && status !== "frozen" && (
           <div className="pt-3 shrink-0" style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)' }}>
             <MessageInput
@@ -2032,6 +2052,16 @@ function MessageInput({
             )}
           </button>
         </Form>
+
+        {/* Help icon — stays in composer until 2-column layout kicks in */}
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new CustomEvent("hermes:open-support-chat"))}
+          className="min-[970px]:hidden shrink-0 w-9 h-9 rounded-xl bg-[#0F172A] border border-white/10 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 transition-colors flex items-center justify-center"
+          title="Help & Support"
+        >
+          <MessageCircle className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Newcomer message counter */}
