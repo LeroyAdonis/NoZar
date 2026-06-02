@@ -37,7 +37,8 @@ Map to calibration tier:
 
 Resolve advisor model:
 ```bash
-ADVISOR_MODEL=$(gsd-sdk query resolve-model gsd-advisor-researcher --raw)
+_GSD_SHIM_NAME="gsd-tools.cjs"; _GSD_RUNTIME_ROOT="${RUNTIME_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"; GSD_TOOLS="${_GSD_RUNTIME_ROOT}/get-shit-done/bin/${_GSD_SHIM_NAME}"; if [ -f "$GSD_TOOLS" ]; then gsd_run() { node "$GSD_TOOLS" "$@"; }; elif [ -f "${_GSD_RUNTIME_ROOT}/.github/get-shit-done/bin/${_GSD_SHIM_NAME}" ]; then GSD_TOOLS="${_GSD_RUNTIME_ROOT}/.github/get-shit-done/bin/${_GSD_SHIM_NAME}"; gsd_run() { node "$GSD_TOOLS" "$@"; }; elif command -v gsd-tools >/dev/null 2>&1; then GSD_TOOLS="$(command -v gsd-tools)"; gsd_run() { "$GSD_TOOLS" "$@"; }; elif [ -f ".github/get-shit-done/bin/${_GSD_SHIM_NAME}" ]; then GSD_TOOLS=".github/get-shit-done/bin/${_GSD_SHIM_NAME}"; gsd_run() { node "$GSD_TOOLS" "$@"; }; else echo "ERROR: gsd-tools.cjs not found at $GSD_TOOLS and gsd-tools is not on PATH. Run: npx -y @opengsd/gsd-core@latest --claude --local" >&2; exit 1; fi
+ADVISOR_MODEL=$(gsd_run query resolve-model gsd-advisor-researcher --raw)
 ```
 
 ## Non-technical owner detection
@@ -87,10 +88,10 @@ research agents.
 
 1. Display brief status: `Researching {N} areas...`
 
-2. For EACH user-selected gray area, spawn a `Task()` in parallel:
+2. For EACH user-selected gray area, spawn a `Agent()` in parallel:
 
    ```
-   Task(
+   Agent(
      prompt="First, read @.github/agents/gsd-advisor-researcher.md for your role and instructions.
 
      <gray_area>{area_name}: {area_description from gray area identification}</gray_area>
@@ -106,10 +107,10 @@ research agents.
    )
    ```
 
-   All `Task()` calls spawn simultaneously — do NOT wait for one before
+   All `Agent()` calls spawn simultaneously — do NOT wait for one before
    starting the next.
 
-   > **ORCHESTRATOR RULE — CODEX RUNTIME**: After calling all Task() calls above to spawn research agents, do NOT independently research or analyze any of the gray areas while the subagents are active. Wait for all subagents to return before synthesizing results. This prevents duplicate work and wasted context.
+   > **ORCHESTRATOR RULE — CODEX RUNTIME**: After calling all Agent() calls above to spawn research agents, do NOT independently research or analyze any of the gray areas while the subagents are active. Wait for all subagents to return before synthesizing results. This prevents duplicate work and wasted context.
 
 3. After ALL agents return, **synthesize results** before presenting:
 

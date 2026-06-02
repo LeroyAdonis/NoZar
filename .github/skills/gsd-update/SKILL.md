@@ -19,7 +19,7 @@ Routes to the update workflow which handles:
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/update.md
+@~/.copilot/get-shit-done/workflows/update.md
 </execution_context>
 
 <flags>
@@ -32,20 +32,11 @@ Routes to the update workflow which handles:
 Parse the first token of $ARGUMENTS:
 - If it is `--sync`: strip the flag, execute the sync-skills workflow (passing remaining args for --from/--to/--dry-run/--apply).
 - If it is `--reapply`: strip the flag, execute the reapply-patches workflow.
-- Otherwise: **Follow the update workflow** from `@.github/get-shit-done/workflows/update.md`.
+- Otherwise: execute the update workflow end-to-end.
 
-The update workflow handles all logic including:
-1. Installed version detection (local/global)
-2. Latest version checking via npm
-3. Version comparison
-4. Changelog fetching and extraction
-5. Clean install warning display
-6. User confirmation
-7. Update execution
-8. Cache clearing
 </process>
 
 <execution_context_extended>
-@.github/get-shit-done/workflows/sync-skills.md
-@.github/get-shit-done/workflows/reapply-patches.md
+@~/.copilot/get-shit-done/workflows/sync-skills.md
+@~/.copilot/get-shit-done/workflows/reapply-patches.md
 </execution_context_extended>

@@ -2,7 +2,7 @@
 name: gsd-ui-phase
 description: "Generate UI design contract (UI-SPEC.md) for frontend phases"
 argument-hint: "[phase]"
-allowed-tools: Read, Write, Bash, Glob, Grep, Task, WebFetch, AskUserQuestion, mcp__context7__*
+allowed-tools: Read, Write, Bash, Glob, Grep, Agent, WebFetch, AskUserQuestion, mcp__context7__*
 ---
 
 <objective>
@@ -12,8 +12,8 @@ Flow: Validate → Research UI → Verify UI-SPEC → Done
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/ui-phase.md
-@.github/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/workflows/ui-phase.md
+@~/.copilot/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>
@@ -21,6 +21,6 @@ Phase number: $ARGUMENTS — optional, auto-detects next unplanned phase if omit
 </context>
 
 <process>
-Execute @.github/get-shit-done/workflows/ui-phase.md end-to-end.
+Execute end-to-end.
 Preserve all workflow gates.
 </process>

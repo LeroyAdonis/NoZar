@@ -2,7 +2,7 @@
 name: gsd-ui-review
 description: "Retroactive 6-pillar visual audit of implemented frontend code"
 argument-hint: "[phase]"
-allowed-tools: Read, Write, Bash, Glob, Grep, Task, AskUserQuestion
+allowed-tools: Read, Write, Bash, Glob, Grep, Agent, AskUserQuestion
 ---
 
 <objective>
@@ -12,8 +12,8 @@ Output: {phase_num}-UI-REVIEW.md
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/ui-review.md
-@.github/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/workflows/ui-review.md
+@~/.copilot/get-shit-done/references/ui-brand.md
 </execution_context>
 
 <context>
@@ -21,6 +21,6 @@ Phase: $ARGUMENTS — optional, defaults to last completed phase.
 </context>
 
 <process>
-Execute @.github/get-shit-done/workflows/ui-review.md end-to-end.
+Execute end-to-end.
 Preserve all workflow gates.
 </process>

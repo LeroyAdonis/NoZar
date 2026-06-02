@@ -2,7 +2,7 @@
 name: gsd-map-codebase
 description: "Analyze codebase with parallel mapper agents to produce .planning/codebase/ documents"
 argument-hint: "[--fast [--focus tech|arch|quality|concerns]] [--query <term>|status|diff|refresh] [area]"
-allowed-tools: Read, Bash, Glob, Grep, Write, Task
+allowed-tools: Read, Bash, Glob, Grep, Write, Agent
 ---
 
 
@@ -15,7 +15,7 @@ Output: .planning/codebase/ folder with 7 structured documents about the codebas
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/map-codebase.md
+@~/.copilot/get-shit-done/workflows/map-codebase.md
 </execution_context>
 
 <flags>

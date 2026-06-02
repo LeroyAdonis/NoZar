@@ -14,9 +14,10 @@ Valid GSD subagent types (use exact names — do not fall back to 'general-purpo
 Load docs-update context:
 
 ```bash
-INIT=$(gsd-sdk query docs-init)
+_GSD_SHIM_NAME="gsd-tools.cjs"; _GSD_RUNTIME_ROOT="${RUNTIME_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"; GSD_TOOLS="${_GSD_RUNTIME_ROOT}/get-shit-done/bin/${_GSD_SHIM_NAME}"; if [ -f "$GSD_TOOLS" ]; then gsd_run() { node "$GSD_TOOLS" "$@"; }; elif [ -f "${_GSD_RUNTIME_ROOT}/.github/get-shit-done/bin/${_GSD_SHIM_NAME}" ]; then GSD_TOOLS="${_GSD_RUNTIME_ROOT}/.github/get-shit-done/bin/${_GSD_SHIM_NAME}"; gsd_run() { node "$GSD_TOOLS" "$@"; }; elif command -v gsd-tools >/dev/null 2>&1; then GSD_TOOLS="$(command -v gsd-tools)"; gsd_run() { "$GSD_TOOLS" "$@"; }; elif [ -f ".github/get-shit-done/bin/${_GSD_SHIM_NAME}" ]; then GSD_TOOLS=".github/get-shit-done/bin/${_GSD_SHIM_NAME}"; gsd_run() { node "$GSD_TOOLS" "$@"; }; else echo "ERROR: gsd-tools.cjs not found at $GSD_TOOLS and gsd-tools is not on PATH. Run: npx -y @opengsd/gsd-core@latest --claude --local" >&2; exit 1; fi
+INIT=$(gsd_run query docs-init)
 if [[ "$INIT" == @file:* ]]; then INIT=$(cat "${INIT#@file:}"); fi
-AGENT_SKILLS=$(gsd-sdk query agent-skills gsd-doc-writer)
+AGENT_SKILLS=$(gsd_run query agent-skills gsd-doc-writer)
 ```
 
 Extract from init JSON:
@@ -382,7 +383,7 @@ Use `run_in_background=true` for all three to enable parallel execution.
 **Agent 1: README**
 
 ```
-Task(
+Agent(
   subagent_type="gsd-doc-writer",
   model="{doc_writer_model}",
   run_in_background=true,
@@ -404,7 +405,7 @@ Write the doc file directly. Return confirmation only — do not return doc cont
 **Agent 2: ARCHITECTURE**
 
 ```
-Task(
+Agent(
   subagent_type="gsd-doc-writer",
   model="{doc_writer_model}",
   run_in_background=true,
@@ -426,7 +427,7 @@ Write the doc file directly. Return confirmation only — do not return doc cont
 **Agent 3: CONFIGURATION**
 
 ```
-Task(
+Agent(
   subagent_type="gsd-doc-writer",
   model="{doc_writer_model}",
   run_in_background=true,
@@ -448,7 +449,7 @@ Write the doc file directly. Return confirmation only — do not return doc cont
 
 **CRITICAL:** Agent prompts must contain ONLY the `<doc_assignment>` block, the `${AGENT_SKILLS}` variable, and the return instruction. Do not include project planning context, workflow prose, or any internal tooling references in agent prompts.
 
-> **ORCHESTRATOR RULE — CODEX RUNTIME**: After calling all Wave 1 Task() calls above with `run_in_background=true`, do NOT generate any documentation independently while the subagents are active. Wait for all Wave 1 agents to complete before proceeding. This prevents duplicate work and wasted context.
+> **ORCHESTRATOR RULE — CODEX RUNTIME**: After calling all Wave 1 Agent() calls above with `run_in_background=true`, do NOT generate any documentation independently while the subagents are active. Wait for all Wave 1 agents to complete before proceeding. This prevents duplicate work and wasted context.
 
 Continue to collect_wave_1.
 </step>
@@ -511,7 +512,7 @@ Use `run_in_background=true` for all Wave 2 agents to enable parallel execution 
 **Agent: GETTING-STARTED**
 
 ```
-Task(
+Agent(
   subagent_type="gsd-doc-writer",
   model="{doc_writer_model}",
   run_in_background=true,
@@ -537,7 +538,7 @@ Write the doc file directly. Return confirmation only — do not return doc cont
 **Agent: DEVELOPMENT**
 
 ```
-Task(
+Agent(
   subagent_type="gsd-doc-writer",
   model="{doc_writer_model}",
   run_in_background=true,
@@ -563,7 +564,7 @@ Write the doc file directly. Return confirmation only — do not return doc cont
 **Agent: TESTING**
 
 ```
-Task(
+Agent(
   subagent_type="gsd-doc-writer",
   model="{doc_writer_model}",
   run_in_background=true,
@@ -589,7 +590,7 @@ Write the doc file directly. Return confirmation only — do not return doc cont
 **Conditional Agent: API** (only if `has_api_routes` was true — spawn only if API.md was queued)
 
 ```
-Task(
+Agent(
   subagent_type="gsd-doc-writer",
   model="{doc_writer_model}",
   run_in_background=true,
@@ -615,7 +616,7 @@ Write the doc file directly. Return confirmation only — do not return doc cont
 **Conditional Agent: DEPLOYMENT** (only if `has_deploy_config` was true — spawn only if DEPLOYMENT.md was queued)
 
 ```
-Task(
+Agent(
   subagent_type="gsd-doc-writer",
   model="{doc_writer_model}",
   run_in_background=true,
@@ -642,7 +643,7 @@ Write the doc file directly. Return confirmation only — do not return doc cont
 **Conditional Agent: CONTRIBUTING** (only if `is_open_source` was true — spawn only if CONTRIBUTING.md was queued)
 
 ```
-Task(
+Agent(
   subagent_type="gsd-doc-writer",
   model="{doc_writer_model}",
   run_in_background=true,
@@ -667,7 +668,7 @@ Write the doc file directly. Return confirmation only — do not return doc cont
 
 **CRITICAL:** Agent prompts must contain ONLY the `<doc_assignment>` block, the `${AGENT_SKILLS}` variable, and the return instruction. Do not include project planning context, workflow prose, or any internal tooling references in agent prompts.
 
-> **ORCHESTRATOR RULE — CODEX RUNTIME**: After calling all Wave 2 Task() calls above with `run_in_background=true`, do NOT generate any documentation independently while the subagents are active. Wait for all Wave 2 agents to complete before proceeding. This prevents duplicate work and wasted context.
+> **ORCHESTRATOR RULE — CODEX RUNTIME**: After calling all Wave 2 Agent() calls above with `run_in_background=true`, do NOT generate any documentation independently while the subagents are active. Wait for all Wave 2 agents to complete before proceeding. This prevents duplicate work and wasted context.
 
 Continue to collect_wave_2.
 </step>
@@ -731,7 +732,7 @@ Determine mode:
 Spawn a `gsd-doc-writer` agent with `run_in_background=true`:
 
 ```
-Task(
+Agent(
   subagent_type="gsd-doc-writer",
   model="{doc_writer_model}",
   run_in_background=true,
@@ -751,7 +752,7 @@ Write {package_dir}/README.md directly. Return confirmation only — do not retu
 )
 ```
 
-> **ORCHESTRATOR RULE — CODEX RUNTIME**: After calling all per-package Task() calls above with `run_in_background=true`, do NOT generate any package READMEs independently while the subagents are active. Wait for all agents to complete via TaskOutput before proceeding. This prevents duplicate work and wasted context.
+> **ORCHESTRATOR RULE — CODEX RUNTIME**: After calling all per-package Agent() calls above with `run_in_background=true`, do NOT generate any package READMEs independently while the subagents are active. Wait for all agents to complete via TaskOutput before proceeding. This prevents duplicate work and wasted context.
 
 Collect confirmations via TaskOutput for all package agents. Note failures in the final report.
 
@@ -1060,7 +1061,7 @@ Only run this step if `commit_docs` is `true` from the init JSON. If `commit_doc
 Assemble the list of files that were actually generated (do not include files that failed or were skipped):
 
 ```bash
-gsd-sdk query commit "docs: generate project documentation" \
+gsd_run query commit "docs: generate project documentation" \
   --files README.md docs/ARCHITECTURE.md docs/CONFIGURATION.md docs/GETTING-STARTED.md docs/DEVELOPMENT.md docs/TESTING.md
 # Append any conditional docs that were generated:
 # --files ... docs/API.md docs/DEPLOYMENT.md CONTRIBUTING.md

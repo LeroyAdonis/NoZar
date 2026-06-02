@@ -16,9 +16,9 @@ Three modes:
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/undo.md
-@.github/get-shit-done/references/ui-brand.md
-@.github/get-shit-done/references/gate-prompts.md
+@~/.copilot/get-shit-done/workflows/undo.md
+@~/.copilot/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/references/gate-prompts.md
 </execution_context>
 
 <context>
@@ -26,5 +26,5 @@ $ARGUMENTS
 </context>
 
 <process>
-Execute the undo workflow from @.github/get-shit-done/workflows/undo.md end-to-end.
+Execute end-to-end.
 </process>

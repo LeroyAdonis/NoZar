@@ -2,7 +2,7 @@
 name: gsd-new-milestone
 description: "Start a new milestone cycle — update PROJECT.md and route to requirements"
 argument-hint: "[milestone name, e.g., 'v1.1 Notifications']"
-allowed-tools: Read, Write, Bash, Task, AskUserQuestion
+allowed-tools: Read, Write, Bash, Agent, AskUserQuestion
 ---
 
 <objective>
@@ -21,11 +21,11 @@ Brownfield equivalent of new-project. Project exists, PROJECT.md has history. Ga
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/new-milestone.md
-@.github/get-shit-done/references/questioning.md
-@.github/get-shit-done/references/ui-brand.md
-@.github/get-shit-done/templates/project.md
-@.github/get-shit-done/templates/requirements.md
+@~/.copilot/get-shit-done/workflows/new-milestone.md
+@~/.copilot/get-shit-done/references/questioning.md
+@~/.copilot/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/templates/project.md
+@~/.copilot/get-shit-done/templates/requirements.md
 </execution_context>
 
 <context>
@@ -35,6 +35,6 @@ Project and milestone context files are resolved inside the workflow (`init new-
 </context>
 
 <process>
-Execute the new-milestone workflow from @.github/get-shit-done/workflows/new-milestone.md end-to-end.
+Execute end-to-end.
 Preserve all workflow gates (validation, questioning, research, requirements, roadmap approval, commits).
 </process>

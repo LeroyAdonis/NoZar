@@ -2,7 +2,7 @@
 name: gsd-new-project
 description: "Initialize a new project with deep context gathering and PROJECT.md"
 argument-hint: "[--auto]"
-allowed-tools: Read, Bash, Write, Task, AskUserQuestion
+allowed-tools: Read, Bash, Write, Agent, AskUserQuestion
 ---
 
 <runtime_note>
@@ -29,14 +29,14 @@ Initialize a new project through unified flow: questioning → research (optiona
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/new-project.md
-@.github/get-shit-done/references/questioning.md
-@.github/get-shit-done/references/ui-brand.md
-@.github/get-shit-done/templates/project.md
-@.github/get-shit-done/templates/requirements.md
+@~/.copilot/get-shit-done/workflows/new-project.md
+@~/.copilot/get-shit-done/references/questioning.md
+@~/.copilot/get-shit-done/references/ui-brand.md
+@~/.copilot/get-shit-done/templates/project.md
+@~/.copilot/get-shit-done/templates/requirements.md
 </execution_context>
 
 <process>
-Execute the new-project workflow from @.github/get-shit-done/workflows/new-project.md end-to-end.
+Execute end-to-end.
 Preserve all workflow gates (validation, approvals, commits, routing).
 </process>

@@ -13,6 +13,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const { platformWriteSync, platformReadSync, platformEnsureDir } = require('./shell-command-projection.cjs');
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -36,9 +37,7 @@ const INTEL_FILES = {
  */
 function ensureIntelDir(planningDir) {
   const intelPath = path.join(planningDir, 'intel');
-  if (!fs.existsSync(intelPath)) {
-    fs.mkdirSync(intelPath, { recursive: true });
-  }
+  platformEnsureDir(intelPath);
   return intelPath;
 }
 
@@ -53,8 +52,9 @@ function ensureIntelDir(planningDir) {
 function isIntelEnabled(planningDir) {
   try {
     const configPath = path.join(planningDir, 'config.json');
-    if (!fs.existsSync(configPath)) return false;
-    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    const raw = platformReadSync(configPath);
+    if (raw === null) return false;
+    const config = JSON.parse(raw);
     if (config && config.intel && config.intel.enabled === true) return true;
     return false;
   } catch (_e) {
@@ -89,8 +89,9 @@ function intelFilePath(planningDir, filename) {
  */
 function safeReadJson(filePath) {
   try {
-    if (!fs.existsSync(filePath)) return null;
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    const raw = platformReadSync(filePath);
+    if (raw === null) return null;
+    return JSON.parse(raw);
   } catch (_e) {
     return null;
   }
@@ -105,8 +106,8 @@ function safeReadJson(filePath) {
  */
 function hashFile(filePath) {
   try {
-    if (!fs.existsSync(filePath)) return null;
-    const content = fs.readFileSync(filePath, 'utf8');
+    const content = platformReadSync(filePath);
+    if (content === null) return null;
     return crypto.createHash('sha256').update(content).digest('hex');
   } catch (_e) {
     return null;
@@ -178,8 +179,8 @@ function matchesInValue(value, lowerTerm) {
  */
 function searchArchMd(filePath, term) {
   try {
-    if (!fs.existsSync(filePath)) return [];
-    const content = fs.readFileSync(filePath, 'utf8');
+    const content = platformReadSync(filePath);
+    if (content === null) return [];
     const lowerTerm = term.toLowerCase();
     const lines = content.split(/\r?\n/);
     return lines.filter(line => line.toLowerCase().includes(lowerTerm));
@@ -343,11 +344,11 @@ function saveRefreshSnapshot(planningDir) {
 
   const timestamp = new Date().toISOString();
   const snapshotPath = path.join(intelPath, '.last-refresh.json');
-  fs.writeFileSync(snapshotPath, JSON.stringify({
+  platformWriteSync(snapshotPath, JSON.stringify({
     hashes,
     timestamp,
     version: 1
-  }, null, 2), 'utf8');
+  }, null, 2));
 
   return { saved: true, timestamp, files: fileCount };
 }
@@ -392,9 +393,14 @@ function intelValidate(planningDir) {
     // All intel files are JSON — validate _meta and entries structure
 
     // Parse JSON
+    const raw = platformReadSync(filePath);
+    if (raw === null) {
+      errors.push(`${filename}: file missing`);
+      continue;
+    }
     let data;
     try {
-      data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      data = JSON.parse(raw);
     } catch (e) {
       errors.push(`${filename}: invalid JSON — ${e.message}`);
       continue;
@@ -451,6 +457,70 @@ function intelValidate(planningDir) {
 }
 
 /**
+ * Render .planning/intel/api-map.json into a human-readable API-SURFACE.md.
+ * Always writes the file — even when api-map.json is absent or empty, the
+ * surface will contain an explicit "incomplete" banner so consumers never
+ * mistake silence for "nothing exists".
+ *
+ * @param {string} planningDir - Path to .planning directory
+ * @returns {{ written: string, symbolCount: number, stale: boolean } | { disabled: true, message: string }}
+ */
+function intelApiSurface(planningDir) {
+  if (!isIntelEnabled(planningDir)) return disabledResponse();
+
+  const intelPath = ensureIntelDir(planningDir);
+  const apiMapPath = path.join(intelPath, INTEL_FILES.apis);
+  const outputPath = path.join(intelPath, 'API-SURFACE.md');
+
+  const data = safeReadJson(apiMapPath);
+  const entries = (data && data.entries && typeof data.entries === 'object')
+    ? Object.entries(data.entries)
+    : [];
+  const symbolCount = entries.length;
+
+  // Staleness: reuse the _meta.updated_at field if present
+  const STALE_MS = 24 * 60 * 60 * 1000;
+  let stale = true;
+  if (data && data._meta && data._meta.updated_at) {
+    const age = Date.now() - new Date(data._meta.updated_at).getTime();
+    stale = age > STALE_MS;
+  }
+
+  const lines = [];
+  lines.push('# API Surface');
+  lines.push('');
+  lines.push('> Generated from `.planning/intel/api-map.json`. Do not edit by hand.');
+  lines.push('');
+
+  if (symbolCount === 0) {
+    lines.push('> **Incomplete:** api-map.json has no entries (intel extraction is regex/JS-only or not yet populated).');
+    lines.push('> Treat absence here as "unknown", not "does not exist".');
+    lines.push('');
+  } else {
+    if (stale) {
+      lines.push('> **Warning:** api-map.json is stale (>24 hours old). Data below may be out of date.');
+      lines.push('');
+    }
+
+    for (const [symbol, info] of entries) {
+      lines.push(`## \`${symbol}\``);
+      lines.push('');
+      if (info && typeof info === 'object') {
+        for (const [field, val] of Object.entries(info)) {
+          const display = Array.isArray(val) ? val.join(', ') : String(val);
+          lines.push(`- **${field}:** ${display}`);
+        }
+      }
+      lines.push('');
+    }
+  }
+
+  platformWriteSync(outputPath, lines.join('\n'));
+
+  return { written: outputPath, symbolCount, stale };
+}
+
+/**
  * Patch _meta.updated_at in a JSON intel file to the current timestamp.
  * Reads the file, updates _meta.updated_at, increments version, writes back.
  *
@@ -462,11 +532,10 @@ function intelValidate(planningDir) {
  */
 function intelPatchMeta(filePath) {
   try {
-    if (!fs.existsSync(filePath)) {
+    const content = platformReadSync(filePath);
+    if (content === null) {
       return { patched: false, error: `File not found: ${filePath}` };
     }
-
-    const content = fs.readFileSync(filePath, 'utf8');
     let data;
     try {
       data = JSON.parse(content);
@@ -482,7 +551,7 @@ function intelPatchMeta(filePath) {
     data._meta.updated_at = timestamp;
     data._meta.version = (data._meta.version || 0) + 1;
 
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2) + '\n', 'utf8');
+    platformWriteSync(filePath, JSON.stringify(data, null, 2) + '\n');
 
     return { patched: true, file: filePath, timestamp };
   } catch (e) {
@@ -500,12 +569,11 @@ function intelPatchMeta(filePath) {
  * @returns {{ file: string, exports: string[], method: string }}
  */
 function intelExtractExports(filePath) {
-  if (!fs.existsSync(filePath)) {
+  const content = platformReadSync(filePath);
+  if (content === null) {
     return { file: filePath, exports: [], method: 'none' };
   }
-
-  const content = fs.readFileSync(filePath, 'utf8');
-  let exports = [];
+  const exports = new Set();
   let method = 'none';
 
   // Try module.exports = { ... } pattern (handle multi-line)
@@ -533,7 +601,7 @@ function intelExtractExports(filePath) {
       // Match identifier at start of line (before comma, colon, end of line)
       const keyMatch = trimmed.match(/^(\w+)\s*[,}:]/) || trimmed.match(/^(\w+)$/);
       if (keyMatch) {
-        exports.push(keyMatch[1]);
+        exports.add(keyMatch[1]);
       }
     }
   }
@@ -542,46 +610,46 @@ function intelExtractExports(filePath) {
   const individualPattern = /^exports\.(\w+)\s*=/gm;
   let im;
   while ((im = individualPattern.exec(content)) !== null) {
-    if (!exports.includes(im[1])) {
-      exports.push(im[1]);
+    if (!exports.has(im[1])) {
+      exports.add(im[1]);
       if (method === 'none') method = 'exports.X';
     }
   }
 
-  const hadCjs = exports.length > 0;
+  const hadCjs = exports.size > 0;
 
   // ESM patterns
-  const esmExports = [];
+  const esmExports = new Set();
 
   // export default function X / export default class X
   const defaultNamedPattern = /^export\s+default\s+(?:function|class)\s+(\w+)/gm;
   let em;
   while ((em = defaultNamedPattern.exec(content)) !== null) {
-    if (!esmExports.includes(em[1])) esmExports.push(em[1]);
+    esmExports.add(em[1]);
   }
 
   // export default (without named function/class)
   const defaultAnonPattern = /^export\s+default\s+(?!function\s|class\s)/gm;
-  if (defaultAnonPattern.test(content) && esmExports.length === 0) {
-    if (!esmExports.includes('default')) esmExports.push('default');
+  if (defaultAnonPattern.test(content) && esmExports.size === 0) {
+    esmExports.add('default');
   }
 
   // export function X( / export async function X(
   const exportFnPattern = /^export\s+(?:async\s+)?function\s+(\w+)\s*\(/gm;
   while ((em = exportFnPattern.exec(content)) !== null) {
-    if (!esmExports.includes(em[1])) esmExports.push(em[1]);
+    esmExports.add(em[1]);
   }
 
   // export const X = / export let X = / export var X =
   const exportVarPattern = /^export\s+(?:const|let|var)\s+(\w+)\s*=/gm;
   while ((em = exportVarPattern.exec(content)) !== null) {
-    if (!esmExports.includes(em[1])) esmExports.push(em[1]);
+    esmExports.add(em[1]);
   }
 
   // export class X
   const exportClassPattern = /^export\s+class\s+(\w+)/gm;
   while ((em = exportClassPattern.exec(content)) !== null) {
-    if (!esmExports.includes(em[1])) esmExports.push(em[1]);
+    esmExports.add(em[1]);
   }
 
   // export { X, Y, Z } — strip "as alias" parts
@@ -593,24 +661,24 @@ function intelExtractExports(filePath) {
       if (!trimmed) continue;
       // "foo as bar" -> extract "foo"
       const name = trimmed.split(/\s+as\s+/)[0].trim();
-      if (name && !esmExports.includes(name)) esmExports.push(name);
+      if (name) esmExports.add(name);
     }
   }
 
   // Merge ESM exports into the result
   for (const e of esmExports) {
-    if (!exports.includes(e)) exports.push(e);
+    exports.add(e);
   }
 
   // Determine method
-  const hadEsm = esmExports.length > 0;
+  const hadEsm = esmExports.size > 0;
   if (hadCjs && hadEsm) {
     method = 'mixed';
   } else if (hadEsm && !hadCjs) {
     method = 'esm';
   }
 
-  return { file: filePath, exports, method };
+  return { file: filePath, exports: [...exports], method };
 }
 
 // ─── Exports ─────────────────────────────────────────────────────────────────
@@ -628,6 +696,7 @@ module.exports = {
   intelValidate,
   intelExtractExports,
   intelPatchMeta,
+  intelApiSurface,
 
   // Utilities
   ensureIntelDir,

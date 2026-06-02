@@ -17,9 +17,9 @@ Flags:
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/audit-fix.md
+@~/.copilot/get-shit-done/workflows/audit-fix.md
 </execution_context>
 
 <process>
-Execute the audit-fix workflow from @.github/get-shit-done/workflows/audit-fix.md end-to-end.
+Execute end-to-end.
 </process>

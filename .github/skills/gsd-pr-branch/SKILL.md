@@ -15,9 +15,9 @@ changes that are irrelevant to code review.
 </objective>
 
 <execution_context>
-@.github/get-shit-done/workflows/pr-branch.md
+@~/.copilot/get-shit-done/workflows/pr-branch.md
 </execution_context>
 
 <process>
-Execute the pr-branch workflow from @.github/get-shit-done/workflows/pr-branch.md end-to-end.
+Execute end-to-end.
 </process>

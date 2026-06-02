@@ -2,8 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const childProcess = require('child_process');
-const { atomicWriteFileSync } = require('./core.cjs');
+const { execTool, execGit, platformWriteSync } = require('./shell-command-projection.cjs');
 
 // ─── Config Gate ─────────────────────────────────────────────────────────────
 
@@ -56,44 +55,15 @@ const GRAPHIFY_REASON = Object.freeze({
   EXIT_NONZERO: 'graphify_exit_nonzero',
 });
 
-function getLocalGraphifyCommand(cwd) {
-  const candidates = process.platform === 'win32'
-    ? [
-        path.join(cwd, '.venv', 'Scripts', 'graphify.exe'),
-        path.join(cwd, '.venv', 'Scripts', 'graphify.cmd'),
-      ]
-    : [path.join(cwd, '.venv', 'bin', 'graphify')];
-
-  return candidates.find(candidate => fs.existsSync(candidate)) || null;
-}
-
-function getLocalPythonCommand(cwd) {
-  const candidates = process.platform === 'win32'
-    ? [path.join(cwd, '.venv', 'Scripts', 'python.exe')]
-    : [path.join(cwd, '.venv', 'bin', 'python')];
-
-  return candidates.find(candidate => fs.existsSync(candidate)) || null;
-}
-
-function getGraphifyCommand(cwd) {
-  return getLocalGraphifyCommand(cwd) || 'graphify';
-}
-
-function getPythonCommand(cwd) {
-  return getLocalPythonCommand(cwd) || (process.platform === 'win32' ? 'python' : 'python3');
-}
-
 function execGraphify(cwd, args, options = {}) {
   const timeout = options.timeout ?? 30000;
-  const result = childProcess.spawnSync(getGraphifyCommand(cwd), args, {
+  const result = execTool('graphify', args, {
     cwd,
-    stdio: 'pipe',
-    encoding: 'utf-8',
     timeout,
     env: { ...process.env, PYTHONUNBUFFERED: '1' },
   });
 
-  // ENOENT -- graphify binary not found on PATH
+  // ENOENT — seam normalizes to exitCode 127. Surface as typed reason.
   if (result.error && result.error.code === 'ENOENT') {
     return {
       exitCode: 127,
@@ -103,47 +73,40 @@ function execGraphify(cwd, args, options = {}) {
     };
   }
 
-  // Timeout -- subprocess killed via SIGTERM
+  // Timeout — seam exposes signal; spawnSync sets SIGTERM when killed by timeout.
   if (result.signal === 'SIGTERM') {
     return {
       exitCode: 124,
-      stdout: (result.stdout ?? '').toString().trim(),
+      stdout: result.stdout,
       stderr: 'graphify timed out after ' + timeout + 'ms',
       reason: GRAPHIFY_REASON.TIMEOUT,
       timeout_ms: timeout,
     };
   }
 
-  const exitCode = result.status ?? 1;
   return {
-    exitCode,
-    stdout: (result.stdout ?? '').toString().trim(),
-    stderr: (result.stderr ?? '').toString().trim(),
-    reason: exitCode === 0 ? GRAPHIFY_REASON.OK : GRAPHIFY_REASON.EXIT_NONZERO,
+    exitCode: result.exitCode,
+    stdout: result.stdout,
+    stderr: result.stderr,
+    reason: result.exitCode === 0 ? GRAPHIFY_REASON.OK : GRAPHIFY_REASON.EXIT_NONZERO,
   };
 }
 
 // ─── Presence & Version ──────────────────────────────────────────────────────
 
 /**
- * Check whether the graphify CLI binary is installed and accessible.
+ * Check whether the graphify CLI binary is installed and accessible on PATH.
  * Uses --help (NOT --version, which graphify does not support).
  *
- * @param {string} [cwd=process.cwd()]
  * @returns {{ installed: boolean, message?: string }}
  */
-function checkGraphifyInstalled(cwd = process.cwd()) {
-  const result = childProcess.spawnSync(getGraphifyCommand(cwd), ['--help'], {
-    cwd,
-    stdio: 'pipe',
-    encoding: 'utf-8',
-    timeout: 5000,
-  });
+function checkGraphifyInstalled() {
+  const result = execTool('graphify', ['--help'], { timeout: 5000 });
 
   if (result.error) {
     return {
       installed: false,
-      message: 'graphify is not installed.\n\nInstall locally with:\n  npm run graphify:install',
+      message: 'graphify is not installed.\n\nInstall with:\n  uv pip install graphifyy && graphify install',
     };
   }
 
@@ -156,27 +119,20 @@ function checkGraphifyInstalled(cwd = process.cwd()) {
  *
  * Detection strategy:
  * 1. Try `graphify --version` (works for most CLI installations, incl. venv installs)
- * 2. Fall back to python importlib.metadata (legacy / system Python path)
+ * 2. Fall back to python3 importlib.metadata (legacy / system Python path)
  * 3. Return null version gracefully if both fail
  *
- * @param {string} [cwd=process.cwd()]
  * @returns {{ version: string|null, compatible: boolean|null, warning: string|null }}
  */
-function checkGraphifyVersion(cwd = process.cwd()) {
+function checkGraphifyVersion() {
   // Strategy 1: try `graphify --version` directly (2s timeout -- fast path)
-  const versionResult = childProcess.spawnSync(getGraphifyCommand(cwd), ['--version'], {
-    cwd,
-    stdio: 'pipe',
-    encoding: 'utf-8',
-    timeout: 2000,
-  });
+  const versionResult = execTool('graphify', ['--version'], { timeout: 2000 });
 
   let versionStr = null;
 
-  if (!versionResult.error && versionResult.status === 0) {
-    const raw = (versionResult.stdout || '').trim();
+  if (!versionResult.error && versionResult.exitCode === 0) {
     // graphify --version may emit "graphify 0.4.23" or just "0.4.23"
-    const match = raw.match(/(\d+\.\d+(?:\.\d+)*)/);
+    const match = versionResult.stdout.match(/(\d+\.\d+(?:\.\d+)*)/);
     if (match) {
       versionStr = match[1];
     }
@@ -184,18 +140,13 @@ function checkGraphifyVersion(cwd = process.cwd()) {
 
   // Strategy 2: fall back to python3 importlib.metadata
   if (!versionStr) {
-    const pyResult = childProcess.spawnSync(getPythonCommand(cwd), [
+    const pyResult = execTool('python3', [
       '-c',
       'from importlib.metadata import version; print(version("graphifyy"))',
-    ], {
-      cwd,
-      stdio: 'pipe',
-      encoding: 'utf-8',
-      timeout: 5000,
-    });
+    ], { timeout: 5000 });
 
-    if (!pyResult.error && pyResult.status === 0 && pyResult.stdout && pyResult.stdout.trim()) {
-      versionStr = pyResult.stdout.trim();
+    if (!pyResult.error && pyResult.exitCode === 0 && pyResult.stdout) {
+      versionStr = pyResult.stdout;
     }
   }
 
@@ -391,7 +342,42 @@ function graphifyQuery(cwd, term, options = {}) {
 }
 
 /**
+ * Strict 4-40 hex fence for graph.built_at_commit values (#3170). Anything
+ * else (dashed, prose, empty) is treated as absent so a hostile graph.json
+ * cannot smuggle a `--upload-pack=…` option into a `git` argv.
+ */
+const COMMIT_HASH_RE = /^[0-9a-f]{4,40}$/i;
+
+/**
+ * Read git HEAD for the project at `cwd`. Returns the full commit hash on
+ * success, or null when cwd is not a git repo / `git` is not on PATH.
+ */
+function readGitHead(cwd) {
+  const r = execGit(['rev-parse', 'HEAD'], { cwd });
+  if (r.exitCode !== 0) return null;
+  return r.stdout.trim() || null;
+}
+
+/**
+ * Count commits between `from` and `to` (exclusive..inclusive, like
+ * `git rev-list --count A..B`). Returns null when either ref is unreachable
+ * or the cwd is not a git repo.
+ */
+function countCommitsBetween(cwd, from, to) {
+  const r = execGit(['rev-list', '--count', `${from}..${to}`], { cwd });
+  if (r.exitCode !== 0) return null;
+  const n = parseInt(r.stdout.trim(), 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
  * Return status information about the knowledge graph (STAT-01, STAT-02).
+ *
+ * Surfaces the graphify v0.7+ commit-staleness signal as four optional
+ * fields when graph.built_at_commit is present and validly formatted
+ * (#3170). Tri-state on commit_stale: null means "we don't know" (pre-v0.7
+ * graph, no git, or unreachable commit), distinct from false ("known
+ * fresh").
  *
  * @param {string} cwd - Working directory
  * @returns {object}
@@ -414,14 +400,44 @@ function graphifyStatus(cwd) {
   const STALE_MS = 24 * 60 * 60 * 1000; // 24 hours
   const age = Date.now() - stat.mtimeMs;
 
+  // Commit-staleness signal (#3170). Validate before passing to git.
+  const rawBuilt = (graph.built_at_commit || '').toString().trim();
+  const builtAt = COMMIT_HASH_RE.test(rawBuilt) ? rawBuilt : null;
+  const head = readGitHead(cwd);
+  let commitsBehind = null;
+  let commitStale = null;
+  if (builtAt && head) {
+    commitsBehind = countCommitsBetween(cwd, builtAt, head);
+    if (commitsBehind !== null) commitStale = commitsBehind > 0;
+  }
+
+  // Auto-update status (#3347). Read .last-build-status.json written by the
+  // hooks/gsd-graphify-update.sh PostToolUse hook (opt-in via graphify.auto_update,
+  // default false). When the most recent auto-build is "failed" or still "running",
+  // fold that into the existing `stale: true` signal so consumers (gsd-planner,
+  // gsd-phase-researcher) surface the standard "treat semantic relationships as
+  // approximate" annotation without per-consumer prompt changes. The full state
+  // (running/failed/exit_code/duration_ms/head_at_build) is exposed under
+  // `last_build` for callers that want richer context.
+  const statusPath = path.join(planningDir, 'graphs', '.last-build-status.json');
+  const lastBuildAutoUpdate = fs.existsSync(statusPath) ? safeReadJson(statusPath) : null;
+  const autoUpdateStale =
+    lastBuildAutoUpdate &&
+    (lastBuildAutoUpdate.status === 'failed' || lastBuildAutoUpdate.status === 'running');
+
   return {
     exists: true,
     last_build: stat.mtime.toISOString(),
     node_count: (graph.nodes || []).length,
     edge_count: (graph.edges || graph.links || []).length,
     hyperedge_count: (graph.hyperedges || []).length,
-    stale: age > STALE_MS,
+    stale: age > STALE_MS || Boolean(autoUpdateStale),
     age_hours: Math.round(age / (60 * 60 * 1000)),
+    built_at_commit: builtAt ? builtAt.slice(0, 7) : null,
+    current_commit: head ? head.slice(0, 7) : null,
+    commits_behind: commitsBehind,
+    commit_stale: commitStale,
+    last_build_auto_update: lastBuildAutoUpdate || null,
   };
 }
 
@@ -494,10 +510,10 @@ function graphifyBuild(cwd) {
   const planningDir = path.join(cwd, '.planning');
   if (!isGraphifyEnabled(planningDir)) return disabledResponse();
 
-  const installed = checkGraphifyInstalled(cwd);
+  const installed = checkGraphifyInstalled();
   if (!installed.installed) return { error: installed.message };
 
-  const version = checkGraphifyVersion(cwd);
+  const version = checkGraphifyVersion();
 
   // Ensure output directory exists (D-05)
   const graphsDir = path.join(planningDir, 'graphs');
@@ -521,7 +537,7 @@ function graphifyBuild(cwd) {
 /**
  * Write a diff snapshot after successful build (D-06).
  * Reads graph.json from .planning/graphs/ and writes .last-build-snapshot.json
- * using atomicWriteFileSync for crash safety.
+ * using platformWriteSync for crash safety.
  *
  * @param {string} cwd - Working directory
  * @returns {object}
@@ -539,7 +555,7 @@ function writeSnapshot(cwd) {
   };
 
   const snapshotPath = path.join(cwd, '.planning', 'graphs', '.last-build-snapshot.json');
-  atomicWriteFileSync(snapshotPath, JSON.stringify(snapshot, null, 2));
+  platformWriteSync(snapshotPath, JSON.stringify(snapshot, null, 2));
   return {
     saved: true,
     timestamp: snapshot.timestamp,
