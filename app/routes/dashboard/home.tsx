@@ -161,21 +161,40 @@ export async function loader({ request }: Route.LoaderArgs) {
       imageUrl: imageMap.get(r.id) ?? null,
     }));
 
-  // Build a word set from own listings (words longer than 3 chars to reduce noise)
-  const ownWords = new Set(
-    ownListings.flatMap((l) =>
-      `${l.title} ${l.description ?? ""} ${l.category}`
+  // ── Directional keyword matching ──
+  // Only match when the USER's offering keywords appear in the other listing's
+  // seeking description (not the reverse, not a symmetric overlap).
+  // Filters out common stop words to avoid false positives like "power".
+  const STOP_WORDS = new Set([
+    "looking", "trade", "barter", "swap", "exchange", "offers", "open",
+    "offering", "willing", "would", "could", "should", "much", "many",
+    "need", "want", "gear", "stuff", "items", "things", "something",
+    "anything", "good", "great", "nice", "like", "new", "used",
+    "including", "includes", "please", "thank", "thanks", "also",
+    "quality", "excellent", "perfect", "well", "really", "some", "any",
+    "get", "got", "interested", "must", "can", "work", "way", "make",
+    "done", "ever", "say", "still", "even", "back", "put", "keep",
+    "let", "know", "see", "come", "take", "use", "made", "power",
+  ]);
+
+  function matchesSeeking(seekingDescription: string | null): boolean {
+    if (!seekingDescription || ownListings.length === 0) return false;
+
+    const seekText = seekingDescription.toLowerCase();
+
+    // Check each of the user's own listings against what this listing is seeking
+    return ownListings.some((listing) => {
+      // Build offering keywords from title + category only (description is noisy)
+      const offeringWords = `${listing.title} ${listing.category}`
         .toLowerCase()
         .split(/\W+/)
-        .filter((w) => w.length > 3),
-    ),
-  );
+        .filter((w) => w.length > 3 && !STOP_WORDS.has(w));
 
-  // Check if any seeking keywords overlap with the user's own listing words
-  function matchesSeeking(seekingDescription: string | null): boolean {
-    if (!seekingDescription || ownWords.size === 0) return false;
-    const seekWords = seekingDescription.toLowerCase().split(/\W+/).filter((w) => w.length > 3);
-    return seekWords.some((w) => ownWords.has(w));
+      if (offeringWords.length === 0) return false;
+
+      // Directional check: do my offering keywords appear in their seeking description?
+      return offeringWords.some((word) => seekText.includes(word));
+    });
   }
 
   // Tag items with youHaveMatch
@@ -240,6 +259,7 @@ export async function action({ request }: Route.ActionArgs) {
       description: listings.description,
       seekingDescription: listings.seekingDescription,
       category: listings.category,
+      estimatedValueZar: listings.estimatedValueZar,
     })
     .from(listings)
     .where(
@@ -259,6 +279,7 @@ export async function action({ request }: Route.ActionArgs) {
       seekingDescription: listings.seekingDescription,
       category: listings.category,
       type: listings.type,
+      estimatedValueZar: listings.estimatedValueZar,
     })
     .from(listings)
     .innerJoin(profiles, eq(listings.userId, profiles.userId))
@@ -280,6 +301,7 @@ export async function action({ request }: Route.ActionArgs) {
     .map(
       (l) =>
         `- Has: "${l.title}" (${l.category}) — ${l.description}` +
+        (l.estimatedValueZar != null ? ` | Value: ~R${l.estimatedValueZar.toLocaleString("en-ZA")}` : "") +
         (l.seekingDescription ? ` | Seeking: ${l.seekingDescription}` : ""),
     )
     .join("\n");
@@ -288,6 +310,7 @@ export async function action({ request }: Route.ActionArgs) {
     .map(
       (l) =>
         `ID:${l.id} "${l.title}" (${l.category}, ${l.type}) — ${l.description}` +
+        (l.estimatedValueZar != null ? ` | Value: ~R${l.estimatedValueZar.toLocaleString("en-ZA")}` : "") +
         (l.seekingDescription ? ` | Seeking: ${l.seekingDescription}` : ""),
     )
     .join("\n");
@@ -300,7 +323,16 @@ ${userProfile}
 Here are listings from other users:
 ${availableListings}
 
-Rank the above listings by how well they match what this user is seeking, and how well the user's items match what those listings are seeking. Consider category relevance, complementary needs, and value alignment.
+Rank the above listings by how well they match what this user is seeking, and how well the user's items match what those listings are seeking. Consider category relevance, complementary needs, value alignment, and value gap (how fair the exchange is based on estimated values).
+
+Boost listings where:
+- The user's offering matches what the other listing is seeking
+- The other listing's offering matches what the user is seeking
+- Estimated values are within ~30% of each other (fair trade)
+
+Penalize listings where:
+- Neither party offers what the other wants
+- The value gap exceeds 50% with no reasonable way to balance (no cash difference mentioned)
 
 Return ONLY a JSON array of listing IDs in order from best match to worst match. Include only IDs with a reasonable match quality (at least somewhat relevant). Return at most 10 IDs.
 
