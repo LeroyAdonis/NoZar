@@ -1,0 +1,10 @@
+{
+  "permission": {
+    "read": {
+      "C:/scratchpad/nozar/.kilo/get-shit-done/*": "allow"
+    },
+    "external_directory": {
+      "C:/scratchpad/nozar/.kilo/get-shit-done/*": "allow"
+    }
+  }
+}

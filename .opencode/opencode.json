@@ -1,0 +1,11 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permission": {
+    "read": {
+      "C:/scratchpad/nozar/.opencode/get-shit-done/*": "allow"
+    },
+    "external_directory": {
+      "C:/scratchpad/nozar/.opencode/get-shit-done/*": "allow"
+    }
+  }
+}
