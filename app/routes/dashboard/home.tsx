@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, useFetcher, Link } from "react-router";
 import { eq, ne, and, desc, inArray, ilike, or } from "drizzle-orm";
 import { AiServiceError, generateContent } from "~/lib/ai.server";
@@ -348,34 +348,38 @@ export default function DashboardHome({
   const fetcher = useFetcher<typeof action>();
   const { currentRegion, searchQuery, canUseAiMatching } = loaderData;
 
-  // ── Client-side debounced search (300 ms) ──
+  // ── Search with explicit submit ──
   const [inputValue, setInputValue] = useState(searchQuery ?? "");
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   useEffect(() => {
     setInputValue(searchQuery ?? "");
   }, [searchQuery]);
 
-  // Clear debounce timer on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
-  function handleSearchInput(value: string) {
-    setInputValue(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setSearchParams((prev) => {
-        const p = new URLSearchParams(prev);
-        if (value.trim()) {
-          p.set("q", value.trim());
-        } else {
-          p.delete("q");
-        }
-        return p;
-      }, { preventScrollReset: true });
-    }, 300);
+  function handleSearchSubmit() {
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      if (inputValue.trim()) {
+        p.set("q", inputValue.trim());
+      } else {
+        p.delete("q");
+      }
+      return p;
+    }, { preventScrollReset: true });
+  }
+
+  function handleSearchClear() {
+    setInputValue("");
+    setSearchParams((prev) => {
+      const p = new URLSearchParams(prev);
+      p.delete("q");
+      return p;
+    }, { preventScrollReset: true });
+  }
+
+  function handleSearchKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "Enter") {
+      handleSearchSubmit();
+    }
   }
 
   function handleScopeChange(newScope: "local" | "national") {
@@ -475,26 +479,37 @@ export default function DashboardHome({
       </div>
 
       {/* Search bar */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-        <input
-          type="text"
-          value={inputValue}
-          onChange={(e) => handleSearchInput(e.target.value)}
-          placeholder="Search by title or description…"
-          autoComplete="off"
-          className="w-full bg-[#0F172A] border border-white/10 rounded-xl pl-9 sm:pl-10 pr-9 sm:pr-10 py-2.5 sm:py-3 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
-        />
-        {inputValue && (
-          <button
-            type="button"
-            onClick={() => handleSearchInput("")}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
-            aria-label="Clear search"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        )}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="Search by title or description…"
+            autoComplete="off"
+            className="w-full bg-[#0F172A] border border-white/10 rounded-xl pl-9 sm:pl-10 pr-9 sm:pr-10 py-2.5 sm:py-3 text-xs sm:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-emerald-500/50 transition-colors"
+          />
+          {inputValue && (
+            <button
+              type="button"
+              onClick={handleSearchClear}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white transition-colors"
+              aria-label="Clear search"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={handleSearchSubmit}
+          className="px-4 py-2.5 sm:py-3 rounded-xl bg-emerald-500 text-[#030712] font-mono font-bold uppercase tracking-widest text-[10px] sm:text-xs hover:bg-emerald-400 transition-colors shrink-0 flex items-center gap-1.5"
+        >
+          <Search className="w-3.5 h-3.5" />
+          Search
+        </button>
       </div>
 
       {/* AI Match feedback */}
