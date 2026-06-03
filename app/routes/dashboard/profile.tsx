@@ -38,6 +38,8 @@ import { useHaptics } from "~/components/ui/haptic-provider";
 import { Input } from "~/components/ui/input";
 import { Badge } from "~/components/ui/badge";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
+import { LanguageSelector } from "~/components/ui/language-selector";
+import { resolveLanguage, DEFAULT_LANGUAGE } from "~/lib/sa-languages";
 import { MVP_REGIONS, REGION_SLUGS } from "~/lib/regions";
 import { authClient } from "~/lib/auth.client";
 
@@ -450,6 +452,15 @@ export async function action({ request }: Route.ActionArgs) {
     });
   }
 
+  if (intent === "update-language") {
+    const lang = (formData.get("language") as string)?.trim() || "en";
+    await db
+      .update(profiles)
+      .set({ preferredLanguage: lang, updatedAt: new Date() })
+      .where(eq(profiles.userId, user.id));
+    return { success: true, intent: "update-language", language: lang };
+  }
+
   return { success: false, intent: "unknown" };
 }
 
@@ -467,12 +478,14 @@ const SAFETY_TIPS = [
 export default function Profile({ loaderData, actionData }: Route.ComponentProps) {
   const { user, profile, blobConfigured, stats, listings: userListings, listingImagesMap, usage } = loaderData;
   const navigation = useNavigation();
+  const langFetcher = useFetcher();
   const [profileTab, setProfileTab] = useState<"listings" | "account">("listings");
   const [showEditSheet, setShowEditSheet] = useState(false);
   const [editingListingId, setEditingListingId] = useState<number | null>(null);
   const [confirmArchiveId, setConfirmArchiveId] = useState<number | null>(null);
   const navigate = useNavigate();
   const haptics = useHaptics();
+  const [userLang, setUserLang] = useState(resolveLanguage(profile?.preferredLanguage ?? "en"));
 
   // ── Email change state ───────────────────────────────────────
   const [showEmailChange, setShowEmailChange] = useState(false);
@@ -991,6 +1004,22 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
             >
               Replay tutorial →
             </button>
+          </div>
+
+          {/* Language row */}
+          <div className="p-4 bg-[#0F172A] border border-white/10 rounded-2xl flex items-center justify-between">
+            <span className="text-sm text-slate-400">Language</span>
+            <LanguageSelector
+              currentLang={userLang}
+              onSelect={(code) => {
+                setUserLang(code);
+                langFetcher.submit(
+                  { intent: "update-language", language: code },
+                  { method: "post" },
+                );
+              }}
+              showNative
+            />
           </div>
 
           {/* Security settings */}

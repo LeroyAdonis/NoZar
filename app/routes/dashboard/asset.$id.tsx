@@ -1,6 +1,6 @@
 import { data, redirect, useFetcher, Form, Link } from "react-router";
 import type { Route } from "./+types/asset.$id";
-import { ChevronLeft, Sparkles, MessageSquare, Repeat, ShieldCheck, Pencil, Trash2, RotateCcw, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, Sparkles, MessageSquare, Repeat, ShieldCheck, Pencil, Trash2, RotateCcw, ChevronRight, X, Languages } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { eq, and, ne } from "drizzle-orm";
 import { motion, AnimatePresence } from "motion/react";
@@ -179,6 +179,8 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [translatedListing, setTranslatedListing] = useState<{ title: string; description: string; seeking?: string } | null>(null);
+  const [translating, setTranslating] = useState(false);
   const [selectedOfferItemId, setSelectedOfferItemId] = useState<number | null>(
     userInventory?.length === 1 ? userInventory[0].id : null
   );
@@ -471,16 +473,41 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
 
       {/* Title & exchange request */}
       <div>
-        <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white mb-2">
-          {listing.title}
-        </h1>
+        <div className="flex items-center justify-between gap-2 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-tight text-white">
+            {translatedListing?.title ?? listing.title}
+          </h1>
+          <button
+            type="button"
+            onClick={async () => {
+              setTranslating(true);
+              try {
+                const params = new URLSearchParams({
+                  type: "listing",
+                  title: listing.title,
+                  description: listing.description,
+                });
+                if (listing.seekingDescription) params.set("seeking", listing.seekingDescription);
+                const res = await fetch(`/api/translate?${params}`);
+                const data = await res.json();
+                if (data.translated) setTranslatedListing(data);
+              } catch {}
+              setTranslating(false);
+            }}
+            className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-slate-400 hover:text-emerald-400 transition-colors text-[10px] font-mono uppercase tracking-widest"
+            disabled={translating}
+          >
+            <Languages className="w-3 h-3" />
+            {translating ? "..." : "Translate"}
+          </button>
+        </div>
         {listing.seekingDescription && (
           <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-4 mb-6">
             <span className="text-[10px] font-mono text-cyan-500 uppercase tracking-widest block mb-1">
               Target Value Exchange
             </span>
             <p className="font-medium text-slate-200">
-              {listing.seekingDescription}
+              {translatedListing?.seeking ?? listing.seekingDescription}
             </p>
           </div>
         )}
@@ -490,7 +517,7 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
           Asset Details
         </span>
         <p className="text-slate-400 text-sm leading-relaxed mb-6">
-          {listing.description}
+          {translatedListing?.description ?? listing.description}
         </p>
 
         {/* User info card */}

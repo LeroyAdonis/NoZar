@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { Languages } from "lucide-react";
 import { checkMessageForFraud, type FraudCheckResult, severityIcon } from "~/lib/fraud-detection";
 
 interface ChatMessage {
@@ -21,6 +22,9 @@ export default function ChatWindow({
 }) {
   // Track dismissed warnings by message ID
   const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+  // Track translated text per message ID
+  const [translated, setTranslated] = useState<Map<number, string>>(new Map());
+  const [translatingId, setTranslatingId] = useState<number | null>(null);
 
   // Compute fraud flags for messages from the OTHER user
   const fraudResults = React.useMemo(() => {
@@ -60,9 +64,39 @@ export default function ChatWindow({
                     : "bg-[#1E293B] border border-white/15 text-white"
                 }`}
               >
-                <p className="text-[15px] leading-relaxed">{m.text}</p>
+                <p className="text-[15px] leading-relaxed">{translated.get(msgId ?? i) ?? m.text}</p>
               </div>
             </div>
+
+            {/* Translate button — only for other user's messages */}
+            {!isMe && (
+              <div className="flex justify-start ml-2 mt-1">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const id = msgId ?? i;
+                    setTranslatingId(id);
+                    try {
+                      const res = await fetch(`/api/translate?type=message&text=${encodeURIComponent(m.text)}`);
+                      const data = await res.json();
+                      if (data.translated) {
+                        setTranslated((prev) => {
+                          const next = new Map(prev);
+                          next.set(id, data.text);
+                          return next;
+                        });
+                      }
+                    } catch {}
+                    setTranslatingId(null);
+                  }}
+                  className="flex items-center gap-1 text-[10px] font-mono uppercase tracking-widest text-slate-500 hover:text-emerald-400 transition-colors"
+                  disabled={translatingId === (msgId ?? i)}
+                >
+                  <Languages className="w-3 h-3" />
+                  {translatingId === (msgId ?? i) ? "Translating..." : "Translate"}
+                </button>
+              </div>
+            )}
 
             {/* Fraud warning — shown below messages from the other user */}
             {fraud && !isDismissed && (
