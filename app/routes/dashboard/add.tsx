@@ -394,6 +394,7 @@ function AddAssetForm({
   const [visionLoadingForUrl, setVisionLoadingForUrl] = useState<string | null>(null);
   const [visionFilled, setVisionFilled] = useState(false);
   const [visionError, setVisionError] = useState<string | null>(null);
+  const [aiSuggestedCategory, setAiSuggestedCategory] = useState<string | null>(null);
 
   const formRef = useRef<HTMLFormElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
@@ -642,7 +643,10 @@ function AddAssetForm({
 
       if (titleEl) titleEl.value = aiData.title;
       if (descriptionRef.current) descriptionRef.current.value = aiData.description;
-      if (aiData.category) setSelectedCategory(aiData.category);
+      if (aiData.category) {
+        setSelectedCategory(aiData.category);
+        setAiSuggestedCategory(aiData.category);
+      }
       if (valueEl && aiData.estimatedValue != null) valueEl.value = String(aiData.estimatedValue);
 
       setVisionFilled(true);
@@ -918,13 +922,23 @@ function AddAssetForm({
                 <button
                   key={cat.name}
                   type="button"
-                  onClick={() => setSelectedCategory(cat.name)}
-                  className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all ${
+                  onClick={() => {
+                    setSelectedCategory(cat.name);
+                    if (aiSuggestedCategory && cat.name !== aiSuggestedCategory) {
+                      setAiSuggestedCategory(null);
+                    }
+                  }}
+                  className={`flex flex-col items-center justify-center p-3 rounded-xl border transition-all relative ${
                     selectedCategory === cat.name
                       ? "bg-emerald-500/10 border-emerald-500/50 text-emerald-400"
                       : "bg-[#0F172A] border-white/10 text-slate-400 hover:border-white/20 hover:text-white"
                   }`}
                 >
+                  {cat.name === aiSuggestedCategory && aiSuggestedCategory === selectedCategory && (
+                    <span className="absolute -top-1.5 -right-1.5 text-[8px] bg-purple-500 text-white px-1.5 py-0.5 rounded-full font-bold leading-none shadow-lg">
+                      ✨ AI
+                    </span>
+                  )}
                   <cat.icon className="w-5 h-5 mb-1.5" />
                   <span className="text-[10px] font-medium">{cat.name}</span>
                 </button>
