@@ -1,4 +1,4 @@
-import { generateContent } from "./ai.server";
+import { callNvidiaVision } from "./nvidia.server";
 
 export interface AiListingSuggestion {
   title: string;
@@ -9,34 +9,36 @@ export interface AiListingSuggestion {
 
 /**
  * Generates a listing suggestion (title, description, category, estimated value)
- * from a photo URL using the configured AI provider.
+ * from a photo URL using Qwen 3.5 VLM (vision-language model) via NVIDIA NIM.
  *
- * The image URL is sent in the prompt text — some models can access public URLs
- * directly for visual analysis. The response is parsed as JSON.
+ * The image is sent as a proper multimodal content part, not embedded in text.
  */
 export async function generateListingFromPhoto(
   imageUrl: string,
 ): Promise<AiListingSuggestion> {
-  const prompt = `You are a listing assistant for NoZar, a South African barter/trade platform.
+  const text = `You are a listing assistant for NoZar, a South African barter/trade platform.
 
-A user has uploaded a photo of an item they want to list for trade. Based on this image URL, generate a listing with:
+A user has uploaded a photo of an item they want to list for trade. Based on this image, generate a listing with:
 
 1. A catchy title (max 60 chars, SA English)
 2. A 2-3 sentence description
 3. A category from: Electronics, Fashion, Home & Garden, Sports, Tools, Vehicles, Services, Other
 4. An estimated value in ZAR (reasonable second-hand price)
 
-Image URL: ${imageUrl}
-
 Return ONLY valid JSON in this exact format, no explanation:
 {"title": "...", "description": "...", "category": "...", "estimatedValue": 1234}
 
-If you cannot determine a value, set estimatedValue to null.`;
+If you cannot determine a value, set estimatedValue to null.
 
-  const text = await generateContent(prompt);
+IMPORTANT: Look at the image carefully. Identify the specific item shown — be as accurate as possible with the brand, model, and condition visible. If it's a fire extinguisher, say it's a fire extinguisher, not a camera.`;
+
+  const raw = await callNvidiaVision(text, imageUrl, {
+    maxTokens: 512,
+    temperature: 0.1,
+  });
 
   // Try to extract JSON from the response (handles wrapping/markdown)
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  const jsonMatch = raw.match(/\{[\s\S]*\}/);
   if (!jsonMatch) {
     throw new Error("AI response did not contain valid JSON");
   }

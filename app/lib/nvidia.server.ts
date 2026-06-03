@@ -41,6 +41,47 @@ export async function callNvidiaModel(prompt: string, options: NvidiaCallOptions
     temperature: options.temperature ?? 0.2,
   };
 
+  return callNvidiaApi(payload);
+}
+
+/**
+ * Call NVIDIA NIM with a vision (multimodal) request.
+ * Sends the image as a proper content part, not embedded in text.
+ * Uses Qwen 3.5 VLM which has actual vision capabilities.
+ */
+export async function callNvidiaVision(
+  text: string,
+  imageUrl: string,
+  options: { maxTokens?: number; temperature?: number } = {},
+) {
+  const key = getConfiguredNvidiaApiKey();
+  if (!key) throw new Error("NVIDIA_API_KEY not configured on server");
+
+  const model = "qwen/qwen3.5-397b-a17b";
+  const url = "https://integrate.api.nvidia.com/v1/chat/completions";
+
+  const payload = {
+    model,
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text },
+          { type: "image_url", image_url: { url: imageUrl } },
+        ],
+      },
+    ],
+    max_tokens: options.maxTokens ?? 512,
+    temperature: options.temperature ?? 0.1,
+  };
+
+  return callNvidiaApi(payload);
+}
+
+// Shared API caller with retry logic
+async function callNvidiaApi(payload: Record<string, unknown>) {
+  const key = getConfiguredNvidiaApiKey();
+  const url = "https://integrate.api.nvidia.com/v1/chat/completions";
   const maxAttempts = 3;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
