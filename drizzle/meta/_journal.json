@@ -99,6 +99,13 @@
       "when": 1780465299436,
       "tag": "0013_empty_patch",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1780494920302,
+      "tag": "0014_narrow_blizzard",
+      "breakpoints": true
     }
   ]
 }
