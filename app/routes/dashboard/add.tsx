@@ -621,6 +621,39 @@ function AddAssetForm({
 
         {/* ── Step 1 fields ── */}
         <div className={step === 1 ? "space-y-6" : "hidden"}>
+          {/* ── Camera-first hero ─────────────────────────── */}
+          <div className="rounded-2xl bg-gradient-to-b from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 p-5 text-center">
+            <div className="mb-3">
+              <div className="w-16 h-16 mx-auto rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-2">
+                <Camera className="w-7 h-7 text-emerald-400" />
+              </div>
+              <h2 className="text-sm font-black text-white uppercase tracking-wider">
+                Snap &amp; List
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                Take a photo and AI auto-fills everything — title, description, category &amp; value
+              </p>
+            </div>
+            <CameraCapture
+              onCapture={(url) => {
+                const next = [...imageUrls];
+                // Replace first empty slot or add to end
+                const emptyIdx = next.indexOf("");
+                if (emptyIdx >= 0) {
+                  next[emptyIdx] = url;
+                } else {
+                  next.push(url);
+                }
+                setImageUrls(next);
+                // Auto-trigger AI vision fill
+                handleVisionAutoFill(url);
+              }}
+            />
+            <p className="text-[10px] text-slate-600 mt-3">
+              or fill in the details below
+            </p>
+          </div>
+
           {/* Type toggle */}
           <div>
             <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mb-1.5 block">
