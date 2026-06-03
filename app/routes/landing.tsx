@@ -381,6 +381,11 @@ export default function LandingPage({
             <Languages className="w-4 h-4 text-cyan-400/70" />
             <span>Translate</span>
           </div>
+          <div className="w-1 h-1 rounded-full bg-slate-600" />
+          <div className="flex items-center gap-2 text-slate-500 text-xs sm:text-sm font-mono">
+            <MessageSquare className="w-4 h-4 text-rose-400/70" />
+            <span>Safety Share</span>
+          </div>
         </div>
         <div className="flex flex-col items-center gap-4 w-full sm:w-auto">
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
@@ -495,7 +500,7 @@ export default function LandingPage({
           </div>
         </ScrollReveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
           {/* AI Match Card */}
           <ScrollReveal delay={0.1}>
           <div className="group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-emerald-500/30 transition-all duration-500 p-6 sm:p-10">
@@ -534,10 +539,10 @@ export default function LandingPage({
               </p>
               <div className="flex items-center gap-3">
                 <div className="px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-mono">
-                  Vision AI
+                  Qwen 3.5 VLM
                 </div>
                 <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 text-xs font-mono">
-                  1 photo → full listing
+                  Camera-first
                 </div>
               </div>
             </div>
@@ -634,6 +639,30 @@ export default function LandingPage({
                 </div>
                 <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 text-xs font-mono">
                   11 SA languages
+                </div>
+              </div>
+            </div>
+          </div>
+          </ScrollReveal>
+
+          {/* Safety Share */}
+          <ScrollReveal delay={0.3}>
+          <div className="group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-rose-500/30 transition-all duration-500 p-6 sm:p-10">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/10 rounded-full blur-[80px] -translate-y-1/3 translate-x-1/3 group-hover:bg-rose-500/20 transition-all duration-700" />
+            <div className="relative z-10">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500/20 to-pink-500/20 flex items-center justify-center mb-6 border border-rose-500/20">
+                <MessageSquare className="w-7 h-7 text-rose-400" />
+              </div>
+              <h3 className="text-2xl font-bold tracking-tight mb-3 text-white">Safety Share</h3>
+              <p className="text-slate-400 text-sm sm:text-base leading-relaxed mb-6">
+                Share your meetup details with a trusted contact — one tap generates a WhatsApp message with who you're meeting, where, the trade link, and a check-in request. Peace of mind for every trade.
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+                  Free for all
+                </div>
+                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 text-xs font-mono">
+                  WhatsApp share
                 </div>
               </div>
             </div>
