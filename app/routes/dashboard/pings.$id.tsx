@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { data, Form, Link, redirect, useFetcher, useNavigation, useRevalidator } from "react-router";
+import { data, Form, Link, redirect, useFetcher, useNavigation, useRevalidator, useActionData } from "react-router";
 import { AiServiceError, generateContent } from "~/lib/ai.server";
 import { eq, asc, and, or, count, avg } from "drizzle-orm";
 import {
@@ -433,21 +433,7 @@ export async function action({ request, params }: Route.ActionArgs) {
         return { error: "Trade must be agreed before sharing contact" };
       }
 
-      // Server-side readiness gate — both parties must be ready
-      const [myReady] = await db.select({ ready: readinessFlags.ready })
-        .from(readinessFlags)
-        .where(and(eq(readinessFlags.tradeId, tradeId), eq(readinessFlags.userId, user.id)))
-        .limit(1);
-      const counterpartyId_ready =
-        trade.initiatorId === user.id ? trade.responderId : trade.initiatorId;
-      const [theirReady] = await db.select({ ready: readinessFlags.ready })
-        .from(readinessFlags)
-        .where(and(eq(readinessFlags.tradeId, tradeId), eq(readinessFlags.userId, counterpartyId_ready)))
-        .limit(1);
-      if (!myReady?.ready || !theirReady?.ready) {
-        return { error: "Both parties must confirm readiness before sharing contacts" };
-      }
-
+      // Both parties already agreed (status === "agreed"), skip readiness gate
       const phone = (formData.get("phone") as string)?.trim() || null;
       const email = (formData.get("email") as string)?.trim() || null;
 
@@ -1648,7 +1634,7 @@ export default function PingDetail({
     <>
         {/* Help toast — auto-dismisses, hidden once 2-column layout kicks in */}
         {showHelpToast && (
-          <div className="min-[970px]:hidden fixed bottom-[148px] left-1/2 -translate-x-1/2 z-30 animate-in slide-in-from-bottom-5 fade-in duration-300 fill-mode-both">
+          <div className="lg:hidden fixed bottom-[148px] left-1/2 -translate-x-1/2 z-30 animate-in slide-in-from-bottom-5 fade-in duration-300 fill-mode-both">
             <div className="px-4 py-2.5 rounded-xl bg-[#0F172A] border border-white/10 shadow-xl flex items-center gap-2.5 whitespace-nowrap">
               <MessageCircle className="w-4 h-4 text-emerald-400 shrink-0" />
               <span className="text-xs text-slate-300">
@@ -1659,10 +1645,10 @@ export default function PingDetail({
         )}
 
         {/* Outer: fixed overlay — sidebar-offset on desktop, full-width on mobile */}
-        <div className="fixed inset-x-0 md:left-60 top-[73px] bottom-[72px] md:bottom-0 z-20 bg-[#030712] flex flex-col min-[970px]:flex-row">
+        <div className="fixed inset-x-0 md:left-60 top-[73px] bottom-[72px] md:bottom-0 z-20 bg-[#030712] flex flex-col lg:flex-row">
           {/* ── Left column: chat ───────────────────────────────────── */}
-          <div className="flex flex-col flex-1 min-w-0 min-h-0 min-[970px]:border-r min-[970px]:border-white/5">
-      <div className="w-full px-3 sm:px-4 flex flex-col flex-1 min-h-0 min-w-0 lg:max-w-4xl lg:px-8">
+          <div className="flex flex-col flex-1 min-w-0 min-h-0 lg:border-r lg:border-white/5">
+      <div className="w-full px-3 sm:px-4 flex flex-col flex-1 min-h-0 min-w-0 lg:px-6">
         {isSubmitting && <LoadingBar className="mt-2" />}
         {/* Chat header */}
         <div className="flex items-center justify-between pt-4 pb-4 border-b border-white/5 shrink-0">
@@ -1755,7 +1741,7 @@ export default function PingDetail({
             <button
               type="button"
               onClick={() => setShowTradeStatus(true)}
-              className="min-[970px]:hidden shrink-0 mt-2 mb-1 w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#0F172A] border border-white/10 hover:border-white/20 transition-colors"
+              className="lg:hidden shrink-0 mt-2 mb-1 w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#0F172A] border border-white/10 hover:border-white/20 transition-colors"
             >
               <div className="flex items-center gap-2">
                 {cfg.dot && (
@@ -1931,7 +1917,7 @@ export default function PingDetail({
           </div>{/* end left chat column */}
 
           {/* ── Right column: trade status panel — desktop only ─────── */}
-          <div className="hidden min-[970px]:flex flex-col w-72 min-[970px]:w-80 shrink-0 overflow-y-auto px-6 py-6 gap-4 bg-[#0F172A]/20 border-l border-white/5">
+          <div className="hidden lg:flex flex-col w-80 lg:w-[380px] xl:w-[420px] shrink-0 overflow-y-auto px-5 lg:px-6 py-6 gap-4 bg-[#0F172A]/20 border-l border-white/5">
             <div className="shrink-0 pb-3 border-b border-white/5">
               <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">
                 // Trade Status
@@ -1943,7 +1929,7 @@ export default function PingDetail({
 
     {/* Mobile Trade Status Bottom Sheet */}
     {showTradeStatus && (
-      <div className="min-[970px]:hidden fixed inset-0 z-50 flex flex-col justify-end">
+      <div className="lg:hidden fixed inset-0 z-50 flex flex-col justify-end">
         {/* Backdrop */}
         <div
           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -2231,7 +2217,7 @@ function MessageInput({
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent("hermes:open-support-chat"))}
-          className="min-[970px]:hidden shrink-0 w-9 h-9 rounded-xl bg-[#0F172A] border border-white/10 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 transition-colors flex items-center justify-center"
+          className="lg:hidden shrink-0 w-9 h-9 rounded-xl bg-[#0F172A] border border-white/10 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 transition-colors flex items-center justify-center"
           title="Help & Support"
         >
           <MessageCircle className="w-4 h-4" />
@@ -2261,6 +2247,7 @@ function ShareContactForm({
   isSubmitting: boolean;
   submittingIntent: string | null;
 }) {
+  const actionData = useActionData<{ error?: string }>();
   return (
     <div className="p-5 rounded-2xl bg-[#0F172A] border border-cyan-500/20">
       <h4 className="font-bold text-white mb-1 uppercase tracking-wide text-sm">
@@ -2272,6 +2259,11 @@ function ShareContactForm({
       </p>
       <Form method="post" className="space-y-3">
         <input type="hidden" name="intent" value="shareContact" />
+        {actionData?.error && (
+          <p className="text-[11px] text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
+            {actionData.error}
+          </p>
+        )}
         <div className="flex items-center gap-2">
           <Phone className="w-4 h-4 text-cyan-400 shrink-0" />
           <input

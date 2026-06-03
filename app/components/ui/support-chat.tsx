@@ -112,7 +112,7 @@ export default function SupportChat() {
       {/* Floating trigger button — desktop only (2-col layout uses floating FAB) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`hidden min-[970px]:flex fixed bottom-6 right-4 z-50 w-14 h-14 rounded-full items-center justify-center shadow-lg transition-all duration-300 ${
+        className={`hidden lg:flex fixed bottom-6 right-4 z-50 w-14 h-14 rounded-full items-center justify-center shadow-lg transition-all duration-300 ${
           isOpen
             ? "bg-slate-700 rotate-90"
             : "bg-emerald-500 hover:bg-emerald-400 active:scale-95"
