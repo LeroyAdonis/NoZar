@@ -54,6 +54,11 @@ import { BalancePile } from "~/components/ui/balance-pile";
 import { useHaptics } from "~/components/ui/haptic-provider";
 import HandshakeFlow from "~/components/ui/HandshakeFlow";
 import TradeSummaryCard from "~/components/ui/TradeSummaryCard";
+import {
+  SafetyShareMessage,
+  SafetyShareWhatsApp,
+  SafetyShareCopy,
+} from "~/components/ui/safety-share";
 
 // ─── CTA Cards ─────────────────────────────────────────────────
 
@@ -973,6 +978,26 @@ export async function action({ request, params }: Route.ActionArgs) {
       return { ok: true };
     }
 
+    case "confirmMeetupArrangement": {
+      if (trade.status !== "negotiating") {
+        return { error: "Both parties must agree before arranging the meetup" };
+      }
+
+      await db
+        .update(trades)
+        .set({ status: "agreed", updatedAt: new Date() })
+        .where(eq(trades.id, tradeId));
+
+      await db.insert(messages).values({
+        tradeId,
+        senderId: user.id,
+        text: "Proceeding to arrange meetup and exchange contacts",
+        type: "system",
+      });
+
+      return { ok: true };
+    }
+
     default:
       return { error: "Unknown intent" };
   }
@@ -1027,6 +1052,10 @@ export default function PingDetail({
     pendingSpotId != null
       ? spots.findIndex((s) => s.id === pendingSpotId)
       : selectedSpotIdx;
+
+  // Derived spot name for safety share
+  const selectedSpot = selectedSpotIdx != null && selectedSpotIdx >= 0 ? spots[selectedSpotIdx] : null;
+  const selectedSpotName = selectedSpot ? `${selectedSpot.name} — ${selectedSpot.address}` : null;
 
   // ── Trust system state ────────────────────────────────────
   const [showReportModal, setShowReportModal] = useState(false);
@@ -1268,6 +1297,24 @@ export default function PingDetail({
               isSubmitting={isSubmitting}
               submittingIntent={submittingIntent}
             />
+            <Form method="post">
+              <input type="hidden" name="intent" value="confirmMeetupArrangement" />
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                onClick={() => haptics.medium()}
+                className="w-full py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20 font-black uppercase tracking-widest text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                <Handshake className="w-4 h-4" />
+                {isSubmitting && submittingIntent === "confirmMeetupArrangement" ? (
+                  <span className="inline-flex items-center gap-2">
+                    <Spinner className="w-3.5 h-3.5" /> Arranging...
+                  </span>
+                ) : (
+                  "Proceed to Arrange Meetup"
+                )}
+              </button>
+            </Form>
           </div>
         )}
 
@@ -1450,6 +1497,42 @@ export default function PingDetail({
               currentUserId={currentUserId}
               counterpartyName={counterparty.name}
             />
+
+            {/* Safety Share — let contacts know you're meeting up */}
+            <div className="mt-4 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldCheck className="w-4 h-4 text-amber-400" />
+                <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400 font-bold">
+                  Safety Share
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-400 mb-3 leading-relaxed">
+                Share your meetup details with a trusted contact. They'll know who you're meeting, where, and when to check on you.
+              </p>
+
+              <SafetyShareMessage
+                counterpartyName={counterparty.name}
+                listingTitle={listing.title}
+                spotName={selectedSpotName}
+                tradeId={trade.id}
+              />
+
+              <div className="flex items-center gap-2">
+                <SafetyShareWhatsApp
+                  counterpartyName={counterparty.name}
+                  listingTitle={listing.title}
+                  spotName={selectedSpotName}
+                  tradeId={trade.id}
+                />
+                <SafetyShareCopy
+                  counterpartyName={counterparty.name}
+                  listingTitle={listing.title}
+                  spotName={selectedSpotName}
+                  tradeId={trade.id}
+                />
+              </div>
+            </div>
+
             <Form method="post" className="mt-4">
               <input type="hidden" name="intent" value="completeTrade" />
               <button
