@@ -48,7 +48,7 @@ const tiers: PricingTier[] = [
   },
   {
     name: "Plus",
-    price: "R69",
+    price: "R99",
     period: "/mo",
     description: "For regular traders who want AI to do the heavy lifting.",
     features: [
