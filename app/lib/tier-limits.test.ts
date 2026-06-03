@@ -8,8 +8,8 @@ describe("canUseAiFeature", () => {
   test("free tier is blocked from ai_matching", () => {
     expect(canUseAiFeature("free", "ai_matching")).toBe(false);
   });
-  test("free tier is blocked from ai_chat", () => {
-    expect(canUseAiFeature("free", "ai_chat")).toBe(false);
+  test("free tier can use ai_chat (Fraud Shield is free)", () => {
+    expect(canUseAiFeature("free", "ai_chat")).toBe(true);
   });
   test("null planCode defaults to free (blocked)", () => {
     expect(canUseAiFeature(null, "ai_description")).toBe(false);

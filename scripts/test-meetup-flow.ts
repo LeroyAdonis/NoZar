@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { neon } from "@neondatabase/serverless";
 
-const sql = neon(process.env.DATABASE_URL);
+const sql = neon(process.env.DATABASE_URL!);
 
 async function run() {
   console.log("\n=== AI Meetup Suggestion Flow Test ===\n");
@@ -28,7 +28,7 @@ async function run() {
   }
 
   // 2. Check for agreed trades and their meetup spots
-  const agreedTrades = trades.filter(t => t.status === "agreed");
+  const agreedTrades = trades.filter((t: any) => t.status === "agreed");
 
   if (agreedTrades.length === 0) {
     console.log("\n✗ NO trades in 'agreed' status. Cannot test meetup flow directly.");
@@ -54,9 +54,10 @@ async function run() {
   }
 
   // 3. Check all statuses for a complete picture
-  const statuses = {};
+  const statuses: Record<string, number> = {};
   for (const t of trades) {
-    statuses[t.status] = (statuses[t.status] || 0) + 1;
+    const s = t.status as string;
+    statuses[s] = (statuses[s] || 0) + 1;
   }
   console.log("\nTrade status distribution:");
   for (const [status, count] of Object.entries(statuses)) {
@@ -111,7 +112,7 @@ async function run() {
   console.log("\n=== End ===\n");
 }
 
-run().catch(err => {
+run().catch((err: unknown) => {
   console.error("Test failed:", err);
   process.exit(1);
 });

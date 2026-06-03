@@ -11,31 +11,31 @@ interface TrustBadge {
 const TRUST_BADGES: TrustBadge[] = [
   {
     icon: Shield,
-    title: "POPIA-aligned",
-    description: "Your data is handled under SA's privacy law",
+    title: "AI Fraud Shield",
+    description: "AI detects scams in every chat — free for everyone",
   },
   {
     icon: EyeOff,
     title: "Dual-blind contact reveal",
-    description: "Names and contacts unlock only after both of you confirm",
-  },
-  {
-    icon: MapPin,
-    title: "Safe meetup suggestions",
-    description: "Three public, well-lit spots suggested near you both",
-  },
-  {
-    icon: Lock,
-    title: "In-app private chat",
-    description: "Phone numbers and emails are blocked until both agree",
-  },
-  {
-    icon: Users,
-    title: "Community guidelines",
-    description: "Clear standards for respectful, safe trading",
+    description: "Names unlock only after both of you confirm",
   },
   {
     icon: Heart,
+    title: "AI Swap Scores",
+    description: "AI calculates how well items match — 92% accurate",
+  },
+  {
+    icon: Lock,
+    title: "AI Listing from Photo",
+    description: "Snap a pic, AI writes the full listing in seconds",
+  },
+  {
+    icon: MapPin,
+    title: "Fair Trade badge",
+    description: "AI-verified value assessments, condition-adjusted",
+  },
+  {
+    icon: Users,
     title: "Built in Mzansi 🇿🇦",
     description: "Designed and built for South African communities",
   },

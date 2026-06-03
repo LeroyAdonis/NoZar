@@ -9,22 +9,23 @@ import { getUserTier } from "~/lib/tier-limits.server";
 import { canUseAiFeature } from "~/lib/tier-limits";
 import type { Route } from "./+types/chat.$tradeId";
 
-type Message = {
+type ChatMessage = {
   id?: number;
   text: string;
   role: "user" | "assistant";
+  senderId?: string;
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { user } = await requireAuth(request);
   const tier = await getUserTier(user.id);
-  return { canUseAiChat: canUseAiFeature(tier, "ai_chat") };
+  return { canUseAiChat: canUseAiFeature(tier, "ai_chat"), userId: user.id };
 }
 
 export default function TradeChat({ params }: Route.ComponentProps) {
-  const { canUseAiChat } = useLoaderData<typeof loader>();
+  const { canUseAiChat, userId } = useLoaderData<typeof loader>();
   const tradeId = Number(params.tradeId);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,7 +40,12 @@ export default function TradeChat({ params }: Route.ComponentProps) {
         if (!res.ok) throw new Error(`Failed to load messages (${res.status})`);
         const data = await res.json();
         if (!abortController.signal.aborted) {
-          setMessages(data);
+          // Enrich messages with senderId and isMe for fraud detection
+          const enriched = (data as ChatMessage[]).map((m) => ({
+            ...m,
+            role: (m.senderId === userId ? "user" : "assistant") as "user" | "assistant",
+          }));
+          setMessages(enriched);
         }
       } catch (err) {
         if (abortController.signal.aborted) return;
@@ -50,7 +56,7 @@ export default function TradeChat({ params }: Route.ComponentProps) {
     load();
 
     return () => abortController.abort();
-  }, [tradeId]);
+  }, [tradeId, userId]);
 
   async function onSend(text: string) {
     setError(null);
@@ -64,7 +70,7 @@ export default function TradeChat({ params }: Route.ComponentProps) {
       const json = await res.json();
       setMessages((m) => [
         ...m,
-        { text, role: "user" },
+        { text, role: "user", senderId: userId },
         { text: json.message.text, role: "assistant" },
       ]);
     } catch (err) {
@@ -107,7 +113,7 @@ export default function TradeChat({ params }: Route.ComponentProps) {
           {error}
         </div>
       )}
-      <ChatWindow messages={messages} />
+      <ChatWindow messages={messages} currentUserId={userId} />
       <ChatComposer onSend={onSend} />
     </div>
   );

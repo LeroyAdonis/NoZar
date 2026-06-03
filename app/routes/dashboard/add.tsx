@@ -391,6 +391,9 @@ function AddAssetForm({
   const errors = actionData?.errors as Record<string, string> | undefined;
   const [step, setStep] = useState<1 | 2>(1);
   const [moreDetailsOpen, setMoreDetailsOpen] = useState(false);
+  const [visionLoadingForUrl, setVisionLoadingForUrl] = useState<string | null>(null);
+  const [visionFilled, setVisionFilled] = useState(false);
+  const [visionError, setVisionError] = useState<string | null>(null);
 
   const formRef = useRef<HTMLFormElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
@@ -523,6 +526,60 @@ function AddAssetForm({
       descriptionRef.current.value = aiSuggestion;
     }
     setAiDismissed(true);
+  }
+
+  async function handleVisionAutoFill(imageUrl: string) {
+    setVisionLoadingForUrl(imageUrl);
+    setVisionError(null);
+    setVisionFilled(false);
+
+    try {
+      const res = await fetch("/api/ai-listing-from-photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        if (data.error === "ai_tier_restricted") {
+          setVisionError("AI Auto-Fill is available on Plus and above.");
+        } else if (typeof data.error === "string") {
+          setVisionError(data.error);
+        } else {
+          setVisionError("Auto-fill failed. Please try again.");
+        }
+        setVisionLoadingForUrl(null);
+        return;
+      }
+
+      // Pre-fill form fields
+      const titleEl = formRef.current?.elements.namedItem(
+        "title",
+      ) as HTMLInputElement | null;
+      const valueEl = formRef.current?.elements.namedItem(
+        "estimatedValue",
+      ) as HTMLInputElement | null;
+
+      if (titleEl) titleEl.value = data.title;
+      if (descriptionRef.current)
+        descriptionRef.current.value = data.description;
+      if (data.category) setSelectedCategory(data.category);
+      if (valueEl && data.estimatedValue != null)
+        valueEl.value = String(data.estimatedValue);
+
+      setVisionFilled(true);
+      setVisionLoadingForUrl(null);
+      haptics.success();
+
+      // Clear success message after 4 seconds
+      setTimeout(() => setVisionFilled(false), 4000);
+    } catch (err) {
+      console.error("[vision-auto-fill] error:", err);
+      setVisionError("Network error — please try again.");
+      setVisionLoadingForUrl(null);
+    }
   }
 
   return (
@@ -877,6 +934,22 @@ function AddAssetForm({
                       }
                       className="flex-1 rounded-xl bg-[#0F172A] border border-white/10 text-white placeholder:text-slate-500 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:outline-none px-4 py-2.5 text-sm"
                     />
+                    {url.trim().startsWith("https://") && url.trim().length > 12 && (
+                      <button
+                        type="button"
+                        onClick={() => handleVisionAutoFill(url)}
+                        disabled={visionLoadingForUrl !== null}
+                        className="shrink-0 w-10 h-10 rounded-xl border border-purple-500/30 bg-purple-500/10 flex items-center justify-center text-purple-400 hover:text-purple-300 hover:border-purple-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label={`Auto-fill from image ${index + 1}`}
+                        title="✨ AI Auto-Fill from this photo"
+                      >
+                        {visionLoadingForUrl === url ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
                     {imageUrls.length > 1 && (
                       <button
                         type="button"
@@ -905,6 +978,26 @@ function AddAssetForm({
               ))}
             </div>
 
+            {/* AI auto-fill success notification */}
+            {visionFilled && (
+              <div className="mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2.5 flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="text-xs text-emerald-300">
+                  ✨ Form auto-filled from photo!
+                </span>
+              </div>
+            )}
+
+            {/* AI auto-fill error */}
+            {visionError && (
+              <div className="mt-3 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 flex items-center gap-2">
+                <X className="w-4 h-4 text-rose-400 shrink-0" />
+                <span className="text-xs text-rose-300">
+                  {visionError}
+                </span>
+              </div>
+            )}
+
             {imageUrls.length < 5 && (
               <button
                 type="button"
@@ -919,6 +1012,10 @@ function AddAssetForm({
             <p className="mt-2 text-[11px] text-slate-600">
               Or paste HTTPS image URLs from Imgur, Unsplash, Cloudinary, or any
               direct image link.
+            </p>
+            <p className="mt-1 text-[11px] text-purple-400/60 flex items-center gap-1">
+              <Sparkles className="w-3 h-3 shrink-0" />
+              More photos = better AI matching. Listings with 3+ photos get 2x more trade offers.
             </p>
           </div>
 
@@ -935,13 +1032,19 @@ function AddAssetForm({
             {moreDetailsOpen && (
               <div className="mt-4 space-y-4 p-4 bg-[#0F172A]/50 border border-white/5 rounded-xl">
                 {/* Estimated Value */}
-                <Input
-                  label="Estimated value (Rands)"
-                  name="estimatedValue"
-                  type="number"
-                  min={0}
-                  placeholder="e.g. 5000"
-                />
+                <div>
+                  <Input
+                    label="Estimated value (Rands)"
+                    name="estimatedValue"
+                    type="number"
+                    min={0}
+                    placeholder="e.g. 5000"
+                  />
+                  <p className="mt-1 text-[11px] text-purple-400/60 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 shrink-0" />
+                    Helps AI find fair trades — listings with values get 3x more match suggestions
+                  </p>
+                </div>
 
                 {/* Condition — hidden for services */}
                 {type === "item" && (
@@ -1032,7 +1135,11 @@ function AddAssetForm({
               className={textareaStyles}
             />
             <p className="mt-1.5 text-[10px] text-slate-600">
-              Be specific — it helps others decide if they have what you need.
+              Be specific — it helps the AI match you with the right trades.
+              <span className="block mt-1 text-purple-400/60">
+                <Sparkles className="w-3 h-3 inline mr-1" />
+                Try: \"Looking for a laptop under R5,000\" instead of just \"electronics\"
+              </span>
             </p>
           </div>
 

@@ -33,9 +33,12 @@ export type ListingCard = {
   condition: string | null;
   distance: string;
   timeAgo: string;
+  createdAt: string;
   userName: string;
   isVerified: boolean;
   imageUrl: string | null;
+  /** Personalization score (0–1) for re-ranking the feed */
+  personalizationScore?: number;
   /** True when the current user's listings keyword-match what this owner is seeking */
   youHaveMatch?: boolean;
 };

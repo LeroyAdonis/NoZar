@@ -1,13 +1,14 @@
-import { MapPin, Clock, Repeat } from "lucide-react";
+import { MapPin, Clock, Repeat, Sparkles } from "lucide-react";
 import type { ListingCard } from "~/lib/types";
 
 type AssetCardProps = {
   listing: ListingCard;
   onClick?: () => void;
   youHaveMatch?: boolean;
+  swapScore?: number;
 };
 
-export function AssetCard({ listing, onClick, youHaveMatch }: AssetCardProps) {
+export function AssetCard({ listing, onClick, youHaveMatch, swapScore }: AssetCardProps) {
   return (
     <div
       data-testid="asset-card"
@@ -41,6 +42,12 @@ export function AssetCard({ listing, onClick, youHaveMatch }: AssetCardProps) {
       <div className="flex-1 flex flex-col gap-1.5 py-0.5 sm:py-1 min-w-0">
         <h3 className="font-bold text-xs sm:text-sm leading-snug text-slate-50 group-hover:text-emerald-400 transition-colors break-words">
           {listing.title}
+          {swapScore !== undefined && swapScore > 50 && (
+            <span className="ml-1.5 inline-flex items-center gap-0.5 align-middle bg-emerald-500/15 text-emerald-400 font-mono text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap">
+              <Sparkles className="w-2 h-2" />
+              {swapScore}% Match
+            </span>
+          )}
         </h3>
         {/* Row 1: distance + username */}
         <div className="flex items-center gap-2 flex-wrap">

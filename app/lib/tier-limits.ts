@@ -63,10 +63,19 @@ export function getEffectivePlanCode(sub?: SubInfo | null): TierCode {
  */
 export const BUSINESS_PRODUCTS_LIVE = false;
 
+/**
+ * AI features that are behind a paywall.
+ * Features NOT in this map are free for everyone (e.g. Fraud Shield, Fair Trade badge).
+ *
+ * Safety features stay free — that's the NoZar community-first philosophy.
+ * AI convenience/power features are the upgrade value.
+ */
 export const AI_FEATURE_TIERS = {
-  ai_description: ["plus", "business", "enterprise"],
-  ai_matching:    ["plus", "business", "enterprise"],
-  ai_chat:        ["plus", "business", "enterprise"],
+  ai_description:        ["plus", "business", "enterprise"],
+  ai_matching:           ["plus", "business", "enterprise"],
+  ai_listing_from_photo: ["plus", "business", "enterprise"],
+  personalized_feed:     ["plus", "business", "enterprise"],
+  ai_chat:               ["free", "plus", "business", "enterprise"],  // Fraud Shield deep analysis — free for everyone
 } satisfies Record<string, TierCode[]>;
 
 export type AiFeature = keyof typeof AI_FEATURE_TIERS;

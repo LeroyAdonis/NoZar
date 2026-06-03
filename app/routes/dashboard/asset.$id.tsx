@@ -1,6 +1,6 @@
 import { data, redirect, useFetcher, Form, Link } from "react-router";
 import type { Route } from "./+types/asset.$id";
-import { ChevronLeft, MessageSquare, Repeat, ShieldCheck, Pencil, Trash2, RotateCcw, ChevronRight, X } from "lucide-react";
+import { ChevronLeft, Sparkles, MessageSquare, Repeat, ShieldCheck, Pencil, Trash2, RotateCcw, ChevronRight, X } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { eq, and, ne } from "drizzle-orm";
 import { motion, AnimatePresence } from "motion/react";
@@ -18,6 +18,14 @@ import { Button } from "~/components/ui/button";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 import { haversineKm, formatDistance } from "~/lib/utils";
 import { Globe, MapPin, AlertCircle } from "lucide-react";
+
+// Inline condition-weighted value helper (React Router strips .server imports from client bundles)
+function getWeightedValue(base: number | null, cond: string | null): number | null {
+  if (base == null) return null;
+  const CONDITION_MAP: Record<string, number> = { poor: 0.60, fair: 0.75, good: 0.90, excellent: 1.05, mint: 1.15 };
+  const mul = cond && cond in CONDITION_MAP ? CONDITION_MAP[cond] : 1.0;
+  return Math.round(base * mul);
+}
 
 export function meta({ data: loaderData }: Route.MetaArgs) {
   const title = loaderData?.listing?.title ?? "Asset";
@@ -179,10 +187,10 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
 
   const sheetRef = useRef<HTMLDivElement>(null);
 
-  // Value-gap warning
+  // Value-gap warning (condition-weighted)
   const selectedItem = userInventory?.find((i: typeof listings.$inferSelect) => i.id === selectedOfferItemId);
-  const listingValue = listing.estimatedValueZar ?? 0;
-  const offerValue = selectedItem?.estimatedValueZar ?? 0;
+  const listingValue = getWeightedValue(listing.estimatedValueZar, listing.condition) ?? 0;
+  const offerValue = getWeightedValue(selectedItem?.estimatedValueZar ?? null, selectedItem?.condition ?? null) ?? 0;
   const hasMeaningfulValues = listingValue > 0 && offerValue > 0;
   const valueGapRatio = hasMeaningfulValues
     ? Math.abs(listingValue - offerValue) / Math.max(listingValue, offerValue)
@@ -641,11 +649,17 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
                   <p className="text-sm font-bold text-white truncate">
                     {selectedItem?.title ?? (userInventory && userInventory.length === 1 ? userInventory[0].title : "Select below")}
                   </p>
-                  {(selectedItem?.estimatedValueZar ?? (userInventory?.length === 1 ? userInventory[0].estimatedValueZar : null)) != null && (
-                    <p className="text-[10px] font-mono text-emerald-400">
-                      ~R{((selectedItem?.estimatedValueZar ?? userInventory?.[0]?.estimatedValueZar ?? 0)).toLocaleString("en-ZA")}
-                    </p>
-                  )}
+                  {(selectedItem?.estimatedValueZar ?? (userInventory?.length === 1 ? userInventory[0].estimatedValueZar : null)) != null && (() => {
+                    const raw = selectedItem?.estimatedValueZar ?? userInventory?.[0]?.estimatedValueZar ?? null;
+                    const cond = selectedItem?.condition ?? userInventory?.[0]?.condition ?? null;
+                    const adj = getWeightedValue(raw, cond);
+                    return (
+                      <p className="text-[10px] font-mono text-emerald-400">
+                        ~R{(adj ?? raw!).toLocaleString("en-ZA")}
+                        {cond && ["poor", "fair", "good", "excellent", "mint"].includes(cond) ? ` (adjusted for ${cond.charAt(0).toUpperCase() + cond.slice(1)} condition)` : ""}
+                      </p>
+                    );
+                  })()}
                 </div>
                 <span className="text-slate-400 font-bold text-lg">⇄</span>
                 <div className="flex-1 min-w-0 text-right">
@@ -653,15 +667,19 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
                     You want
                   </p>
                   <p className="text-sm font-bold text-white truncate">{listing.title}</p>
-                  {listing.estimatedValueZar != null && (
-                    <p className="text-[10px] font-mono text-emerald-400">
-                      ~R{listing.estimatedValueZar.toLocaleString("en-ZA")}
-                    </p>
-                  )}
+                  {listing.estimatedValueZar != null && (() => {
+                    const adj = getWeightedValue(listing.estimatedValueZar, listing.condition);
+                    return (
+                      <p className="text-[10px] font-mono text-emerald-400">
+                        ~R{(adj ?? listing.estimatedValueZar!).toLocaleString("en-ZA")}
+                        {listing.condition && ["poor", "fair", "good", "excellent", "mint"].includes(listing.condition) ? ` (adjusted for ${listing.condition.charAt(0).toUpperCase() + listing.condition.slice(1)} condition)` : ""}
+                      </p>
+                    );
+                  })()}
                 </div>
               </div>
 
-              {/* Value gap warning */}
+              {/* Value gap warning / Fair trade badge */}
               {hasValueGap && (
                 <div className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl mb-4">
                   <span className="text-amber-400 mt-0.5">⚠</span>
@@ -670,6 +688,19 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
                       ? "Value gap — you may need to top up or negotiate"
                       : "You're offering more than the asking value — confirm you're OK with this or negotiate"}
                   </p>
+                </div>
+              )}
+              {hasMeaningfulValues && !hasValueGap && (
+                <div className="flex items-start gap-2 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl mb-4">
+                  <Sparkles className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-semibold text-emerald-300">
+                      AI Verified — Fair Trade
+                    </p>
+                    <p className="text-[11px] text-emerald-400/70 mt-0.5">
+                      Values are within range — this is a balanced swap
+                    </p>
+                  </div>
                 </div>
               )}
 

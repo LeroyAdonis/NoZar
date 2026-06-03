@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { neon } from "@neondatabase/serverless";
 
-const sql = neon(process.env.DATABASE_URL);
+const sql = neon(process.env.DATABASE_URL!);
 
 async function run() {
   console.log("=== Setting up trade in 'agreed' status for meetup testing ===\n");
@@ -11,117 +11,64 @@ async function run() {
     SELECT id, name, email FROM users WHERE email LIKE '%nozar.demo'
   `;
   console.log(`Found ${users.length} demo users`);
-  for (const u of users) {
-    console.log(`  ${u.id.substring(0, 8)}... ${u.name} (${u.email})`);
-  }
 
   if (users.length < 2) {
-    console.log("ERROR: Need at least 2 demo users. Run POST /api/seed-demo first.");
-    return;
+    console.log("Need at least 2 demo users. Run seed-demo first.");
+    process.exit(1);
   }
 
-  // 2. Find an active listing from one of them
+  // 2. Find two listings (one from each user) in different categories
   const listings = await sql`
-    SELECT l.id, l.title, l.user_id, u.name as owner_name
-    FROM listings l
-    JOIN users u ON l.user_id = u.id
-    WHERE l.status = 'active'
+    SELECT id, user_id, name, category
+    FROM listings
+    WHERE user_id IN (${users[0].id}, ${users[1].id})
+    AND status = 'active'
     LIMIT 5
   `;
-  console.log(`\nFound ${listings.length} active listings`);
+  console.log(`\nFound ${listings.length} active listings across both users`);
 
-  if (listings.length === 0) {
-    console.log("ERROR: No active listings found.");
-    return;
-  }
-
-  // 3. Create a trade in "agreed" status between two different users
-  const initiator = users[0];
-  const responder = users[1];
-  const listing = listings[0];
-
-  // Check if a trade already exists between these users for this listing
+  // 3. Check if there's already an agreed trade
   const existingTrade = await sql`
     SELECT id, status FROM trades
-    WHERE initiator_id = ${initiator.id} AND responder_id = ${responder.id} AND listing_id = ${listing.id}
-    LIMIT 1
+    WHERE status = 'agreed' LIMIT 1
   `;
-
-  let tradeId;
   if (existingTrade.length > 0) {
-    tradeId = existingTrade[0].id;
-    // Update status to agreed if not already
-    if (existingTrade[0].status !== "agreed") {
-      await sql`UPDATE trades SET status = 'agreed', updated_at = NOW() WHERE id = ${tradeId}`;
-      console.log(`\n✓ Updated existing trade #${tradeId} to 'agreed'`);
-    } else {
-      console.log(`\nTrade #${tradeId} already in 'agreed' status`);
-    }
-  } else {
-    const insertResult = await sql`
-      INSERT INTO trades (initiator_id, responder_id, listing_id, status, created_at, updated_at)
-      VALUES (${initiator.id}, ${responder.id}, ${listing.id}, 'agreed', NOW(), NOW())
+    console.log(`\n✓ Trade already exists in 'agreed' status (id: ${existingTrade[0].id})`);
+    console.log("  Nothing to do.\n");
+    process.exit(0);
+  }
+
+  // 4. Create an agreed trade
+  const listerListing = listings.find((l: any) => l.user_id === users[0].id);
+  const seekerListing = listings.find((l: any) => l.user_id === users[1].id);
+
+  if (!listerListing || !seekerListing) {
+    console.log("Need at least one listing from each user. Create more listings first.");
+    process.exit(1);
+  }
+
+  console.log(`\nCreating trade between:`);
+  if (listerListing && seekerListing) {
+    console.log(`  ${listerListing.name} (user ${listerListing.user_id})`);
+    console.log(`  ${seekerListing.name} (user ${seekerListing.user_id})`);
+
+    const [trade] = await sql`
+      INSERT INTO trades (
+        listing_id, listing_user_id,
+        offer_type, offer_item_id, offered_by_user_id,
+        status, created_at, updated_at
+      ) VALUES (
+        ${listerListing.id}, ${listerListing.user_id},
+        'item', ${seekerListing.id}, ${seekerListing.user_id},
+        'agreed', NOW(), NOW()
+      )
       RETURNING id
     `;
-    tradeId = insertResult[0].id;
-    console.log(`\n✓ Created new trade #${tradeId} in 'agreed' status`);
+
+    console.log(`\n✅ Trade created with id: ${trade.id}`);
+    console.log("  Status: agreed");
+    console.log("\nYou can now test the meetup suggestion flow.\n");
   }
-
-  // 4. Add a system message for the status change
-  const msgs = await sql`SELECT id FROM messages WHERE trade_id = ${tradeId} AND text LIKE '%agreed%' LIMIT 1`;
-  if (msgs.length === 0) {
-    await sql`
-      INSERT INTO messages (trade_id, sender_id, text, type, created_at)
-      VALUES (${tradeId}, ${initiator.id}, 'Both parties agreed — deal locked in! 🎉', 'system', NOW())
-    `;
-    console.log("  System message added");
-  }
-
-  // 5. Verify the final state
-  const [trade] = await sql`SELECT * FROM trades WHERE id = ${tradeId}`;
-  console.log(`\n✓ Trade #${trade.id} status: "${trade.status}"`);
-  console.log(`  Initiator: ${initiator.name} (${initiator.email})`);
-  console.log(`  Responder: ${responder.name} (${responder.email})`);
-  console.log(`  Listing: ${listing.title}`);
-
-  // 6. Check the listing owner's location
-  const profile = await sql`
-    SELECT p.suburb, p.city, p.province
-    FROM profiles p WHERE p.user_id = ${listing.user_id}
-    LIMIT 1
-  `;
-
-  if (profile.length > 0) {
-    const loc = profile[0];
-    const location = loc.suburb || loc.city || loc.province || "South Africa";
-    console.log(`  Listing owner location: ${location}`);
-    console.log(`  AI prompt location: "${location}, South Africa"`);
-  }
-
-  // 7. Generate meetup spots via AI (if this trade had an agreed status, 
-  //    the action handler would be triggerable via the UI)
-  console.log(`\n✓ To trigger AI meetup suggestion:`);
-  console.log(`  1. Open /dashboard/pings/${trade.id}`);
-  console.log(`  2. Click "✦ Generate Safe Meetup Spots"`);
-  console.log(`  3. Wait for AI to generate 3 safe spots`);
-  console.log(`  4. Both parties vote on a spot`);
-  console.log(`  5. Contact exchange becomes available`);
-  
-  // 8. Check the meetup spots table
-  const spots = await sql`SELECT * FROM meetup_spots WHERE trade_id = ${tradeId}`;
-  if (spots.length > 0) {
-    console.log(`\n✓ Meetup spots already exist for trade #${tradeId}:`);
-    for (const s of spots) {
-      console.log(`  [${s.order + 1}] ${s.name} — ${s.address}`);
-    }
-  } else {
-    console.log(`\n  No meetup spots yet — needs AI generation`);
-  }
-
-  console.log("\n=== Setup complete ===\n");
 }
 
-run().catch(err => {
-  console.error("Failed:", err);
-  process.exit(1);
-});
+run().catch(console.error);

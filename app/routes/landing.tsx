@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router";
 import {
   ArrowRight,
-
   ShieldCheck,
   MapPin,
   Briefcase,
@@ -12,6 +11,10 @@ import {
   Lock,
   Globe,
   Cpu,
+  Sparkles,
+  Brain,
+  Camera,
+  Search,
 } from "lucide-react";
 
 import { PromoBanner } from "~/components/landing/promo-banner";
@@ -34,9 +37,9 @@ export async function loader({ request }: Route.LoaderArgs) {
 export function meta({ data }: Route.MetaArgs) {
   const origin = data?.origin ?? "https://nozar.co.za";
   const ogImage = `${origin}/og.png`;
-  const title = "NoZar — Trade Without Cash";
+  const title = "NoZar — AI-Powered Barter. Trade Without Cash.";
   const description =
-    "South Africa's barter platform. Swap your stuff, skills, and services with people near you. No money changes hands.";
+    "South Africa's AI-powered barter platform. AI matches your items, detects scams in chat, and writes listings from photos. Free to join.";
   return [
     { title },
     { name: "description", content: description },
@@ -57,6 +60,7 @@ export function meta({ data }: Route.MetaArgs) {
 
 const SECTION_IDS = [
   "how-it-works",
+  "ai-features",
   "exchange",
   "safety",
   "pricing",
@@ -163,6 +167,7 @@ export default function LandingPage({
           <div className="hidden md:flex items-center gap-10">
             {[
               { label: "How it works", id: "how-it-works" as const },
+              { label: "AI Features", id: "ai-features" as const },
               { label: "For you", id: "exchange" as const },
               { label: "Safety", id: "safety" as const },
               { label: "Pricing", id: "pricing" as const },
@@ -241,10 +246,11 @@ export default function LandingPage({
           <div className="flex flex-col gap-8 text-lg font-mono uppercase tracking-widest">
             {[
               { num: "01", label: "How it works", id: "how-it-works" as const },
-              { num: "02", label: "For you", id: "exchange" as const },
-              { num: "03", label: "Safety", id: "safety" as const },
-              { num: "04", label: "Pricing", id: "pricing" as const },
-              { num: "05", label: "FAQ", id: "faq" as const },
+              { num: "02", label: "AI Features", id: "ai-features" as const },
+              { num: "03", label: "For you", id: "exchange" as const },
+              { num: "04", label: "Safety", id: "safety" as const },
+              { num: "05", label: "Pricing", id: "pricing" as const },
+              { num: "06", label: "FAQ", id: "faq" as const },
             ].map((link) => {
               const isActive = activeSection === link.id;
               return (
@@ -296,12 +302,9 @@ export default function LandingPage({
 
       {/* Hero Section */}
       <main className="relative z-10 pt-32 sm:pt-40 pb-14 sm:pb-20 lg:pt-56 lg:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col items-center text-center">
-        <div data-testid="network-status" className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] sm:text-xs font-mono uppercase tracking-widest text-emerald-400 mb-8 sm:mb-10 backdrop-blur-md">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          Beta — Joburg &amp; Cape Town
+        <div data-testid="network-status" className="inline-flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-gradient-to-r from-emerald-500/15 to-cyan-500/10 border border-emerald-500/20 text-[10px] sm:text-xs font-mono uppercase tracking-widest text-emerald-400 mb-8 sm:mb-10 backdrop-blur-md">
+          <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-emerald-400" />
+          AI-Powered Beta — Joburg &amp; Cape Town
         </div>
         <h1 className="text-[2.5rem] sm:text-6xl md:text-8xl lg:text-[7.5rem] font-black tracking-tighter leading-[0.9] mb-6 sm:mb-8 uppercase text-transparent bg-clip-text bg-gradient-to-b from-white to-white/50">
           Trade <br />
@@ -309,11 +312,27 @@ export default function LandingPage({
             Without Cash.
           </span>
         </h1>
-        <p className="text-sm sm:text-lg md:text-2xl text-slate-400 max-w-3xl mx-auto mb-8 sm:mb-12 leading-relaxed font-light">
-          South Africa's barter platform. Swap your stuff, skills, and services
-          with people near you.{" "}
-          <span className="text-white font-medium">No money changes hands.</span>
+        <p className="text-sm sm:text-lg md:text-2xl text-slate-400 max-w-3xl mx-auto mb-6 sm:mb-8 leading-relaxed font-light">
+          AI matches your items. Scam protection in every chat. Snap a photo,
+          AI writes your listing.{" "}
+          <span className="text-white font-medium">NoZar does the work.</span>
         </p>
+        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mb-8 sm:mb-10">
+          <div className="flex items-center gap-2 text-slate-500 text-xs sm:text-sm font-mono">
+            <Brain className="w-4 h-4 text-emerald-400/70" />
+            <span>AI Match</span>
+          </div>
+          <div className="w-1 h-1 rounded-full bg-slate-600" />
+          <div className="flex items-center gap-2 text-slate-500 text-xs sm:text-sm font-mono">
+            <ShieldCheck className="w-4 h-4 text-emerald-400/70" />
+            <span>Fraud Shield</span>
+          </div>
+          <div className="w-1 h-1 rounded-full bg-slate-600" />
+          <div className="flex items-center gap-2 text-slate-500 text-xs sm:text-sm font-mono">
+            <Camera className="w-4 h-4 text-emerald-400/70" />
+            <span>Snap &amp; List</span>
+          </div>
+        </div>
         <div className="flex flex-col items-center gap-4 w-full sm:w-auto">
           <div className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto">
             <MagneticButton>
@@ -410,6 +429,122 @@ export default function LandingPage({
         </div>
       </section>
 
+      {/* AI Feature Showcase — what makes NoZar different */}
+      <section id="ai-features" className="relative z-10 py-16 sm:py-24 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto overflow-hidden scroll-mt-24">
+        <ScrollReveal>
+          <div className="mb-12 sm:mb-16 text-center">
+            <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
+              // AI Features
+            </span>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">AI</span> that makes trading{" "}
+              <span className="text-white">super smooth.</span>
+            </h2>
+            <p className="text-slate-400 text-base sm:text-lg mt-4 max-w-2xl mx-auto">
+              No buttons to press. No learning curve. The AI works in the background — you just trade.
+            </p>
+          </div>
+        </ScrollReveal>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+          {/* AI Match Card */}
+          <ScrollReveal delay={0.1}>
+          <div className="group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-emerald-500/30 transition-all duration-500 p-6 sm:p-10">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] -translate-y-1/3 translate-x-1/3 group-hover:bg-emerald-500/20 transition-all duration-700" />
+            <div className="relative z-10">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-cyan-500/20 flex items-center justify-center mb-6 border border-emerald-500/20">
+                <Brain className="w-7 h-7 text-emerald-400" />
+              </div>
+              <h3 className="text-2xl font-bold tracking-tight mb-3 text-white">AI Match</h3>
+              <p className="text-slate-400 text-sm sm:text-base leading-relaxed mb-6">
+                Stop scrolling. Our AI understands what you're looking for — even if the words don't match. List a "Canon DSLR" and we find people seeking a "camera for photography."
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+                  Swap Score: 92%
+                </div>
+                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 text-xs font-mono">
+                  Vector AI
+                </div>
+              </div>
+            </div>
+          </div>
+          </ScrollReveal>
+
+          {/* Snap & List Card */}
+          <ScrollReveal delay={0.2}>
+          <div className="group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-cyan-500/30 transition-all duration-500 p-6 sm:p-10">
+            <div className="absolute top-0 left-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[80px] -translate-y-1/3 -translate-x-1/3 group-hover:bg-cyan-500/20 transition-all duration-700" />
+            <div className="relative z-10">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 flex items-center justify-center mb-6 border border-cyan-500/20">
+                <Camera className="w-7 h-7 text-cyan-400" />
+              </div>
+              <h3 className="text-2xl font-bold tracking-tight mb-3 text-white">Snap &amp; List</h3>
+              <p className="text-slate-400 text-sm sm:text-base leading-relaxed mb-6">
+                Take a photo. AI writes the title, description, category, and estimated value in seconds. One tap and your listing is live — zero typing.
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-mono">
+                  Vision AI
+                </div>
+                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 text-xs font-mono">
+                  1 photo → full listing
+                </div>
+              </div>
+            </div>
+          </div>
+          </ScrollReveal>
+
+          {/* Fraud Shield Card */}
+          <ScrollReveal delay={0.3}>
+          <div className="group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-yellow-500/30 transition-all duration-500 p-6 sm:p-10">
+            <div className="absolute bottom-0 right-0 w-64 h-64 bg-yellow-500/10 rounded-full blur-[80px] translate-y-1/3 translate-x-1/3 group-hover:bg-yellow-500/20 transition-all duration-700" />
+            <div className="relative z-10">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-yellow-500/20 to-orange-500/20 flex items-center justify-center mb-6 border border-yellow-500/20">
+                <ShieldCheck className="w-7 h-7 text-yellow-400" />
+              </div>
+              <h3 className="text-2xl font-bold tracking-tight mb-3 text-white">Fraud Shield 🛡️</h3>
+              <p className="text-slate-400 text-sm sm:text-base leading-relaxed mb-6">
+                Real-time scam detection in trade chat. AI watches every message for suspicious patterns — money requests, fake links, off-platform contact. Free for everyone.
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+                  Free for all
+                </div>
+                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 text-xs font-mono">
+                  Real-time
+                </div>
+              </div>
+            </div>
+          </div>
+          </ScrollReveal>
+
+          {/* Fair Trade Card */}
+          <ScrollReveal delay={0.4}>
+          <div className="group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-purple-500/30 transition-all duration-500 p-6 sm:p-10">
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-[80px] translate-y-1/3 -translate-x-1/3 group-hover:bg-purple-500/20 transition-all duration-700" />
+            <div className="relative z-10">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-500/20 flex items-center justify-center mb-6 border border-purple-500/20">
+                <Search className="w-7 h-7 text-purple-400" />
+              </div>
+              <h3 className="text-2xl font-bold tracking-tight mb-3 text-white">Fair Trade</h3>
+              <p className="text-slate-400 text-sm sm:text-base leading-relaxed mb-6">
+                AI-verified value assessments that adjust for condition. Mint condition = +15%, Poor = -40%. The "AI Verified — Fair Trade" badge shows everyone you're trading square.
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+                  Free for all
+                </div>
+                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 text-xs font-mono">
+                  Condition-weighted
+                </div>
+              </div>
+            </div>
+          </div>
+          </ScrollReveal>
+        </div>
+      </section>
+
       {/* Dual Economies: Trade (Consumer + Enterprise) */}
       <section id="exchange" className="scroll-mt-32 pb-16 sm:pb-24">
         <ScrollReveal>
@@ -446,7 +581,7 @@ export default function LandingPage({
           </h3>
           <p className="text-slate-400 mb-10 text-lg">
             Turn your stuff and spare time into things you actually need.
-            Free to join. Free to trade.
+            Free to join. <span className="text-emerald-400">AI safety features free too.</span>
           </p>
           <ul className="space-y-4 mb-12 font-mono text-sm text-slate-300">
             <li className="flex items-center gap-3">
@@ -456,8 +591,10 @@ export default function LandingPage({
               <span className="text-blue-500">[+]</span> Swap items for skills
             </li>
             <li className="flex items-center gap-3">
-              <span className="text-blue-500">[+]</span> Matched to people near
-              you
+              <span className="text-blue-500">[+]</span> AI fraud protection in every chat
+            </li>
+            <li className="flex items-center gap-3">
+              <span className="text-blue-500">[+]</span> AI matches you to perfect trades
             </li>
           </ul>
           <Link
@@ -539,18 +676,33 @@ export default function LandingPage({
                 // Safety
               </span>
               <h2 className="text-3xl sm:text-4xl md:text-6xl font-black tracking-tighter uppercase mb-4 sm:mb-6">
-                How we keep <br /> you safe.
+                AI keeps you <br /> safe while trading.
               </h2>
               <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto">
-                Built for South Africa. Your name and location stay private
-                until both of you agree to swap.
+                Real-time fraud detection, private chat, and safe meetup spots — all built in.{" "}
+                <span className="text-emerald-400">Safety features are free for everyone.</span>
               </p>
             </div>
           </ScrollReveal>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-            {/* Stage 01 */}
+            {/* Stage 01 — Fraud Shield (new, elevated) */}
             <ScrollReveal delay={0.1}>
+            <div className="bg-gradient-to-b from-[#0F172A] to-emerald-950/20 border border-emerald-500/20 p-6 sm:p-8 rounded-3xl relative sm:transform sm:-translate-y-4 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
+              <div className="absolute top-0 left-8 -translate-y-1/2 bg-emerald-900 border border-emerald-500/30 px-4 py-1 rounded-full font-mono text-xs text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
+                REAL-TIME
+              </div>
+              <ShieldCheck className="w-8 h-8 text-emerald-400 mb-6 mt-4" />
+              <h4 className="text-xl font-bold mb-3 text-white">
+                AI Fraud Shield
+              </h4>
+              <p className="text-slate-400 text-sm leading-relaxed">
+                AI monitors every chat message for scams — urgent money requests, fake links, off-platform contact. You get an instant warning before anything happens.
+              </p>
+            </div>
+            </ScrollReveal>
+            {/* Stage 02 */}
+            <ScrollReveal delay={0.2}>
             <div className="bg-[#0F172A] border border-white/10 p-6 sm:p-8 rounded-3xl relative">
               <div className="absolute top-0 left-8 -translate-y-1/2 bg-slate-900 border border-white/10 px-4 py-1 rounded-full font-mono text-xs text-slate-400">
                 STEP 01
@@ -560,24 +712,7 @@ export default function LandingPage({
                 Private chat
               </h4>
               <p className="text-slate-400 text-sm leading-relaxed">
-                Talk through NoZar. Phone numbers and emails are blocked
-                until both of you agree to share them.
-              </p>
-            </div>
-            </ScrollReveal>
-            {/* Stage 02 — elevated */}
-            <ScrollReveal delay={0.2}>
-            <div className="bg-gradient-to-b from-[#0F172A] to-emerald-950/20 border border-emerald-500/20 p-6 sm:p-8 rounded-3xl relative sm:transform sm:-translate-y-4 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
-              <div className="absolute top-0 left-8 -translate-y-1/2 bg-emerald-900 border border-emerald-500/30 px-4 py-1 rounded-full font-mono text-xs text-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]">
-                STEP 02
-              </div>
-              <ShieldCheck className="w-8 h-8 text-emerald-400 mb-6 mt-4" />
-              <h4 className="text-xl font-bold mb-3 text-white">
-                Both agree
-              </h4>
-              <p className="text-slate-400 text-sm leading-relaxed">
-                Once you've agreed on the swap, both tap to confirm. Only then
-                do contact details unlock.
+                Talk through NoZar. Phone numbers and emails are blocked until both of you agree to share them.
               </p>
             </div>
             </ScrollReveal>
@@ -585,20 +720,17 @@ export default function LandingPage({
             <ScrollReveal delay={0.3}>
             <div className="bg-[#0F172A] border border-white/10 p-6 sm:p-8 rounded-3xl relative">
               <div className="absolute top-0 left-8 -translate-y-1/2 bg-slate-900 border border-white/10 px-4 py-1 rounded-full font-mono text-xs text-slate-400">
-                STEP 03
+                STEP 02
               </div>
               <MapPin className="w-8 h-8 text-slate-500 mb-6 mt-4" />
               <h4 className="text-xl font-bold mb-3 text-white">
                 Safe meetup spots
               </h4>
               <p className="text-slate-400 text-sm leading-relaxed">
-                We suggest three public meetup spots near you both — petrol
-                forecourts, mall entrances, and busy public areas. For high-value
-                swaps, we can text a trusted contact when you're heading out.
+                We suggest three public meetup spots near you — petrol forecourts, mall entrances, and busy public areas.
               </p>
             </div>
             </ScrollReveal>
-            {/* TASK 03 COMPLETE */}
           </div>
         </div>
       </section>

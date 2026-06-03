@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, useFetcher, Link } from "react-router";
 import { eq, ne, and, desc, inArray, ilike, or } from "drizzle-orm";
-import { AiServiceError, generateContent } from "~/lib/ai.server";
+import { findMatches } from "~/lib/ai-matching.server";
+import { getUserInterestCategories, scoreListingForUser } from "~/lib/personalized-feed.server";
 import { Sparkles, Search, X, Radar, Lock } from "lucide-react";
 import { getUserTier } from "~/lib/tier-limits.server";
 import { canUseAiFeature } from "~/lib/tier-limits";
@@ -33,24 +34,35 @@ const CATEGORY_CHIPS = [
 ] as const;
 
 // ─── AI Match Cache (5-minute TTL per user) ────────────────────
-type CacheEntry = { matchedIds: number[]; expiresAt: number };
+type CacheEntry = {
+  matchedIds: number[];
+  swapScores: Record<number, number>;
+  expiresAt: number;
+};
 const aiMatchCache = new Map<string, CacheEntry>();
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
-function getCachedMatches(userId: string): number[] | null {
+function getCachedMatches(
+  userId: string,
+): { matchedIds: number[]; swapScores: Record<number, number> } | null {
   const entry = aiMatchCache.get(userId);
   if (!entry) return null;
   if (Date.now() > entry.expiresAt) {
     aiMatchCache.delete(userId);
     return null;
   }
-  return entry.matchedIds;
+  return { matchedIds: entry.matchedIds, swapScores: entry.swapScores };
 }
 
-function setCachedMatches(userId: string, matchedIds: number[]): void {
+function setCachedMatches(
+  userId: string,
+  matchedIds: number[],
+  swapScores: Record<number, number>,
+): void {
   aiMatchCache.set(userId, {
     matchedIds,
+    swapScores,
     expiresAt: Date.now() + CACHE_TTL_MS,
   });
 }
@@ -64,6 +76,7 @@ export async function loader({ request }: Route.LoaderArgs) {
   const regionParam = url.searchParams.get("region");
   const searchQuery = url.searchParams.get("q");
   const scope = url.searchParams.get("scope") ?? "local";
+  const sortMode = url.searchParams.get("sort") ?? "latest";
 
   // Fetch user's province for region resolution
   const [userProfile] = await db
@@ -151,6 +164,7 @@ export async function loader({ request }: Route.LoaderArgs) {
       type: r.type,
       estimatedValueZar: r.estimatedValueZar,
       condition: r.condition,
+      createdAt: r.createdAt.toISOString(),
       distance:
         userProfile?.lat != null && userProfile?.lng != null && r.lat != null && r.lng != null
           ? formatDistance(haversineKm(userProfile.lat, userProfile.lng, r.lat, r.lng))
@@ -203,12 +217,30 @@ export async function loader({ request }: Route.LoaderArgs) {
     youHaveMatch: matchesSeeking(item.seekingDescription),
   }));
 
+  // ── Personalized feed re-ranking ──
+  let finalListings = taggedItems;
+  if (sortMode === "personalized") {
+    const userCategories = await getUserInterestCategories(user.id);
+    const scoredItems = taggedItems.map((item) => ({
+      ...item,
+      personalizationScore: scoreListingForUser(item.category, userCategories),
+    }));
+    // Sort by personalization score desc, then creation date desc
+    scoredItems.sort((a, b) => {
+      const scoreDiff = (b.personalizationScore ?? 0) - (a.personalizationScore ?? 0);
+      if (scoreDiff !== 0) return scoreDiff;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+    finalListings = scoredItems;
+  }
+
   const tier = await getUserTier(user.id);
 
   return {
-    listings: taggedItems,
+    listings: finalListings,
     hasListings: ownListings.length > 0,
     currentRegion,
+    sortMode,
     needsRegion: !userProfile?.province || !provinceToSlug(userProfile.province),
     needsLocation: !userProfile?.lat || !userProfile?.lng,
     searchQuery: searchQuery ?? null,
@@ -249,7 +281,7 @@ export async function action({ request }: Route.ActionArgs) {
   // Check cache first
   const cached = getCachedMatches(user.id);
   if (cached) {
-    return { matchedIds: cached };
+    return { matchedIds: cached.matchedIds, swapScores: cached.swapScores };
   }
 
   // Get user's own active listings (what they have + what they seek)
@@ -293,76 +325,39 @@ export async function action({ request }: Route.ActionArgs) {
     .limit(50);
 
   if (otherListings.length === 0) {
-    return { matchedIds: [] };
+    return { matchedIds: [], swapScores: {} };
   }
 
-  // Build the NVIDIA prompt
-  const userProfile = userListings
-    .map(
-      (l) =>
-        `- Has: "${l.title}" (${l.category}) — ${l.description}` +
-        (l.estimatedValueZar != null ? ` | Value: ~R${l.estimatedValueZar.toLocaleString("en-ZA")}` : "") +
-        (l.seekingDescription ? ` | Seeking: ${l.seekingDescription}` : ""),
-    )
-    .join("\n");
-
-  const availableListings = otherListings
-    .map(
-      (l) =>
-        `ID:${l.id} "${l.title}" (${l.category}, ${l.type}) — ${l.description}` +
-        (l.estimatedValueZar != null ? ` | Value: ~R${l.estimatedValueZar.toLocaleString("en-ZA")}` : "") +
-        (l.seekingDescription ? ` | Seeking: ${l.seekingDescription}` : ""),
-    )
-    .join("\n");
-
-  const prompt = `You are a trade matching assistant for a South African barter platform called NoZar.
-
-A user has the following items/services available for trade:
-${userProfile}
-
-Here are listings from other users:
-${availableListings}
-
-Rank the above listings by how well they match what this user is seeking, and how well the user's items match what those listings are seeking. Consider category relevance, complementary needs, value alignment, and value gap (how fair the exchange is based on estimated values).
-
-Boost listings where:
-- The user's offering matches what the other listing is seeking
-- The other listing's offering matches what the user is seeking
-- Estimated values are within ~30% of each other (fair trade)
-
-Penalize listings where:
-- Neither party offers what the other wants
-- The value gap exceeds 50% with no reasonable way to balance (no cash difference mentioned)
-
-Return ONLY a JSON array of listing IDs in order from best match to worst match. Include only IDs with a reasonable match quality (at least somewhat relevant). Return at most 10 IDs.
-
-Example response: [5, 12, 3]
-
-Return ONLY the JSON array, no explanation.`;
-
+  // Use vector embedding-based AI matching
   try {
-    const text = await generateContent(prompt);
-    const cleaned = (text || "").replace(/```(?:json)?\s*/g, "").replace(/```/g, "").trim();
-    const parsed: unknown = JSON.parse(cleaned);
+    const result = await findMatches(
+      user.id,
+      userListings.map((l) => ({
+        title: l.title,
+        description: l.description,
+        seekingDescription: l.seekingDescription,
+        category: l.category,
+      })),
+      otherListings.map((l) => ({
+        id: l.id,
+        title: l.title,
+        description: l.description,
+        seekingDescription: l.seekingDescription,
+        category: l.category,
+      })),
+    );
 
-    if (!Array.isArray(parsed)) {
-      return { error: "AI returned unexpected format" };
+    // Convert scores Map to plain record for JSON serialization
+    const swapScores: Record<number, number> = {};
+    for (const [id, score] of result.scores) {
+      swapScores[id] = Math.round(score * 100);
     }
 
-    // Validate: keep only IDs that exist in the available listings
-    const validIds = new Set(otherListings.map((l) => l.id));
-    const matchedIds = parsed
-      .filter((id): id is number => typeof id === "number" && validIds.has(id));
-
-    setCachedMatches(user.id, matchedIds);
-    return { matchedIds };
+    setCachedMatches(user.id, result.matchedIds, swapScores);
+    return { matchedIds: result.matchedIds, swapScores };
   } catch (error) {
     return {
-      error:
-        error instanceof AiServiceError &&
-        error.code === "nvidia_not_configured"
-          ? "AI matching is unavailable because NVIDIA AI is not configured"
-          : "AI matching unavailable — try again later",
+      error: "AI matching unavailable — try again later",
     };
   }
 }
@@ -429,6 +424,8 @@ export default function DashboardHome({
   const isMatching = fetcher.state !== "idle";
   const matchData = fetcher.data;
   const matchedIds = matchData && "matchedIds" in matchData ? new Set(matchData.matchedIds) : null;
+  const swapScores: Record<number, number> | null =
+    matchData && "swapScores" in matchData ? (matchData as any).swapScores ?? null : null;
   const matchError = matchData && "error" in matchData ? matchData.error : null;
 
   function handleCategoryClick(value: string) {
@@ -485,8 +482,32 @@ export default function DashboardHome({
           </h2>
         </div>
 
-        {/* AI Match button */}
-        {canUseAiMatching ? (
+        <div className="flex items-center gap-2">
+          {/* Personalization toggle */}
+          <button
+            type="button"
+            onClick={() =>
+              setSearchParams((prev) => {
+                const p = new URLSearchParams(prev);
+                if (loaderData.sortMode === "personalized") {
+                  p.delete("sort");
+                } else {
+                  p.set("sort", "personalized");
+                }
+                return p;
+              }, { preventScrollReset: true })
+            }
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-mono uppercase tracking-widest border transition-all ${
+              loaderData.sortMode === "personalized"
+                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
+                : "bg-[#0F172A] text-slate-500 border-white/5 hover:border-white/20 hover:text-slate-300"
+            }`}
+          >
+            {loaderData.sortMode === "personalized" ? "🎯 For You" : "📋 Latest"}
+          </button>
+
+          {/* AI Match button */}
+          {canUseAiMatching ? (
           <fetcher.Form method="post">
             <input type="hidden" name="intent" value="aiMatch" />
             <button
@@ -508,6 +529,7 @@ export default function DashboardHome({
             AI Match — Plus only
           </Link>
         )}
+          </div>
       </div>
 
       {/* Search bar */}
@@ -667,6 +689,7 @@ export default function DashboardHome({
               <AssetCard
                 listing={listing}
                 youHaveMatch={listing.youHaveMatch}
+                swapScore={swapScores?.[listing.id] ?? undefined}
                 onClick={() => navigate(`/dashboard/asset/${listing.id}`)}
               />
             </div>
