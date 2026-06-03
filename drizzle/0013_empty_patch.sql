@@ -1,0 +1,1 @@
+ALTER TABLE "profiles" ADD COLUMN "preferred_language" text DEFAULT 'en' NOT NULL;

@@ -22,16 +22,32 @@ import { TrustBadgesSection } from "~/components/landing/trust-badges-section";
 import { PricingSection } from "~/components/landing/pricing-section";
 import { FaqSection } from "~/components/landing/faq-section";
 import FooterSection from "~/components/landing/footer-section";
+import { LanguageSelector } from "~/components/ui/language-selector";
 import type { Route } from "./+types/landing";
 import { ScrollReveal } from "~/components/motion/scroll-reveal";
 import { MagneticButton } from "~/components/motion/magnetic-button";
 import { getOptionalSession } from "~/lib/auth.server";
 import { BUSINESS_PRODUCTS_LIVE } from "~/lib/tier-limits";
+import { resolveLanguage, DEFAULT_LANGUAGE } from "~/lib/sa-languages";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const session = await getOptionalSession(request);
   const { origin } = new URL(request.url);
-  return { isLoggedIn: !!session, origin };
+
+  // Check for language in cookie (for non-logged-in users)
+  const cookies = request.headers.get("cookie") ?? "";
+  const langCookie = cookies
+    .split(";")
+    .find((c) => c.trim().startsWith("nozar_lang="));
+  const langFromCookie = langCookie
+    ? langCookie.split("=")[1]?.trim()
+    : null;
+
+  // If user is logged in, prefer their profile language
+  // For now, read from cookie or default
+  const preferredLang = resolveLanguage(langFromCookie);
+
+  return { isLoggedIn: !!session, origin, preferredLang };
 }
 
 export function meta({ data }: Route.MetaArgs) {
@@ -72,10 +88,11 @@ type SectionId = (typeof SECTION_IDS)[number];
 export default function LandingPage({
   loaderData,
 }: Route.ComponentProps) {
-  const { isLoggedIn } = loaderData;
+  const { isLoggedIn, preferredLang: initialLang } = loaderData;
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<SectionId | null>(null);
+  const [currentLang, setCurrentLang] = useState(initialLang);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 50);
@@ -205,6 +222,14 @@ export default function LandingPage({
 
           {/* Desktop Auth + CTA */}
           <div className="hidden md:flex items-center gap-4">
+            <LanguageSelector
+              currentLang={currentLang}
+              onSelect={(code) => {
+                setCurrentLang(code);
+                document.cookie = `nozar_lang=${code};path=/;max-age=31536000;SameSite=Lax`;
+              }}
+              compact
+            />
             {isLoggedIn ? (
               <Link
                 to="/dashboard"
@@ -275,6 +300,18 @@ export default function LandingPage({
                 </a>
               );
             })}
+            <hr className="border-white/10 my-2" />
+            <div className="flex items-center justify-between py-2">
+              <span className="text-xs font-mono uppercase tracking-widest text-slate-500">Language</span>
+              <LanguageSelector
+                currentLang={currentLang}
+                onSelect={(code) => {
+                  setCurrentLang(code);
+                  document.cookie = `nozar_lang=${code};path=/;max-age=31536000;SameSite=Lax`;
+                }}
+                compact
+              />
+            </div>
             <hr className="border-white/10 my-2" />
             {isLoggedIn ? (
               <Link
