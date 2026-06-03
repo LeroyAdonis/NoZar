@@ -83,23 +83,30 @@ export async function loader({ request }: LoaderFunctionArgs) {
     .filter(Boolean)
     .join("\n");
 
+  // Determine whose side the user is on
+  const isUserItemA = listingA.userId === user.id;
+  const yourItem = isUserItemA ? listingA : listingB;
+  const theirItem = isUserItemA ? listingB : listingA;
+
   // Analyze the trade
   const analysis = await analyzeTrade(
     {
-      title: listingA.title,
-      description: listingA.description,
-      category: listingA.category,
-      condition: listingA.condition ?? "good",
-      value: listingA.estimatedValueZar,
+      title: yourItem.title,
+      description: yourItem.description,
+      category: yourItem.category,
+      condition: yourItem.condition ?? "good",
+      value: yourItem.estimatedValueZar,
     },
     {
-      title: listingB.title,
-      description: listingB.description,
-      category: listingB.category,
-      condition: listingB.condition ?? "good",
-      value: listingB.estimatedValueZar,
+      title: theirItem.title,
+      description: theirItem.description,
+      category: theirItem.category,
+      condition: theirItem.condition ?? "good",
+      value: theirItem.estimatedValueZar,
     },
     conversationContext || undefined,
+    yourItem.title,
+    theirItem.title,
   );
 
   return {

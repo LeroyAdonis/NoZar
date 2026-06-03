@@ -1,87 +1,85 @@
-import { callGeminiModel } from "./gemini.server";
+import { generateContent } from "./ai.server";
 
 export type TradeAnalysis = {
-  /** Overall assessment — how fair the trade is */
   verdict: "fair" | "slightly_unbalanced" | "unbalanced";
-  /** Suggested item-based balancing options. NEVER suggests cash. */
   suggestions: string[];
-  /** Brief explanation of the value comparison */
   explanation: string;
 };
 
 /**
  * Analyzes a proposed or in-progress trade between two items.
+ * Provides sharp, actionable advice from the user's perspective.
  *
- * HARD RULE: Never suggests adding money/cash. Only item-based balancing.
- * - "Add a smaller item to balance"
- * - "Bundle two of your items"
- * - "Adjust condition expectations"
- * - "Add a service or skill"
+ * HARD RULE: Never suggests cash. Only item-based balancing.
  */
 export async function analyzeTrade(
   itemA: { title: string; description: string; condition: string; value: number | null; category: string },
   itemB: { title: string; description: string; condition: string; value: number | null; category: string },
   conversationContext?: string,
+  userItemTitle?: string,
+  theirItemTitle?: string,
 ): Promise<TradeAnalysis> {
+  const yourItem = userItemTitle ?? "your item";
+  const theirItem = theirItemTitle ?? "the other item";
+
   const systemPrompt = [
-    "You are NoZar's AI Trade Negotiator — a fair trade advisor for a South African barter platform.",
-    "Your ONLY purpose is to help users make fair, balanced trades WITHOUT using money.",
+    "You're a knowledgeable mate on NoZar (SA barter platform) giving blunt trade advice.",
+    "NEVER suggest cash or money. Only item-based balancing.",
+    "Speak direct and casual — like a friend, not a robot.",
     "",
-    "ABSOLUTELY FORBIDDEN:",
-    "- Do NOT suggest adding cash, money, or any currency to balance a trade",
-    "- Do NOT say 'add R200 on top' or anything involving money",
-    "- Do NOT mention 'cash top-up', 'pay the difference', or similar",
+    "CRITICAL — ONLY reference items listed in the data below.",
+    "Do NOT invent item names, brands, or categories that aren't in the listing titles or chat history.",
+    "If you need to suggest an item to add, use generic categories (e.g. 'a smaller item', 'an accessory', 'a game or two').",
     "",
-    "What you CAN suggest:",
-    "- 'Try adding another item to balance the value'",
-    "- 'Bundle one of your smaller items with this one'",
-    "- 'Ask if they'd include a service or skill to make up the difference'",
-    "- 'Adjust what you're offering — maybe pick a different item from your inventory'",
-    "- 'The condition differs significantly — consider whether you're comfortable with that'",
-    "- 'Offer to meet halfway on the condition expectations'",
-    "- 'Consider adding a smaller item or accessory to balance things out'",
+    "CRITICAL — value direction:",
+    "- Compare YOUR item's value vs THEIR item's value",
+    '- If YOUR item is worth LESS: YOU need to add items from YOUR side to match, OR accept the difference',
+    '- If THEIR item is worth LESS: THEY need to add items from THEIR side to match, OR accept the difference',
+    "- NEVER suggest adding more items to the side that's ALREADY worth more — that widens the gap.",
     "",
-    "Output ONLY valid JSON with these keys:",
-    "- verdict: 'fair' | 'slightly_unbalanced' | 'unbalanced'",
-    "- suggestions: array of 2-3 specific, actionable suggestions (strings)",
-    "- explanation: short explanation of the value comparison (max 2 sentences)",
-    "",
-    "Keep it friendly and helpful, like a mate giving honest advice.",
+    "Output ONLY valid JSON:",
+    '  - verdict: "fair" | "slightly_unbalanced" | "unbalanced"',
+    "  - suggestions: 2-3 sharp, specific options with clear who-adds-what direction",
+    "  - explanation: ONE sentence comparing values — mention the actual gap (e.g. 'your R6k vs their R8.5k, gap of R2.5k')",
   ].join("\n");
 
   const prompt = [
-    "Analyze this proposed barter trade:",
+    `You have a ${yourItem}. They have a ${theirItem}. Speak to YOU — the person with the ${yourItem}.`,
     "",
-    "--- Item A ---",
+    `--- Your item (${yourItem}) ---`,
     `Title: ${itemA.title}`,
-    `Description: ${itemA.description}`,
-    `Category: ${itemA.category}`,
+    `Value: ${itemA.value != null ? `R${itemA.value.toLocaleString()}` : "Not specified"}`,
     `Condition: ${itemA.condition}`,
-    `Estimated Value: ${itemA.value != null ? `R${itemA.value}` : "Not specified"}`,
+    `Category: ${itemA.category}`,
+    itemA.description ? `Details: ${itemA.description.slice(0, 200)}` : "",
     "",
-    "--- Item B ---",
+    `--- Their item (${theirItem}) ---`,
     `Title: ${itemB.title}`,
-    `Description: ${itemB.description}`,
-    `Category: ${itemB.category}`,
+    `Value: ${itemB.value != null ? `R${itemB.value.toLocaleString()}` : "Not specified"}`,
     `Condition: ${itemB.condition}`,
-    `Estimated Value: ${itemB.value != null ? `R${itemB.value}` : "Not specified"}`,
+    `Category: ${itemB.category}`,
+    itemB.description ? `Details: ${itemB.description.slice(0, 200)}` : "",
+    "",
+    `VALUE CHECK: Your item is R${itemA.value ?? "?"} and theirs is R${itemB.value ?? "?"}.`,
+    itemA.value != null && itemB.value != null
+      ? itemA.value < itemB.value
+        ? `Gap of R${(itemB.value - itemA.value).toLocaleString()} — YOU need to add items from YOUR side to match the gap, or they could sweeten the deal on their side (since they want your item).`
+        : itemA.value > itemB.value
+        ? `Gap of R${(itemA.value - itemB.value).toLocaleString()} — THEY need to add items from THEIR side to close the gap.`
+        : "Values are equal — fair trade as-is."
+      : "Values not specified — use condition and description to judge fairness.",
     "",
     conversationContext
-      ? `--- Conversation Context ---\n${conversationContext}`
-      : "",
+      ? `Chat so far (read the FULL conversation to understand what's been discussed and rejected):\n${conversationContext.slice(0, 800)}\n\nNote: If someone already said no to an item or combo, don't suggest it again.`
+      : "No chat history yet.",
     "",
-    "Return ONLY a JSON object with verdict, suggestions, and explanation.",
-    "Remember: NO CASH SUGGESTIONS. Only item-based balancing.",
+    "CRITICAL: Do NOT invent items (no Bose, no headphones, no brands not in data). Stick to the listings above and chat history only. Use generic terms like 'add an accessory' if needed.",
   ]
     .filter(Boolean)
     .join("\n");
 
   try {
-    const raw = await callGeminiModel(prompt, {
-      temperature: 0.3,
-      maxTokens: 1024,
-      systemPrompt,
-    });
+    const raw = await generateContent(prompt, systemPrompt);
 
     const cleaned = raw
       .replace(/```[\w]*\n?/g, "")
