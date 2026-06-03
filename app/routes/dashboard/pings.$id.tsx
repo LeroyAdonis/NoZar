@@ -16,6 +16,8 @@ import {
   X,
   ShieldAlert,
   Scale,
+  Sparkles,
+  AlertTriangle,
   MessageCircle,
 } from "lucide-react";
 import type { Route } from "./+types/pings.$id";
@@ -1032,6 +1034,9 @@ export default function PingDetail({
   const [showTradeStatus, setShowTradeStatus] = useState(false);
   const [safetyBannerDismissed, setSafetyBannerDismissed] = useState(true);
   const [showHelpToast, setShowHelpToast] = useState(true);
+  const [aiAnalysis, setAiAnalysis] = useState<{ verdict: string; suggestions: string[]; explanation: string } | null>(null);
+  const [aiAnalyzing, setAiAnalyzing] = useState(false);
+  const [aiAnalysisError, setAiAnalysisError] = useState<string | null>(null);
 
   // Auto-dismiss help toast after 5s
   useEffect(() => {
@@ -2027,6 +2032,86 @@ function MessageInput({
           >
             <Scale className="w-5 h-5" />
           </button>
+        )}
+
+        {/* AI Trade Negotiator — Suggest Fair Trade */}
+        {status === "proposed" && (
+          <>
+            {aiAnalysis ? (
+              <div className={`rounded-xl border p-3 mb-3 ${
+                aiAnalysis.verdict === "fair"
+                  ? "bg-emerald-500/5 border-emerald-500/20"
+                  : aiAnalysis.verdict === "slightly_unbalanced"
+                  ? "bg-amber-500/5 border-amber-500/20"
+                  : "bg-red-500/5 border-red-500/20"
+              }`}>
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    {aiAnalysis.verdict === "fair" ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <AlertTriangle className="w-4 h-4 text-amber-400" />
+                    )}
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400">
+                      AI Trade Analysis
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setAiAnalysis(null)}
+                    className="text-[10px] font-mono text-slate-500 hover:text-white transition-colors"
+                  >
+                    ×
+                  </button>
+                </div>
+                <p className="text-xs text-slate-300 mb-2">{aiAnalysis.explanation}</p>
+                {aiAnalysis.suggestions.length > 0 && (
+                  <ul className="space-y-1">
+                    {aiAnalysis.suggestions.map((s, i) => (
+                      <li key={i} className="flex items-start gap-1.5 text-xs text-slate-400">
+                        <Sparkles className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>{s}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : aiAnalysisError ? (
+              <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 mb-3">
+                <p className="text-xs text-amber-400">{aiAnalysisError}</p>
+              </div>
+            ) : null}
+
+            <button
+              type="button"
+              onClick={async () => {
+                setAiAnalyzing(true);
+                setAiAnalysisError(null);
+                setAiAnalysis(null);
+                try {
+                  const res = await fetch(`/api/trade-balance?tradeId=${trade.id}`);
+                  const data = await res.json();
+                  if (data.error) {
+                    setAiAnalysisError(data.message ?? data.error);
+                  } else {
+                    setAiAnalysis(data);
+                  }
+                } catch {
+                  setAiAnalysisError("Could not analyze trade. Try again.");
+                }
+                setAiAnalyzing(false);
+              }}
+              disabled={aiAnalyzing}
+              className="shrink-0 p-3 rounded-xl bg-[#0F172A] border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 transition-colors disabled:opacity-50"
+              title={aiAnalyzing ? "Analyzing..." : "Suggest Fair Trade"}
+            >
+              {aiAnalyzing ? (
+                <Spinner className="w-5 h-5" />
+              ) : (
+                <Sparkles className="w-5 h-5" />
+              )}
+            </button>
+          </>
         )}
 
         {/* Message text input + send */}
