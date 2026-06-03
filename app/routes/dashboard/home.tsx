@@ -325,7 +325,13 @@ export async function action({ request }: Route.ActionArgs) {
     .limit(50);
 
   if (otherListings.length === 0) {
-    return { matchedIds: [], swapScores: {} };
+    return {
+      matchedIds: [],
+      swapScores: {},
+      _debug: "no_other_listings_in_province",
+      _debugProvince: regionConfig.province,
+      _debugRegion: currentRegion,
+    };
   }
 
   // Use vector embedding-based AI matching
@@ -354,10 +360,19 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     setCachedMatches(user.id, result.matchedIds, swapScores);
-    return { matchedIds: result.matchedIds, swapScores };
+    return {
+      matchedIds: result.matchedIds,
+      swapScores,
+      _debug: result.matchedIds.length === 0 ? "ai_match_found_none" : "ok",
+      _debugCandidates: otherListings.length,
+      _debugProvince: regionConfig.province,
+      _debugRegion: currentRegion,
+    };
   } catch (error) {
     return {
       error: "AI matching unavailable — try again later",
+      _debug: "ai_match_exception",
+      _debugError: String(error),
     };
   }
 }
@@ -590,6 +605,18 @@ export default function DashboardHome({
       {matchedIds && matchedIds.size === 0 && (
         <div className="bg-slate-500/10 border border-slate-500/20 rounded-xl px-4 py-3 text-xs text-slate-400 font-mono">
           No strong matches found — try adding more listings
+          {"_debug" in (matchData ?? {}) && (
+            <details className="mt-2 text-[10px] text-slate-600">
+              <summary className="cursor-pointer hover:text-slate-400">Debug info</summary>
+              <pre className="mt-1 whitespace-pre-wrap">
+                {JSON.stringify((matchData as any)._debug, null, 2)}
+                {((matchData as any)._debugProvince) && `\nProvince: ${(matchData as any)._debugProvince}`}
+                {((matchData as any)._debugRegion) && `\nRegion: ${(matchData as any)._debugRegion}`}
+                {((matchData as any)._debugCandidates) != null && `\nCandidates: ${(matchData as any)._debugCandidates}`}
+                {((matchData as any)._debugError) && `\nError: ${(matchData as any)._debugError}`}
+              </pre>
+            </details>
+          )}
         </div>
       )}
 
