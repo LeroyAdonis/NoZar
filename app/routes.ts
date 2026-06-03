@@ -32,6 +32,7 @@ export default [
   route("api/test-email", "routes/api.test-email.ts"),
   route("api/translate", "routes/api.translate.ts"),
   route("api/trade-balance", "routes/api.trade-balance.ts"),
+  route("api/photo-quality", "routes/api.photo-quality.ts"),
   route("dashboard", "routes/dashboard.tsx", [
     index("routes/dashboard/home.tsx"),
     route("asset/:id", "routes/dashboard/asset.$id.tsx"),
