@@ -33,6 +33,9 @@ export default [
   route("api/translate", "routes/api.translate.ts"),
   route("api/trade-balance", "routes/api.trade-balance.ts"),
   route("api/photo-quality", "routes/api.photo-quality.ts"),
+  route("api/listings", "routes/api.listings.ts"),
+  route("api/ai-match", "routes/api.ai-match.ts"),
+  route("api/upload-mobile", "routes/api.upload-mobile.ts"),
   route("dashboard", "routes/dashboard.tsx", [
     index("routes/dashboard/home.tsx"),
     route("asset/:id", "routes/dashboard/asset.$id.tsx"),
