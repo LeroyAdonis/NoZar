@@ -22,7 +22,8 @@ A user has uploaded a photo of an item they want to list for trade. Based on thi
 
 1. A catchy title (max 60 chars, SA English)
 2. A 2-3 sentence description
-3. A category from: Electronics, Fashion, Home & Garden, Sports, Tools, Vehicles, Services, Other
+3. A category from the following list — pick the EXACT match: Electronics, Home & Garden, Fashion, Skills, Vehicles, Sports, Books, Services
+   (Do NOT invent categories outside this list; pick the closest match)
 4. An estimated value in ZAR (reasonable second-hand price)
 
 Return ONLY valid JSON in this exact format, no explanation:
@@ -45,6 +46,26 @@ IMPORTANT: Look at the image carefully. Identify the specific item shown — be 
 
   const parsed = JSON.parse(jsonMatch[0]) as AiListingSuggestion;
 
+  // Normalize category to match form options exactly
+  const CATEGORY_MAP: Record<string, string> = {
+    "tools": "Home & Garden",
+    "tool": "Home & Garden",
+    "other": "Fashion",
+    "general": "Fashion",
+    "electronics": "Electronics",
+    "fashion": "Fashion",
+    "home & garden": "Home & Garden",
+    "home and garden": "Home & Garden",
+    "skills": "Skills",
+    "vehicles": "Vehicles",
+    "sports": "Sports",
+    "books": "Books",
+    "services": "Services",
+  };
+
+  const rawCategory = parsed.category.trim().toLowerCase();
+  const matchedCategory = CATEGORY_MAP[rawCategory];
+
   // Validate required fields
   if (!parsed.title || !parsed.description || !parsed.category) {
     throw new Error("AI response missing required fields (title, description, or category)");
@@ -53,7 +74,7 @@ IMPORTANT: Look at the image carefully. Identify the specific item shown — be 
   return {
     title: parsed.title.trim(),
     description: parsed.description.trim(),
-    category: parsed.category.trim(),
+    category: matchedCategory ?? parsed.category.trim(),
     estimatedValue:
       parsed.estimatedValue != null && !Number.isNaN(parsed.estimatedValue)
         ? Math.round(parsed.estimatedValue)
