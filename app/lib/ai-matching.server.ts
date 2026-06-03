@@ -237,7 +237,7 @@ function fallbackKeywordMatch(
       const score = textOverlapScore(userText, listingText);
       return { id: listing.id, score };
     })
-    .filter((s) => s.score >= 0.5)
+    .filter((s) => s.score >= 0.3)
     .sort((a, b) => b.score - a.score)
     .slice(0, 10);
 
@@ -254,7 +254,7 @@ function fallbackKeywordMatch(
  * - Combines all user listings into a single profile text → generates a query embedding
  * - For each other listing, generates a passage embedding (cached with 1-hour TTL)
  * - Computes cosine similarity between user embedding and each listing embedding
- * - Returns top 10 results with scores >= 0.50
+ * - Returns top 10 results with scores >= 0.35
  * - Falls back to keyword overlap scoring if NVIDIA is unavailable
  */
 /**
@@ -308,7 +308,7 @@ export async function findSimilarListings(
     );
 
     return similarities
-      .filter((s) => s.score >= 0.5)
+      .filter((s) => s.score >= 0.35)
       .sort((a, b) => b.score - a.score)
       .slice(0, maxResults);
   } catch (error) {
@@ -358,9 +358,9 @@ export async function findMatches(
       }),
     );
 
-    // Sort by score descending, filter >= 0.50, take top 10
+    // Sort by score descending, filter >= 0.35, take top 10
     const scored = similarities
-      .filter((s) => s.score >= 0.5)
+      .filter((s) => s.score >= 0.35)
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
 
