@@ -124,7 +124,7 @@ export function newMessageEmail(params: {
 }
 
 /** 2. Trade accepted (handshake accepted) */
-export function tradeAcceptedEmail(params: {
+function tradeAcceptedEmail(params: {
   to: string;
   recipientName: string;
   senderName: string;

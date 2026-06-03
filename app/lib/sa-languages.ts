@@ -18,7 +18,7 @@ export const SA_LANGUAGES = [
 
 export type SaLanguageCode = (typeof SA_LANGUAGES)[number]["code"];
 
-export const DEFAULT_LANGUAGE: SaLanguageCode = "en";
+const DEFAULT_LANGUAGE: SaLanguageCode = "en";
 
 /**
  * Resolve a language code from a user input or cookie.

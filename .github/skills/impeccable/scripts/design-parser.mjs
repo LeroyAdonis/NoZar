@@ -801,7 +801,7 @@ function assessCoverage(model) {
 
 // ---------- Main ----------
 
-export function parseDesignMd(md) {
+function parseDesignMd(md) {
   const { frontmatter, body } = parseFrontmatter(md);
   const { title, sections } = splitSections(body);
   return {
@@ -817,4 +817,3 @@ export function parseDesignMd(md) {
   };
 }
 
-export { assessCoverage };

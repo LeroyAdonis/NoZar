@@ -44,7 +44,7 @@ export function CardTitle({ children, className = "" }: CardSectionProps) {
   );
 }
 
-export function CardDescription({ children, className = "" }: CardSectionProps) {
+function CardDescription({ children, className = "" }: CardSectionProps) {
   return (
     <p className={`text-sm text-slate-400 mt-1 ${className}`}>{children}</p>
   );

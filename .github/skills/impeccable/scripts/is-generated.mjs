@@ -30,7 +30,7 @@ const HEADER_MARKERS = [
  * @param {object} [options]
  * @param {string} [options.cwd] - project root (defaults to process.cwd())
  */
-export function isGeneratedFile(filePath, options = {}) {
+function isGeneratedFile(filePath, options = {}) {
   const cwd = options.cwd || process.cwd();
   const absPath = path.isAbsolute(filePath) ? filePath : path.resolve(cwd, filePath);
 

@@ -22,7 +22,7 @@ export type SubInfo = {
   promoExpiresAt?: Date | null;
 };
 
-export function normalizeTierCode(planCode: string | null | undefined): TierCode {
+function normalizeTierCode(planCode: string | null | undefined): TierCode {
   const code = (planCode ?? "free") as TierCode;
   return code in LISTING_LIMITS ? code : "free";
 }
@@ -70,7 +70,7 @@ export const BUSINESS_PRODUCTS_LIVE = false;
  * Safety features stay free — that's the NoZar community-first philosophy.
  * AI convenience/power features are the upgrade value.
  */
-export const AI_FEATURE_TIERS = {
+const AI_FEATURE_TIERS = {
   ai_description:        ["plus", "business", "enterprise"],
   ai_matching:           ["plus", "business", "enterprise"],
   ai_listing_from_photo: ["plus", "business", "enterprise"],

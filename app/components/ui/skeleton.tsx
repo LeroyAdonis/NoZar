@@ -5,7 +5,7 @@ type SkeletonProps = {
   className?: string;
 };
 
-export function Skeleton({ className }: SkeletonProps) {
+function Skeleton({ className }: SkeletonProps) {
   return (
     <div
       className={cn("animate-pulse bg-white/10 rounded-md", className)}
@@ -17,7 +17,7 @@ export function Skeleton({ className }: SkeletonProps) {
 /**
  * Skeleton for form fields - mimics Input appearance
  */
-export function FormSkeleton({ className }: { className?: string }) {
+function FormSkeleton({ className }: { className?: string }) {
   return (
     <div className="space-y-1.5">
       <Skeleton className="h-3 w-20" />
@@ -29,7 +29,7 @@ export function FormSkeleton({ className }: { className?: string }) {
 /**
  * Skeleton for buttons
  */
-export function ButtonSkeleton({ className }: { className?: string }) {
+function ButtonSkeleton({ className }: { className?: string }) {
   return <Skeleton className={cn("h-10 w-full", className)} />;
 }
 

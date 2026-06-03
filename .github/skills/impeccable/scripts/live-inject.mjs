@@ -32,7 +32,7 @@ const HARD_EXCLUDES = [
   '**/.git/**',
 ];
 
-export async function injectCli() {
+async function injectCli() {
   const args = process.argv.slice(2);
 
   if (args.includes('--help') || args.includes('-h')) {
@@ -139,7 +139,7 @@ Output (JSON):
  * are applied as filters. Duplicates are removed. Order is preserved by
  * first appearance.
  */
-export function resolveFiles(rootDir, config) {
+function resolveFiles(rootDir, config) {
   const patterns = config.files;
   const userExcludes = Array.isArray(config.exclude) ? config.exclude : [];
   const allExcludes = [...HARD_EXCLUDES, ...userExcludes];
@@ -362,7 +362,7 @@ function appendOriginToDirective(csp, directive, origin) {
   return csp.trim().replace(/;?\s*$/, '') + `; ${directive} 'self' ${origin}`;
 }
 
-export function patchCspMeta(content, port) {
+function patchCspMeta(content, port) {
   const tags = findCspMetaTags(content);
   if (tags.length === 0) return content;
   const origin = `http://localhost:${port}`;
@@ -405,7 +405,7 @@ export function patchCspMeta(content, port) {
   return result;
 }
 
-export function revertCspMeta(content) {
+function revertCspMeta(content) {
   const tags = findCspMetaTags(content);
   if (tags.length === 0) return content;
 
@@ -441,5 +441,4 @@ if (_running?.endsWith('live-inject.mjs') || _running?.endsWith('live-inject.mjs
   injectCli();
 }
 
-export { insertTag, removeTag, validateConfig, buildTagBlock };
 // patchCspMeta + revertCspMeta are exported above where they're defined.

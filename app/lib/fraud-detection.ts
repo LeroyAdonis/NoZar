@@ -18,7 +18,7 @@ export interface FraudCheckResult {
   score: number; // 0–100
 }
 
-export const FRAUD_PATTERNS: Array<{
+const FRAUD_PATTERNS: Array<{
   pattern: RegExp;
   severity: "low" | "medium" | "high";
   label: string;

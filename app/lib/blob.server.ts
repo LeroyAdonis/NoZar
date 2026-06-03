@@ -16,7 +16,7 @@ export function isBlobConfigured(): boolean {
  * @param folder Sub-path used as a namespace inside the store.
  * @returns      The public HTTPS URL of the uploaded blob.
  */
-export async function uploadToBlob(
+async function uploadToBlob(
   file: File,
   folder: "listings" | "avatars",
 ): Promise<string> {

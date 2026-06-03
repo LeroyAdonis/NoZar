@@ -16,7 +16,7 @@ export type MapScope = {
   fallbackProvince: string;
 };
 
-export const DEFAULT_MAP_SEARCH_RADIUS_KM = 75;
+const DEFAULT_MAP_SEARCH_RADIUS_KM = 75;
 
 function hasSavedCoordinates(lat: NullableNumber, lng: NullableNumber): boolean {
   return lat != null && lng != null && Number.isFinite(lat) && Number.isFinite(lng);

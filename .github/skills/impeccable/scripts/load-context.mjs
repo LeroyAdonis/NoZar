@@ -43,7 +43,7 @@ const FALLBACK_DIRS = ['.agents/context', 'docs'];
  * this project. Exported so other scripts (e.g. live-server.mjs) can read the
  * design files from the same location the loader uses.
  */
-export function resolveContextDir(cwd = process.cwd()) {
+function resolveContextDir(cwd = process.cwd()) {
   // 1. Explicit override
   const envDir = process.env.IMPECCABLE_CONTEXT_DIR;
   if (envDir && envDir.trim()) {
@@ -71,7 +71,7 @@ export function resolveContextDir(cwd = process.cwd()) {
   return cwd;
 }
 
-export function loadContext(cwd = process.cwd()) {
+function loadContext(cwd = process.cwd()) {
   let migrated = false;
   const contextDir = resolveContextDir(cwd);
 

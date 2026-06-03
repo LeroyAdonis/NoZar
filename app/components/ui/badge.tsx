@@ -57,7 +57,7 @@ const sizeStyles: Record<BadgeSize, string> = {
   md: "px-2.5 py-0.5 text-sm",
 };
 
-export function Badge({
+function Badge({
   variant,
   size = "sm",
   children,

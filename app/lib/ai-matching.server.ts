@@ -114,7 +114,7 @@ async function getEmbedding(
  * Compute cosine similarity between two vectors.
  * Returns a value between 0 and 1 (1 = identical direction).
  */
-export function cosineSimilarity(a: number[], b: number[]): number {
+function cosineSimilarity(a: number[], b: number[]): number {
   if (a.length !== b.length || a.length === 0) return 0;
 
   let dotProduct = 0;

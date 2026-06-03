@@ -24,7 +24,7 @@
     "test:update": "playwright install --update"
   },
   "dependencies": {
-    "@better-auth/drizzle-adapter": "^1.5.3",
+    "web-push": "^3.6.7",
     "@fingerprintjs/fingerprintjs": "^5.2.0",
     "@googlemaps/js-api-loader": "^2.0.2",
     "@neondatabase/serverless": "^1.0.2",
@@ -34,7 +34,7 @@
     "better-auth": "^1.5.3",
     "clsx": "^2.1.1",
     "drizzle-orm": "^0.45.1",
-    "isbot": "^5.1.31",
+    "web-haptics": "^0.0.6",
     "lucide-react": "^0.576.0",
     "motion": "^12.38.0",
     "qrcode": "^1.5.4",
@@ -42,8 +42,7 @@
     "react-dom": "^19.2.4",
     "react-router": "7.12.0",
     "resend": "^6.10.0",
-    "web-haptics": "^0.0.6",
-    "web-push": "^3.6.7"
+    "isbot": "^5"
   },
   "devDependencies": {
     "@playwright/test": "^1.58.2",
@@ -58,20 +57,15 @@
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
     "@types/web-push": "^3.6.4",
-    "@vercel/node": "^4.0.0",
+    "vitest": "^4.1.6",
     "@vitest/coverage-v8": "^4.1.6",
-    "autoprefixer": "^10.4.27",
-    "context-mode": "file:context-mode",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vite": "^7.1.7",
     "dotenv": "^17.3.1",
     "drizzle-kit": "^0.31.9",
-    "get-shit-done-cc": "github:gsd-build/get-shit-done",
-    "impeccable": "^2.1.8",
-    "pg": "^8.21.0",
-    "postcss": "^8.5.8",
-    "tailwindcss": "^4.2.1",
     "typescript": "^5.9.2",
-    "vite": "^7.1.7",
-    "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^4.1.6"
+    "tailwindcss": "^4.2.1",
+    "pg": "^8.21.0",
+    "postcss": "^8.5.8"
   }
 }
