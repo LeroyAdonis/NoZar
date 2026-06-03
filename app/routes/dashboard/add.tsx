@@ -27,6 +27,7 @@ import {
   ImageUp,
 } from "lucide-react";
 import { AiServiceError, generateContent } from "~/lib/ai.server";
+import { enhanceImage } from "~/lib/photo-enhancer.client";
 import type { Route } from "./+types/add";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
@@ -689,7 +690,6 @@ function AddAssetForm({
   // ── Photo Enhancement ─────────────────────────────────────
   async function handleEnhancePhoto(url: string) {
     try {
-      const { enhanceImage } = await import("~/lib/photo-enhancer.client");
       const enhancedDataUrl = await enhanceImage(url);
       const blob = await fetch(enhancedDataUrl).then((r) => r.blob());
       const file = new File([blob], "enhanced.jpg", { type: "image/jpeg" });
