@@ -1,5 +1,5 @@
 import { Link, useLoaderData } from "react-router";
-import { Lock, Scale, Sparkles, CheckCircle2, AlertTriangle } from "lucide-react";
+import { Lock, Scale, Sparkles, CheckCircle2, AlertTriangle, ShieldCheck, Languages } from "lucide-react";
 import type { LoaderFunctionArgs } from "react-router";
 import { useEffect, useState } from "react";
 import ChatWindow from "~/components/ui/ChatWindow";
@@ -96,7 +96,7 @@ export default function TradeChat({ params }: Route.ComponentProps) {
             AI Chat Assistant
           </h2>
           <p className="text-xs text-slate-400 leading-relaxed max-w-xs">
-            AI-powered chat is available on Plus and above. Upgrade to get smart trade assistance.
+            Upgrade to Plus (R99/mo) for AI Trade Negotiator, message translation into 11 SA languages, AI-powered chat assistant, and real-time Fraud Shield protection in every chat.
           </p>
         </div>
         <Link
@@ -190,6 +190,25 @@ export default function TradeChat({ params }: Route.ComponentProps) {
           {analyzing ? "Analyzing trade..." : "Suggest Fair Trade"}
         </button>
       </div>
+
+      {/* Chat features indicator */}
+      <div className="flex items-center gap-3 mb-2 px-1">
+        <div className="flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-widest text-slate-600">
+          <ShieldCheck className="w-2.5 h-2.5 text-emerald-500/60" />
+          <span>Fraud Shield</span>
+        </div>
+        <span className="text-slate-700 text-[8px]">|</span>
+        <div className="flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-widest text-slate-600">
+          <Languages className="w-2.5 h-2.5 text-cyan-500/60" />
+          <span>Translate</span>
+        </div>
+        <span className="text-slate-700 text-[8px]">|</span>
+        <div className="flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-widest text-slate-600">
+          <Scale className="w-2.5 h-2.5 text-amber-500/60" />
+          <span>Negotiator</span>
+        </div>
+      </div>
+
       <ChatWindow messages={messages} currentUserId={userId} />
       <ChatComposer onSend={onSend} />
     </div>
