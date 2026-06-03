@@ -36,6 +36,7 @@ export default [
   route("api/listings", "routes/api.listings.ts"),
   route("api/ai-match", "routes/api.ai-match.ts"),
   route("api/upload-mobile", "routes/api.upload-mobile.ts"),
+  route("api/profile", "routes/api.profile.ts"),
   route("api/trades", "routes/api.trades.ts"),
   route("api/trades/:id", "routes/api.trades.$id.ts"),
   route("dashboard", "routes/dashboard.tsx", [
