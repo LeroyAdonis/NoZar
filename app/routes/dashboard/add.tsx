@@ -582,6 +582,81 @@ function AddAssetForm({
     }
   }
 
+  async function handleCameraCapture(dataUrl: string) {
+    // Step 1: Show loading state
+    setVisionLoadingForUrl(dataUrl);
+    setVisionError(null);
+    setVisionFilled(false);
+
+    try {
+      // Convert data URL to Blob then File
+      const blobRes = await fetch(dataUrl);
+      const blob = await blobRes.blob();
+      const file = new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" });
+
+      // Upload to Vercel Blob
+      const { upload } = await import("@vercel/blob/client");
+      const uploaded = await upload(`listings/${file.name}`, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
+
+      const publicUrl = uploaded.url;
+
+      // Add public URL to image list
+      setImageUrls((prev) => {
+        const next = [...prev];
+        const emptyIdx = next.indexOf("");
+        if (emptyIdx >= 0) {
+          next[emptyIdx] = publicUrl;
+        } else {
+          next.push(publicUrl);
+        }
+        return next;
+      });
+
+      // Step 2: AI auto-fill from the public URL
+      const aiRes = await fetch("/api/ai-listing-from-photo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: publicUrl }),
+      });
+
+      const aiData = await aiRes.json();
+
+      if (!aiRes.ok) {
+        if (aiData.error === "ai_tier_restricted") {
+          setVisionError("AI Auto-Fill is available on Plus and above.");
+        } else if (typeof aiData.error === "string") {
+          setVisionError(aiData.error);
+        } else {
+          setVisionError("Auto-fill failed. Please try again.");
+        }
+        setVisionLoadingForUrl(null);
+        return;
+      }
+
+      // Pre-fill form fields
+      const titleEl = formRef.current?.elements.namedItem("title") as HTMLInputElement | null;
+      const valueEl = formRef.current?.elements.namedItem("estimatedValue") as HTMLInputElement | null;
+
+      if (titleEl) titleEl.value = aiData.title;
+      if (descriptionRef.current) descriptionRef.current.value = aiData.description;
+      if (aiData.category) setSelectedCategory(aiData.category);
+      if (valueEl && aiData.estimatedValue != null) valueEl.value = String(aiData.estimatedValue);
+
+      setVisionFilled(true);
+      setVisionLoadingForUrl(null);
+      haptics.success();
+
+      setTimeout(() => setVisionFilled(false), 4000);
+    } catch (err) {
+      console.error("[camera-capture] error:", err);
+      setVisionError("Failed to upload photo. Please try again.");
+      setVisionLoadingForUrl(null);
+    }
+  }
+
   return (
     <div className="space-y-8">
       {/* Page header with step indicator */}
@@ -636,19 +711,38 @@ function AddAssetForm({
             </div>
             <CameraCapture
               onCapture={(url) => {
-                const next = [...imageUrls];
-                // Replace first empty slot or add to end
-                const emptyIdx = next.indexOf("");
-                if (emptyIdx >= 0) {
-                  next[emptyIdx] = url;
-                } else {
-                  next.push(url);
-                }
-                setImageUrls(next);
-                // Auto-trigger AI vision fill
-                handleVisionAutoFill(url);
+                handleCameraCapture(url);
               }}
             />
+
+            {/* Loading indicator */}
+            {visionLoadingForUrl && (
+              <div className="mt-3 flex items-center justify-center gap-2 text-[11px] text-emerald-400">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Uploading &amp; analyzing photo...</span>
+              </div>
+            )}
+
+            {/* Success feedback */}
+            {visionFilled && (
+              <div className="mt-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2.5 flex items-center gap-2">
+                <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span className="text-xs text-emerald-300">
+                  ✨ Form auto-filled from photo! Check &amp; tweak below.
+                </span>
+              </div>
+            )}
+
+            {/* Error feedback */}
+            {visionError && (
+              <div className="mt-3 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 flex items-center gap-2">
+                <X className="w-4 h-4 text-rose-400 shrink-0" />
+                <span className="text-xs text-rose-300">
+                  {visionError}
+                </span>
+              </div>
+            )}
+
             <p className="text-[10px] text-slate-600 mt-3">
               or fill in the details below
             </p>
