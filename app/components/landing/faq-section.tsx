@@ -71,6 +71,12 @@ const buildFaqItems = (): FaqItem[] => [
     answer:
       "After every completed swap, both of you rate each other. Ratings are hidden until both are in, so no one can retaliate. Hit 10+ swaps with a 4.5+ average and you earn the Trusted Trader badge — it boosts you in search.",
   },
+  {
+    id: "11",
+    question: "What AI features does NoZar have?",
+    answer:
+      "Six AI features. AI Match finds items based on meaning, not just keywords. Snap & List writes a full listing from one photo. AI Trade Negotiator suggests fair item-based trades in chat. AI Translate converts listings and messages into 11 SA languages. Fraud Shield watches every chat for scams in real time. Fair Trade adjusts value assessments for condition. Most are free; AI Match, Snap & List, Personalized Feed, and the Negotiator are Plus (R99/mo).",
+  },
 ];
 
 const faqItems = buildFaqItems();

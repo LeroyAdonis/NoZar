@@ -15,6 +15,9 @@ import {
   Brain,
   Camera,
   Search,
+  Scale,
+  Languages,
+  MessageSquare,
 } from "lucide-react";
 
 import { PromoBanner } from "~/components/landing/promo-banner";
@@ -55,7 +58,7 @@ export function meta({ data }: Route.MetaArgs) {
   const ogImage = `${origin}/og.png`;
   const title = "NoZar — AI-Powered Barter. Trade Without Cash.";
   const description =
-    "South Africa's AI-powered barter platform. AI matches your items, detects scams in chat, and writes listings from photos. Free to join.";
+    "South Africa's AI-powered barter platform. AI matches items, writes listings from photos, suggests fair trades, translates 11 SA languages, and detects scams in chat. Free to join.";
   return [
     { title },
     { name: "description", content: description },
@@ -350,8 +353,7 @@ export default function LandingPage({
           </span>
         </h1>
         <p className="text-sm sm:text-lg md:text-2xl text-slate-400 max-w-3xl mx-auto mb-6 sm:mb-8 leading-relaxed font-light">
-          AI matches your items. Scam protection in every chat. Snap a photo,
-          AI writes your listing.{" "}
+          AI matches items, suggests fair trades, writes listings from a photo, and translates 11 SA languages.{' '}
           <span className="text-white font-medium">NoZar does the work.</span>
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 mb-8 sm:mb-10">
@@ -368,6 +370,16 @@ export default function LandingPage({
           <div className="flex items-center gap-2 text-slate-500 text-xs sm:text-sm font-mono">
             <Camera className="w-4 h-4 text-emerald-400/70" />
             <span>Snap &amp; List</span>
+          </div>
+          <div className="w-1 h-1 rounded-full bg-slate-600" />
+          <div className="flex items-center gap-2 text-slate-500 text-xs sm:text-sm font-mono">
+            <Scale className="w-4 h-4 text-purple-400/70" />
+            <span>AI Negotiate</span>
+          </div>
+          <div className="w-1 h-1 rounded-full bg-slate-600" />
+          <div className="flex items-center gap-2 text-slate-500 text-xs sm:text-sm font-mono">
+            <Languages className="w-4 h-4 text-cyan-400/70" />
+            <span>Translate</span>
           </div>
         </div>
         <div className="flex flex-col items-center gap-4 w-full sm:w-auto">
@@ -574,6 +586,54 @@ export default function LandingPage({
                 </div>
                 <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 text-xs font-mono">
                   Condition-weighted
+                </div>
+              </div>
+            </div>
+          </div>
+          </ScrollReveal>
+
+          {/* AI Trade Negotiator */}
+          <ScrollReveal delay={0.1}>
+          <div className="group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-amber-500/30 transition-all duration-500 p-6 sm:p-10">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/10 rounded-full blur-[80px] -translate-y-1/3 translate-x-1/3 group-hover:bg-amber-500/20 transition-all duration-700" />
+            <div className="relative z-10">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-500/20 flex items-center justify-center mb-6 border border-amber-500/20">
+                <Scale className="w-7 h-7 text-amber-400" />
+              </div>
+              <h3 className="text-2xl font-bold tracking-tight mb-3 text-white">AI Trade Negotiator</h3>
+              <p className="text-slate-400 text-sm sm:text-base leading-relaxed mb-6">
+                One tap and AI suggests fair trade options — no maths, no guesswork. Knows whose side you're on and never suggests cash. Only item-based balancing.
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-mono">
+                  Plus feature
+                </div>
+                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 text-xs font-mono">
+                  No cash suggestions
+                </div>
+              </div>
+            </div>
+          </div>
+          </ScrollReveal>
+
+          {/* AI Translate */}
+          <ScrollReveal delay={0.2}>
+          <div className="group relative rounded-3xl bg-[#0F172A]/80 border border-white/10 overflow-hidden backdrop-blur-sm hover:border-cyan-500/30 transition-all duration-500 p-6 sm:p-10">
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-[80px] translate-y-1/3 -translate-x-1/3 group-hover:bg-cyan-500/20 transition-all duration-700" />
+            <div className="relative z-10">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-teal-500/20 flex items-center justify-center mb-6 border border-cyan-500/20">
+                <Languages className="w-7 h-7 text-cyan-400" />
+              </div>
+              <h3 className="text-2xl font-bold tracking-tight mb-3 text-white">AI Translate</h3>
+              <p className="text-slate-400 text-sm sm:text-base leading-relaxed mb-6">
+                Translate listings and chat messages into 11 South African languages — Zulu, Xhosa, Afrikaans, English, and more. Trade with anyone, in any language.
+              </p>
+              <div className="flex items-center gap-3">
+                <div className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+                  Free for all
+                </div>
+                <div className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 text-xs font-mono">
+                  11 SA languages
                 </div>
               </div>
             </div>
