@@ -6,7 +6,7 @@ function buildSafetyMessage(
   counterpartyName: string,
   listingTitle: string,
   spotName: string | null,
-  tradeId: number,
+  _tradeId: number,
 ): string {
   const lines = [
     "\u{1F512} Meetup via NoZar",
@@ -14,11 +14,8 @@ function buildSafetyMessage(
     "Meeting: " + counterpartyName,
     "My item: " + listingTitle,
     "Location: " + (spotName ?? "TBD"),
-    "Trade ID: #" + tradeId,
     "",
     "If you don't hear from me within 1 hour after the meetup, please check on me.",
-    "",
-    "Trade link: https://nozar.co.za/dashboard/pings/" + tradeId,
   ];
   return lines.join("\n");
 }
@@ -27,7 +24,7 @@ function buildWhatsAppText(
   counterpartyName: string,
   listingTitle: string,
   spotName: string | null,
-  tradeId: number,
+  _tradeId: number,
 ): string {
   const t = [
     "\u{1F512} Meetup via NoZar",
@@ -35,7 +32,6 @@ function buildWhatsAppText(
     "Meeting: " + counterpartyName,
     "My item: " + listingTitle,
     "Location: " + (spotName ?? "TBD"),
-    "Trade: https://nozar.co.za/dashboard/pings/" + tradeId,
     "",
     "If I don't check in within 1hr please reach out.",
   ].join("\n");
