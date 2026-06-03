@@ -1,5 +1,5 @@
 import { Link, useLoaderData } from "react-router";
-import { Lock } from "lucide-react";
+import { Lock, Scale, Sparkles, CheckCircle2, AlertTriangle } from "lucide-react";
 import type { LoaderFunctionArgs } from "react-router";
 import { useEffect, useState } from "react";
 import ChatWindow from "~/components/ui/ChatWindow";
@@ -27,6 +27,9 @@ export default function TradeChat({ params }: Route.ComponentProps) {
   const tradeId = Number(params.tradeId);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<{ verdict: string; suggestions: string[]; explanation: string } | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -113,6 +116,80 @@ export default function TradeChat({ params }: Route.ComponentProps) {
           {error}
         </div>
       )}
+
+      {/* AI Trade Negotiator */}
+      <div className="mb-3">
+        {analysis ? (
+          <div className={`rounded-xl border p-3 ${
+            analysis.verdict === "fair"
+              ? "bg-emerald-500/5 border-emerald-500/20"
+              : analysis.verdict === "slightly_unbalanced"
+              ? "bg-amber-500/5 border-amber-500/20"
+              : "bg-red-500/5 border-red-500/20"
+          }`}>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                {analysis.verdict === "fair" ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                ) : (
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                )}
+                <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400">
+                  AI Trade Analysis
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAnalysis(null)}
+                className="text-[10px] font-mono text-slate-500 hover:text-white transition-colors"
+              >
+                ×
+              </button>
+            </div>
+            <p className="text-xs text-slate-300 mb-2">{analysis.explanation}</p>
+            {analysis.suggestions.length > 0 && (
+              <ul className="space-y-1">
+                {analysis.suggestions.map((s, i) => (
+                  <li key={i} className="flex items-start gap-1.5 text-xs text-slate-400">
+                    <Sparkles className="w-3 h-3 text-emerald-400 shrink-0 mt-0.5" />
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : analysisError ? (
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 mb-2">
+            <p className="text-xs text-amber-400">{analysisError}</p>
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={async () => {
+            setAnalyzing(true);
+            setAnalysisError(null);
+            setAnalysis(null);
+            try {
+              const res = await fetch(`/api/trade-balance?tradeId=${tradeId}`);
+              const data = await res.json();
+              if (data.error) {
+                setAnalysisError(data.message ?? data.error);
+              } else {
+                setAnalysis(data);
+              }
+            } catch {
+              setAnalysisError("Could not analyze trade. Try again.");
+            }
+            setAnalyzing(false);
+          }}
+          disabled={analyzing}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-slate-300 hover:text-emerald-400 transition-colors text-[11px] font-mono uppercase tracking-widest disabled:opacity-50"
+        >
+          <Scale className="w-3.5 h-3.5" />
+          {analyzing ? "Analyzing trade..." : "Suggest Fair Trade"}
+        </button>
+      </div>
       <ChatWindow messages={messages} currentUserId={userId} />
       <ChatComposer onSend={onSend} />
     </div>
