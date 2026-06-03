@@ -19,7 +19,9 @@ export function CameraCapture({ onCapture }: CameraCaptureProps) {
       streamRef.current = s;
       if (videoRef.current) {
         videoRef.current.srcObject = s;
-        videoRef.current.play();
+        videoRef.current.play().catch((err) => {
+          console.warn("Camera autoplay failed, user may need to tap", err);
+        });
       }
       setActive(true);
     } catch (err) {
@@ -69,7 +71,7 @@ export function CameraCapture({ onCapture }: CameraCaptureProps) {
 
   return (
     <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
-      <video ref={videoRef} className="w-full h-full object-cover" />
+      <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
       <div className="absolute bottom-8 flex gap-4">
         <Button type="button" onClick={stopCamera} variant="ghost" className="bg-red-500/20">
           <X className="w-6 h-6" />
