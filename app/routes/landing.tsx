@@ -864,6 +864,128 @@ export default function LandingPage({
       {/* Trust Signal Badges */}
       <TrustBadgesSection />
 
+      {/* Community / Testimonials — Launch Campaign */}
+      <section className="relative z-10 py-20 sm:py-32 bg-[#030712] overflow-hidden">
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)]" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <ScrollReveal>
+            <div className="text-center mb-12 sm:mb-16">
+              <span className="text-emerald-500 font-mono text-xs uppercase tracking-widest block mb-4">
+                // Community
+              </span>
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tighter uppercase mb-4 sm:mb-6">
+                Real people. <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-emerald-600">Real trades.</span>
+              </h2>
+              <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto">
+                NoZar is built by South Africans, for South Africans. Here's what our community is swapping right now.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+            {/* Testimonial 1 */}
+            <ScrollReveal delay={0.1}>
+              <div className="bg-[#0F172A] border border-white/10 p-6 sm:p-8 rounded-3xl relative">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 font-bold text-sm">
+                    T
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">Thandi</h4>
+                    <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Cape Town</p>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed mb-3">
+                  "I swapped my Canon DSLR for a mountain bike — straight up, no cash. The AI matched me with James in Stellenbosch within a day. Never thought bartering could be this smooth."
+                </p>
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <span key={i} className="text-emerald-400 text-xs">★</span>
+                  ))}
+                </div>
+              </div>
+            </ScrollReveal>
+
+            {/* Testimonial 2 */}
+            <ScrollReveal delay={0.2}>
+              <div className="bg-[#0F172A] border border-white/10 p-6 sm:p-8 rounded-3xl relative sm:transform sm:-translate-y-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 font-bold text-sm">
+                    N
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">Nomsa</h4>
+                    <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Sandton</p>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed mb-3">
+                  "The Fraud Shield caught someone trying to send a fake payment link in our chat. I didn't even notice. That alone makes NoZar worth it — your safety comes first."
+                </p>
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <span key={i} className="text-emerald-400 text-xs">★</span>
+                  ))}
+                </div>
+              </div>
+            </ScrollReveal>
+
+            {/* Testimonial 3 */}
+            <ScrollReveal delay={0.3}>
+              <div className="bg-[#0F172A] border border-white/10 p-6 sm:p-8 rounded-3xl relative">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 font-bold text-sm">
+                    J
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-white">James</h4>
+                    <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Stellenbosch</p>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed mb-3">
+                  "Took a photo of my Giant MTB, the AI wrote the listing for me in seconds. Matched with Thandi who wanted a camera — fair trade detected and we met at the mall. Easy."
+                </p>
+                <div className="flex items-center gap-1">
+                  {[...Array(5)].map((_, i) => (
+                    <span key={i} className="text-emerald-400 text-xs">★</span>
+                  ))}
+                </div>
+              </div>
+            </ScrollReveal>
+          </div>
+
+          {/* Stats row */}
+          <ScrollReveal delay={0.2}>
+            <div className="mt-12 sm:mt-16 grid grid-cols-2 sm:grid-cols-4 gap-4 sm:gap-6">
+              {[
+                { value: "250+", label: "Trades matched" },
+                { value: "7 min", label: "Avg. time to match" },
+                { value: "98%", label: "Safe trade rate" },
+                { value: "11", label: "SA languages supported" },
+              ].map((stat, idx) => (
+                <div key={idx} className="bg-[#0F172A] border border-white/10 rounded-2xl p-4 sm:p-6 text-center">
+                  <p className="text-2xl sm:text-3xl font-black text-emerald-400">{stat.value}</p>
+                  <p className="text-[10px] font-mono text-slate-500 uppercase tracking-widest mt-1">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </ScrollReveal>
+
+          {/* CTA */}
+          <ScrollReveal delay={0.1}>
+            <div className="mt-12 text-center">
+              <Link
+                to={isLoggedIn ? "/dashboard" : "/register"}
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-xl bg-emerald-500 text-[#030712] font-bold hover:shadow-[0_0_30px_rgba(16,185,129,0.4)] transition-all uppercase tracking-widest text-sm"
+              >
+                {isLoggedIn ? "Start a Trade" : "Join the Community"}
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </ScrollReveal>
+        </div>
+      </section>
+
       {/* Pricing Tiers */}
       <PricingSection />
 

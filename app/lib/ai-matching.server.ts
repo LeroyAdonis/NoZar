@@ -257,6 +257,75 @@ function fallbackKeywordMatch(
  * - Returns top 10 results with scores >= 0.50
  * - Falls back to keyword overlap scoring if NVIDIA is unavailable
  */
+/**
+ * Type for a listing summary used in similarity matching.
+ */
+export type SimilarListingInput = {
+  id: number;
+  title: string;
+  description: string;
+  seekingDescription: string | null;
+  category: string;
+};
+
+/**
+ * Find listings that are semantically similar to a given listing.
+ * Uses the same NVIDIA embedding pipeline as findMatches but takes a single
+ * listing as the query instead of combining all user listings.
+ *
+ * Useful for "Suggested Swaps" on the listing detail page.
+ *
+ * @returns array of { id, score } sorted by similarity descending, filtered >= 0.50
+ */
+export async function findSimilarListings(
+  listing: SimilarListingInput,
+  candidates: SimilarListingInput[],
+  maxResults: number = 4,
+): Promise<Array<{ id: number; score: number }>> {
+  const queryText = buildListingText(listing);
+
+  if (!queryText.trim() || candidates.length === 0) {
+    return [];
+  }
+
+  try {
+    const queryEmbedding = await getEmbedding(queryText, "query");
+
+    const similarities = await Promise.all(
+      candidates.map(async (candidate) => {
+        const cacheKey = `listingId:${candidate.id}`;
+        let embedding = getCachedEmbedding(cacheKey);
+
+        if (!embedding) {
+          const candidateText = buildListingText(candidate);
+          embedding = await getEmbedding(candidateText, "passage");
+          setCachedEmbedding(cacheKey, embedding);
+        }
+
+        const score = cosineSimilarity(queryEmbedding, embedding);
+        return { id: candidate.id, score };
+      }),
+    );
+
+    return similarities
+      .filter((s) => s.score >= 0.5)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, maxResults);
+  } catch (error) {
+    console.error(
+      "NVIDIA embedding failed for similar listings, falling back to keyword scoring:",
+      error,
+    );
+    // Fallback: text overlap
+    const scored = candidates
+      .map((c) => ({ id: c.id, score: textOverlapScore(queryText, buildListingText(c)) }))
+      .filter((s) => s.score >= 0.3)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, maxResults);
+    return scored;
+  }
+}
+
 export async function findMatches(
   userId: string,
   userListings: UserListingSummary[],

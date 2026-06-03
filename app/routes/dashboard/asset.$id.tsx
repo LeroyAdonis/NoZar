@@ -1,8 +1,8 @@
 import { data, redirect, useFetcher, Form, Link } from "react-router";
 import type { Route } from "./+types/asset.$id";
-import { ChevronLeft, Sparkles, MessageSquare, Repeat, ShieldCheck, Pencil, Trash2, RotateCcw, ChevronRight, X, Languages } from "lucide-react";
+import { ChevronLeft, Sparkles, MessageSquare, Repeat, ShieldCheck, Pencil, Trash2, RotateCcw, ChevronRight, X, Languages, ArrowRight } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { eq, and, ne } from "drizzle-orm";
+import { eq, and, ne, inArray, desc } from "drizzle-orm";
 import { motion, AnimatePresence } from "motion/react";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
@@ -18,6 +18,7 @@ import { Button } from "~/components/ui/button";
 import { LoadingBar, Spinner } from "~/components/ui/loading-indicator";
 import { haversineKm, formatDistance } from "~/lib/utils";
 import { Globe, MapPin, AlertCircle } from "lucide-react";
+import { findSimilarListings, type SimilarListingInput } from "~/lib/ai-matching.server";
 
 // Inline condition-weighted value helper (React Router strips .server imports from client bundles)
 function getWeightedValue(base: number | null, cond: string | null): number | null {
@@ -72,6 +73,81 @@ export async function loader({ request, params }: Route.LoaderArgs) {
 
   const listing = result[0].listing;
 
+  // If not owner, find similar listings for "Suggested Swaps"
+  let suggestedSwaps: Array<{ id: number; title: string; imageUrl: string | null; category: string; score: number }> = [];
+  if (listing.userId !== currentUserId) {
+    try {
+      // Fetch other active listings (same region, exclude current + user's own)
+      const province = result[0].owner.id ? (await db.select({ province: profiles.province }).from(profiles).where(eq(profiles.userId, result[0].owner.id)).limit(1))[0]?.province : null;
+
+      const candidates = await db
+        .select({ id: listings.id, title: listings.title, description: listings.description, seekingDescription: listings.seekingDescription, category: listings.category })
+        .from(listings)
+        .innerJoin(profiles, eq(listings.userId, profiles.userId))
+        .where(
+          and(
+            eq(listings.status, "active"),
+            ne(listings.id, listingId),
+            ne(listings.userId, currentUserId),
+            province ? eq(profiles.province, province) : undefined,
+          ),
+        )
+        .limit(20);
+
+      if (candidates.length > 0) {
+        const queryInput: SimilarListingInput = {
+          id: listing.id,
+          title: listing.title,
+          description: listing.description,
+          seekingDescription: listing.seekingDescription,
+          category: listing.category,
+        };
+
+        const similar = await findSimilarListings(queryInput, candidates, 4);
+
+        if (similar.length > 0) {
+          const similarIds = similar.map((s) => s.id);
+          const scoreMap = new Map(similar.map((s) => [s.id, s.score]));
+
+          // Fetch full details for similar listings
+          const similarListings = await db
+            .select({
+              id: listings.id,
+              title: listings.title,
+              category: listings.category,
+            })
+            .from(listings)
+            .where(inArray(listings.id, similarIds));
+
+          // Fetch first image for each
+          const allImages = await db
+            .select({ listingId: listingImages.listingId, url: listingImages.url })
+            .from(listingImages)
+            .where(inArray(listingImages.listingId, similarIds))
+            .orderBy(listingImages.order);
+
+          const imageMap = new Map<number, string>();
+          for (const img of allImages) {
+            if (!imageMap.has(img.listingId)) imageMap.set(img.listingId, img.url);
+          }
+
+          suggestedSwaps = similarListings
+            .map((l) => ({
+              id: l.id,
+              title: l.title,
+              category: l.category,
+              imageUrl: imageMap.get(l.id) ?? null,
+              score: Math.round((scoreMap.get(l.id) ?? 0) * 100),
+            }))
+            .sort((a, b) => b.score - a.score);
+        }
+      }
+    } catch (err) {
+      console.error("[asset detail] Similar listings failed:", err);
+      // Non-blocking — suggestions are decorative
+    }
+  }
+
   // Fetch current user's location for distance calculation
   const [userProfile] = await db
     .select({
@@ -101,6 +177,7 @@ export async function loader({ request, params }: Route.LoaderArgs) {
     distance,
     searchRadiusKm: userProfile?.searchRadiusKm ?? 25,
     userInventory,
+    suggestedSwaps,
   };
 }
 
@@ -174,7 +251,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
 export default function AssetDetail({ loaderData }: Route.ComponentProps) {
   const archiveFetcher = useFetcher();
-  const { listing, owner, images, isOwner, distance, searchRadiusKm, userInventory } = loaderData;
+  const { listing, owner, images, isOwner, distance, searchRadiusKm, userInventory, suggestedSwaps } = loaderData;
   const isManaging = archiveFetcher.state !== "idle";
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -628,6 +705,60 @@ export default function AssetDetail({ loaderData }: Route.ComponentProps) {
                   Report this listing
                 </button>
               </>
+            )}
+
+            {/* ── Suggested Swaps ── */}
+            {suggestedSwaps.length > 0 && (
+              <div className="mt-8">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-[11px] font-mono uppercase tracking-widest text-slate-400">
+                    <Sparkles className="w-3.5 h-3.5 inline-block mr-1.5 text-emerald-400" />
+                    Suggested Swaps
+                  </h3>
+                  <Link
+                    to="/dashboard"
+                    className="flex items-center gap-1 text-[10px] font-mono text-emerald-400 hover:text-emerald-300 uppercase tracking-widest transition-colors"
+                  >
+                    View all <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {suggestedSwaps.map((swap) => (
+                    <Link
+                      key={swap.id}
+                      to={`/dashboard/asset/${swap.id}`}
+                      className="group relative bg-[#0F172A] border border-white/10 rounded-xl p-2.5 hover:border-emerald-500/40 hover:shadow-[0_0_20px_rgba(16,185,129,0.1)] transition-all overflow-hidden"
+                    >
+                      {/* Image */}
+                      <div className={`w-full aspect-[4/3] rounded-lg mb-2 ${swap.imageUrl ? "" : "bg-emerald-900/20"} border border-white/5 flex items-center justify-center overflow-hidden`}>
+                        {swap.imageUrl ? (
+                          <img
+                            src={swap.imageUrl}
+                            alt={swap.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <Repeat className="w-5 h-5 text-white/20" />
+                        )}
+                      </div>
+                      {/* Title */}
+                      <p className="text-xs font-semibold text-white truncate leading-tight mb-1">
+                        {swap.title}
+                      </p>
+                      {/* Category + Score */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-[9px] font-mono text-slate-500 uppercase tracking-wider">
+                          {swap.category}
+                        </span>
+                        <span className="text-[9px] font-mono text-emerald-400 flex items-center gap-0.5">
+                          <Sparkles className="w-2.5 h-2.5" />
+                          {swap.score}%
+                        </span>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         )}

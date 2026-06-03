@@ -24,6 +24,7 @@ import {
   Trash2,
   Upload,
   X,
+  ImageUp,
 } from "lucide-react";
 import { AiServiceError, generateContent } from "~/lib/ai.server";
 import type { Route } from "./+types/add";
@@ -395,6 +396,7 @@ function AddAssetForm({
   const [visionFilled, setVisionFilled] = useState(false);
   const [visionError, setVisionError] = useState<string | null>(null);
   const [aiSuggestedCategory, setAiSuggestedCategory] = useState<string | null>(null);
+  const [photoQuality, setPhotoQuality] = useState<Record<string, { loading: boolean; score?: number; rating?: string; suggestions?: string[]; error?: string }>>({});
 
   const formRef = useRef<HTMLFormElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
@@ -658,6 +660,48 @@ function AddAssetForm({
       console.error("[camera-capture] error:", err);
       setVisionError("Failed to upload photo. Please try again.");
       setVisionLoadingForUrl(null);
+    }
+  }
+
+  // ── Photo Quality Analysis ─────────────────────────────────
+  async function handlePhotoQuality(url: string) {
+    setPhotoQuality((prev) => ({ ...prev, [url]: { loading: true } }));
+
+    try {
+      const formData = new FormData();
+      formData.set("imageUrl", url);
+      const res = await fetch("/api/photo-quality", { method: "POST", body: formData });
+      const data = await res.json();
+
+      if (data.error) {
+        setPhotoQuality((prev) => ({ ...prev, [url]: { loading: false, error: data.error } }));
+      } else {
+        setPhotoQuality((prev) => ({
+          ...prev,
+          [url]: { loading: false, score: data.score, rating: data.overallRating, suggestions: data.suggestions },
+        }));
+      }
+    } catch {
+      setPhotoQuality((prev) => ({ ...prev, [url]: { loading: false, error: "Analysis failed" } }));
+    }
+  }
+
+  // ── Photo Enhancement ─────────────────────────────────────
+  async function handleEnhancePhoto(url: string) {
+    try {
+      const { enhanceImage } = await import("~/lib/photo-enhancer.client");
+      const enhancedDataUrl = await enhanceImage(url);
+      const blob = await fetch(enhancedDataUrl).then((r) => r.blob());
+      const file = new File([blob], "enhanced.jpg", { type: "image/jpeg" });
+      const { upload } = await import("@vercel/blob/client");
+      const result = await upload(`listings/enhanced-${Date.now()}.jpg`, file, {
+        access: "public",
+        handleUploadUrl: "/api/upload",
+      });
+      setImageUrls((prev) => [...prev, result.url]);
+      haptics.success();
+    } catch (err) {
+      console.error("[enhance] failed:", err);
     }
   }
 
@@ -1091,6 +1135,22 @@ function AddAssetForm({
                         )}
                       </button>
                     )}
+                    {url.trim().startsWith("https://") && url.trim().length > 12 && (
+                      <button
+                        type="button"
+                        onClick={() => handlePhotoQuality(url)}
+                        disabled={photoQuality[url]?.loading}
+                        className="shrink-0 w-10 h-10 rounded-xl border border-cyan-500/30 bg-cyan-500/10 flex items-center justify-center text-cyan-400 hover:text-cyan-300 hover:border-cyan-500/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        aria-label={`Photo quality for image ${index + 1}`}
+                        title="📷 Photo Quality Check"
+                      >
+                        {photoQuality[url]?.loading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <ImageUp className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
                     {imageUrls.length > 1 && (
                       <button
                         type="button"
@@ -1114,6 +1174,40 @@ function AddAssetForm({
                     <p className="mt-1 text-[11px] text-slate-600 truncate">
                       {url.trim()}
                     </p>
+                  )}
+                  {/* Photo quality results */}
+                  {photoQuality[url]?.score != null && (
+                    <div className="mt-1.5 rounded-lg border border-cyan-500/15 bg-cyan-500/5 px-3 py-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-[10px] font-mono uppercase tracking-wider text-cyan-400">
+                          Photo Quality: <strong>{photoQuality[url].score}/100</strong>
+                        </span>
+                        <span className={`text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded border ${photoQuality[url].rating === 'great' ? 'text-emerald-400 border-emerald-500/20' : photoQuality[url].rating === 'good' ? 'text-cyan-400 border-cyan-500/20' : photoQuality[url].rating === 'okay' ? 'text-amber-400 border-amber-500/20' : 'text-rose-400 border-rose-500/20'}`}>
+                          {photoQuality[url].rating}
+                        </span>
+                      </div>
+                      {photoQuality[url].suggestions && photoQuality[url].suggestions[0] !== "Looks good!" && (
+                        <ul className="space-y-0.5">
+                          {photoQuality[url].suggestions.map((s: string, idx: number) => (
+                            <li key={idx} className="text-[11px] text-slate-400 flex items-start gap-1">
+                              <span className="text-cyan-500 mt-0.5">•</span>
+                              {s}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleEnhancePhoto(url)}
+                        className="mt-1.5 flex items-center gap-1 text-[10px] font-mono text-emerald-400 hover:text-emerald-300 uppercase tracking-wider transition-colors"
+                      >
+                        <ImageUp className="w-3 h-3" />
+                        Auto-Enhance Photo
+                      </button>
+                    </div>
+                  )}
+                  {photoQuality[url]?.error && (
+                    <p className="mt-1 text-[11px] text-rose-400">{photoQuality[url].error}</p>
                   )}
                 </div>
               ))}
