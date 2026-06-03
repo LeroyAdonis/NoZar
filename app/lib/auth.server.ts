@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { twoFactor } from "better-auth/plugins";
+import { expo } from "@better-auth/expo";
 import { redirect } from "react-router";
 import { db } from "./db.server";
 import * as schema from "./schema";
@@ -232,6 +233,7 @@ export const auth = betterAuth({
   // D-09: Built-in TOTP 2FA plugin. Adds twoFactors table + users.twoFactorEnabled.
   // Better Auth encrypts the TOTP secret using BETTER_AUTH_SECRET (AES-256).
   plugins: [
+    expo(),
     twoFactor({
       issuer: "NoZar",
     }),
