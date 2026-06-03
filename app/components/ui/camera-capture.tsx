@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { Camera, X, Check } from "lucide-react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Camera, X } from "lucide-react";
 import { Button } from "./button";
 
 type CameraCaptureProps = {
@@ -11,30 +11,39 @@ export function CameraCapture({ onCapture }: CameraCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const startCamera = async () => {
-    try {
-      const s = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "environment" },
-      });
-      streamRef.current = s;
-      if (videoRef.current) {
-        videoRef.current.srcObject = s;
-        videoRef.current.play().catch((err) => {
-          console.warn("Camera autoplay failed, user may need to tap", err);
-        });
-      }
-      setActive(true);
-    } catch (err) {
-      console.error("Camera access failed", err);
-      alert("Could not access camera. Please check permissions.");
-    }
-  };
+  // Start camera when active becomes true (video element is already in DOM)
+  useEffect(() => {
+    if (!active) return;
 
-  const stopCamera = () => {
-    streamRef.current?.getTracks().forEach((track) => track.stop());
-    streamRef.current = null;
-    setActive(false);
-  };
+    let cancelled = false;
+    const start = async () => {
+      try {
+        const s = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" },
+        });
+        if (cancelled) {
+          s.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = s;
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          await videoRef.current.play().catch((err) => {
+            console.warn("Camera autoplay failed", err);
+          });
+        }
+      } catch (err) {
+        console.error("Camera access failed", err);
+        alert("Could not access camera. Please check permissions.");
+        setActive(false);
+      }
+    };
+    start();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [active]);
 
   // Cleanup stream on unmount
   useEffect(() => {
@@ -42,6 +51,17 @@ export function CameraCapture({ onCapture }: CameraCaptureProps) {
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
     };
+  }, []);
+
+  const openCamera = () => {
+    // Set active first so the video element mounts, then useEffect wires the stream
+    setActive(true);
+  };
+
+  const stopCamera = useCallback(() => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setActive(false);
   }, []);
 
   const capture = () => {
@@ -55,31 +75,55 @@ export function CameraCapture({ onCapture }: CameraCaptureProps) {
     }
   };
 
-  if (!active) {
-    return (
-      <Button
-        type="button"
-        onClick={startCamera}
-        variant="nozarOutline"
-        className="flex items-center gap-2"
-      >
-        <Camera className="w-4 h-4" />
-        Quick-Snap
-      </Button>
-    );
-  }
-
   return (
-    <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center">
-      <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
-      <div className="absolute bottom-8 flex gap-4">
-        <Button type="button" onClick={stopCamera} variant="ghost" className="bg-red-500/20">
-          <X className="w-6 h-6" />
+    <>
+      {!active ? (
+        <Button
+          type="button"
+          onClick={openCamera}
+          variant="nozarOutline"
+          className="flex items-center gap-2"
+        >
+          <Camera className="w-4 h-4" />
+          Quick-Snap
         </Button>
-        <Button type="button" onClick={capture} variant="nozar" className="bg-emerald-500 w-16 h-16 rounded-full">
-          <Camera className="w-6 h-6" />
-        </Button>
-      </div>
-    </div>
+      ) : (
+        <>
+          {/* Camera overlay — fullscreen, covers nav */}
+          <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-full object-cover"
+            />
+          </div>
+
+          {/* Shutter controls — separate high-z layer, positioned above mobile nav */}
+          <div
+            className="fixed left-1/2 -translate-x-1/2 z-[110] flex gap-6"
+            style={{ bottom: "calc(96px + env(safe-area-inset-bottom, 0px))" }}
+          >
+            <Button
+              type="button"
+              onClick={stopCamera}
+              variant="ghost"
+              className="bg-red-500/20 w-14 h-14 rounded-full flex items-center justify-center"
+            >
+              <X className="w-6 h-6" />
+            </Button>
+            <Button
+              type="button"
+              onClick={capture}
+              variant="nozar"
+              className="bg-emerald-500 w-16 h-16 rounded-full flex items-center justify-center shadow-[0_0_20px_rgba(16,185,129,0.5)]"
+            >
+              <Camera className="w-6 h-6" />
+            </Button>
+          </div>
+        </>
+      )}
+    </>
   );
 }
