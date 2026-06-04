@@ -22,6 +22,7 @@ export default [
   route("api/pay/upgrade", "routes/api.pay.upgrade.ts"),
   route("api/pay/webhook", "routes/api.pay.webhook.ts"),
   route("api/pay/cancel", "routes/api.pay.cancel.ts"),
+  route("api/admin/verify-all", "routes/api.admin.verify-all.ts"),
   route("api/refer", "routes/api.refer.ts"),
   route("api/refer/complete", "routes/api.refer.complete.ts"),
   route("api/upload", "routes/api.upload.ts"),

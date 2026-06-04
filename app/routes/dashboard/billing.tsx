@@ -1,8 +1,19 @@
-import { useEffect } from "react";
-import { Form, useLoaderData, useSearchParams } from "react-router";
+import { useEffect, useRef } from "react";
+import { Form, useLoaderData, useSearchParams, useFetcher } from "react-router";
 import type { Route } from "./+types/billing";
 import { eq } from "drizzle-orm";
-import { CreditCard, Check, Lock, Zap, BarChart3, Shield, Layers, Rocket } from "lucide-react";
+import {
+  CreditCard,
+  Check,
+  Lock,
+  Zap,
+  BarChart3,
+  Shield,
+  Layers,
+  Rocket,
+  ExternalLink,
+  Loader2,
+} from "lucide-react";
 
 import { useHaptics } from "~/components/ui/haptic-provider";
 
@@ -74,7 +85,10 @@ const VISIBLE_TIERS = BUSINESS_PRODUCTS_LIVE
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Billing — NoZar" },
-    { name: "description", content: "Manage your NoZar subscription and tier" },
+    {
+      name: "description",
+      content: "Manage your NoZar subscription and tier",
+    },
   ];
 }
 
@@ -97,18 +111,20 @@ export async function loader({ request }: Route.LoaderArgs) {
   const url = new URL(request.url);
   const isProduction = process.env.VERCEL_ENV === "production";
   const testpayOn = url.searchParams.get("testpay") === "1";
-  const isSandbox = process.env.PAYFAST_MODE === "sandbox";
   const hasCreds = Boolean(
-    process.env.PAYFAST_MERCHANT_ID && process.env.PAYFAST_MERCHANT_KEY,
+    process.env.PAYSTACK_PUBLIC_KEY && process.env.PAYSTACK_SECRET_KEY,
   );
-  const upgradeEnabled =
-    hasCreds && (isProduction || testpayOn || isSandbox);
+  const upgradeEnabled = hasCreds && (isProduction || testpayOn);
 
   return {
     planCode: usage.planCode,
     listingCount: usage.activeCount,
     subscription: sub
-      ? { status: sub.status, nextPaymentDate: sub.nextPaymentDate, promoExpiresAt: sub.promoExpiresAt }
+      ? {
+          status: sub.status,
+          nextPaymentDate: sub.nextPaymentDate,
+          promoExpiresAt: sub.promoExpiresAt,
+        }
       : null,
     upgradeEnabled,
   };
@@ -122,16 +138,37 @@ export default function BillingPage() {
 
   const haptics = useHaptics();
   const [searchParams] = useSearchParams();
+  const fetcher = useFetcher<{ ok?: boolean; redirectUrl?: string; error?: string }>();
+  const redirectingRef = useRef(false);
 
-  // Fire success haptic once when PayFast returns with pf=success
+  // Fire success haptic when Paystack returns with ps=success
   useEffect(() => {
-    if (searchParams.get("pf") === "success") {
+    if (searchParams.get("ps") === "success") {
       haptics.success();
     }
   }, [searchParams]);
 
+  // Handle fetcher redirect — redirect to Paystack checkout
+  useEffect(() => {
+    if (
+      fetcher.data?.redirectUrl &&
+      fetcher.state === "idle" &&
+      !redirectingRef.current
+    ) {
+      redirectingRef.current = true;
+      window.location.href = fetcher.data.redirectUrl;
+    }
+  }, [fetcher.data, fetcher.state]);
+
+  // Show a brief loading state during redirect
+  const isRedirecting =
+    fetcher.state !== "idle" || redirectingRef.current;
+
   const currentTier = TIERS.find((t) => t.code === planCode) ?? TIERS[0];
-  const usagePct = Math.min((listingCount / currentTier.listingLimit) * 100, 100);
+  const usagePct = Math.min(
+    (listingCount / currentTier.listingLimit) * 100,
+    100,
+  );
   const overLimit = listingCount > currentTier.listingLimit;
   const atLimit = listingCount >= currentTier.listingLimit;
   const approaching = !atLimit && usagePct >= 80;
@@ -183,22 +220,42 @@ export default function BillingPage() {
 
       {/* ── Promo status card ── */}
       {subscription?.status === "promo" && (
-        <div data-testid="promo-status-card" className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3">
+        <div
+          data-testid="promo-status-card"
+          className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-5 space-y-3"
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Rocket className="w-4 h-4 text-emerald-400" />
-              <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400">Beta Plus Active</span>
+              <span className="text-[10px] font-mono uppercase tracking-widest text-emerald-400">
+                Beta Plus Active
+              </span>
             </div>
-            <span className="text-[9px] font-mono uppercase tracking-widest text-slate-500 bg-slate-800 px-2 py-0.5 rounded">Free for 90 days</span>
+            <span className="text-[9px] font-mono uppercase tracking-widest text-slate-500 bg-slate-800 px-2 py-0.5 rounded">
+              Free for 90 days
+            </span>
           </div>
           <p className="text-xs text-slate-400">
-            You have full <span className="text-emerald-400 font-semibold">Plus</span> access during the beta.
+            You have full{" "}
+            <span className="text-emerald-400 font-semibold">Plus</span> access
+            during the beta.
             {subscription.promoExpiresAt && (
-              <> Your free period ends on <span className="text-slate-200">{new Date(subscription.promoExpiresAt).toLocaleDateString("en-ZA", { day: "numeric", month: "long", year: "numeric" })}</span>.</>
+              <>
+                {" "}
+                Your free period ends on{" "}
+                <span className="text-slate-200">
+                  {new Date(subscription.promoExpiresAt).toLocaleDateString(
+                    "en-ZA",
+                    { day: "numeric", month: "long", year: "numeric" },
+                  )}
+                </span>
+                .
+              </>
             )}
           </p>
           <p className="text-[10px] text-slate-500">
-            After the beta, you can subscribe to keep Plus access. No card required during the free period.
+            After the beta, you can subscribe to keep Plus access. No card
+            required during the free period.
           </p>
         </div>
       )}
@@ -222,7 +279,11 @@ export default function BillingPage() {
             </span>
             <span
               className={`text-xs font-mono ${
-                atLimit ? "text-rose-400" : approaching ? "text-amber-400" : "text-slate-400"
+                atLimit
+                  ? "text-rose-400"
+                  : approaching
+                    ? "text-amber-400"
+                    : "text-slate-400"
               }`}
             >
               {listingCount} / {currentTier.listingLimit}
@@ -231,7 +292,11 @@ export default function BillingPage() {
           <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
             <div
               className={`h-full rounded-full transition-all ${
-                atLimit ? "bg-rose-500" : approaching ? "bg-amber-400" : "bg-emerald-500"
+                atLimit
+                  ? "bg-rose-500"
+                  : approaching
+                    ? "bg-amber-400"
+                    : "bg-emerald-500"
               }`}
               style={{ width: `${usagePct}%` }}
             />
@@ -239,11 +304,13 @@ export default function BillingPage() {
           {usageWarn && (
             <p
               className={`text-[10px] font-mono ${
-                atLimit ? "text-rose-400/80" : "text-amber-400/70"
+                atLimit
+                  ? "text-rose-400/80"
+                  : "text-amber-400/70"
               }`}
             >
               {overLimit
-                  ? "Over listing limit — archive some listings or upgrade to add more"
+                ? "Over listing limit — archive some listings or upgrade to add more"
                 : atLimit
                   ? "At listing limit — upgrade to add more"
                   : "Approaching listing limit — consider upgrading"}
@@ -253,12 +320,14 @@ export default function BillingPage() {
 
         {/* Current tier features quick-view */}
         <div className="grid grid-cols-2 gap-x-6 gap-y-1.5 pt-1">
-          {currentTier.features.filter((f) => f.included).map((f) => (
-            <div key={f.text} className="flex items-center gap-1.5">
-              <Check className="w-3 h-3 text-emerald-400 shrink-0" />
-              <span className="text-[11px] text-slate-400">{f.text}</span>
-            </div>
-          ))}
+          {currentTier.features
+            .filter((f) => f.included)
+            .map((f) => (
+              <div key={f.text} className="flex items-center gap-1.5">
+                <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                <span className="text-[11px] text-slate-400">{f.text}</span>
+              </div>
+            ))}
         </div>
       </section>
 
@@ -336,15 +405,26 @@ export default function BillingPage() {
                     Current Plan
                   </div>
                 ) : tier.code === "plus" && upgradeEnabled ? (
-                  <Form method="post" action="/api/pay/upgrade">
+                  <fetcher.Form method="post" action="/api/pay/upgrade">
                     <input type="hidden" name="planCode" value="plus" />
                     <button
                       type="submit"
-                      className="w-full py-2 rounded-xl text-[10px] font-mono uppercase tracking-widest text-center text-slate-950 bg-emerald-500 hover:bg-emerald-400 transition-colors"
+                      disabled={isRedirecting}
+                      className="w-full py-2 rounded-xl text-[10px] font-mono uppercase tracking-widest text-center text-slate-950 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/50 disabled:cursor-wait transition-colors flex items-center justify-center gap-2"
                     >
-                      Upgrade to Plus
+                      {isRedirecting ? (
+                        <>
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                          Redirecting…
+                        </>
+                      ) : (
+                        <>
+                          <ExternalLink className="w-3 h-3" />
+                          Upgrade to Plus
+                        </>
+                      )}
                     </button>
-                  </Form>
+                  </fetcher.Form>
                 ) : (
                   <div className="relative group">
                     <button
@@ -358,7 +438,7 @@ export default function BillingPage() {
                     {/* Tooltip */}
                     <div className="absolute -top-9 left-1/2 -translate-x-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 whitespace-nowrap">
                       <div className="bg-[#0F172A] border border-white/10 rounded-lg px-3 py-1.5 text-[10px] font-mono text-slate-400 shadow-xl">
-                        Payment processing coming soon — powered by PayFast
+                        Payment processing coming soon — powered by Paystack
                       </div>
                       <div className="w-2 h-2 bg-[#0F172A] border-r border-b border-white/10 rotate-45 mx-auto -mt-1" />
                     </div>
@@ -426,7 +506,9 @@ export default function BillingPage() {
               <p className="text-[11px] font-bold uppercase tracking-wider text-slate-300">
                 {label}
               </p>
-              <p className="text-[10px] text-slate-500 leading-relaxed">{desc}</p>
+              <p className="text-[10px] text-slate-500 leading-relaxed">
+                {desc}
+              </p>
             </div>
           ))}
         </div>
@@ -434,7 +516,7 @@ export default function BillingPage() {
 
       {/* ── Footer note ── */}
       <p className="text-[10px] font-mono text-slate-600 text-center pb-4">
-        All prices in ZAR · Billing via PayFast · Cancel anytime
+        All prices in ZAR &middot; Billing via Paystack &middot; Cancel anytime
       </p>
     </div>
   );

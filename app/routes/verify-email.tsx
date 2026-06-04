@@ -121,7 +121,7 @@ export default function VerifyEmailPage({ loaderData, actionData }: Route.Compon
           <div className="my-6 border-t border-white/5" />
 
           {/* Sign out link */}
-          <Form method="post">
+          <Form method="post" onSubmit={() => localStorage.clear()}>
             <input type="hidden" name="intent" value="signout" />
             <button
               type="submit"

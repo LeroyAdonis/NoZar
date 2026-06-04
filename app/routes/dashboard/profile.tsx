@@ -1041,7 +1041,7 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
 
           {/* Sign out */}
           <div className="pt-2 pb-4">
-            <Form method="post">
+            <Form method="post" onSubmit={() => localStorage.clear()}>
               <input type="hidden" name="intent" value="logout" />
               <button
                 type="submit"

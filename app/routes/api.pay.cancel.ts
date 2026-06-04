@@ -4,14 +4,14 @@ import { eq } from "drizzle-orm";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import { subscriptions } from "~/lib/schema";
-import { cancelSubscription } from "~/lib/payfast.server";
+import { cancelSubscription } from "~/lib/paystack.server";
 
 export async function action({ request }: ActionFunctionArgs) {
   const { user } = await requireAuth(request);
 
   const [sub] = await db
     .select({
-      token: subscriptions.subscriptionToken,
+      code: subscriptions.subscriptionCode,
       status: subscriptions.status,
     })
     .from(subscriptions)
@@ -21,21 +21,26 @@ export async function action({ request }: ActionFunctionArgs) {
   if (!sub || sub.status !== "active") {
     return data({ error: "No active subscription to cancel" }, { status: 400 });
   }
-  if (!sub.token) {
-    return data(
-      { error: "Subscription is missing a PayFast token — contact support" },
-      { status: 400 },
-    );
+
+  if (sub.code) {
+    // Cancel on Paystack side
+    try {
+      await cancelSubscription(sub.code);
+    } catch (err) {
+      // If Paystack returns an error (e.g. already cancelled), still update local
+      console.warn("Paystack cancel error (non-critical):", err);
+    }
   }
 
-  const payfastResult = await cancelSubscription(sub.token);
-
-  // PayFast will fire an ITN with payment_status=CANCELLED; the webhook
-  // updates subscriptions.status. We optimistically mark it cancelled now
-  // for immediate UI feedback.
+  // Update locally regardless
   await db
     .update(subscriptions)
-    .set({ status: "cancelled", updatedAt: new Date(), subscriptionToken: null })
+    .set({
+      status: "cancelled",
+      updatedAt: new Date(),
+      subscriptionCode: null,
+      subscriptionToken: null,
+    })
     .where(eq(subscriptions.userId, user.id));
 
   return data({ ok: true }, { status: 200 });
