@@ -1,4 +1,4 @@
-import type { LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { and, eq, or, desc, sql } from "drizzle-orm";
 import { db } from "~/lib/db.server";
 import { trades, users, listings, messages, threadReadCursors } from "~/lib/schema";
@@ -10,6 +10,72 @@ import type { TradeThread } from "~/lib/types";
  * GET /api/trades
  * Returns the authenticated user's trade threads as JSON (for mobile ping list).
  */
+/**
+ * POST /api/trades
+ * Creates a new trade (swap) from the listing detail page.
+ * Used by mobile app via the "Offer a Swap" button.
+ * Body: { listingId: number, offerItemId?: number }
+ */
+export async function action({ request }: ActionFunctionArgs) {
+  if (request.method !== "POST") {
+    return Response.json({ error: "Method not allowed" }, { status: 405 });
+  }
+
+  const { user } = await requireAuth(request);
+  const body = await request.json();
+  const { listingId, offerItemId } = body;
+
+  if (!listingId) {
+    return Response.json({ error: "listingId is required" }, { status: 400 });
+  }
+
+  // Fetch the listing to get the owner
+  const [listing] = await db
+    .select()
+    .from(listings)
+    .where(eq(listings.id, listingId))
+    .limit(1);
+
+  if (!listing) {
+    return Response.json({ error: "Listing not found" }, { status: 404 });
+  }
+
+  if (listing.userId === user.id) {
+    return Response.json({ error: "Cannot trade with your own listing" }, { status: 400 });
+  }
+
+  // Check for existing trade between these users on this listing
+  const [existing] = await db
+    .select({ id: trades.id })
+    .from(trades)
+    .where(
+      and(
+        eq(trades.listingId, listingId),
+        eq(trades.initiatorId, user.id),
+        eq(trades.responderId, listing.userId),
+      ),
+    )
+    .limit(1);
+
+  if (existing) {
+    // Already have a trade — return existing
+    return Response.json({ tradeId: existing.id, exists: true });
+  }
+
+  // Create the trade
+  const [trade] = await db
+    .insert(trades)
+    .values({
+      initiatorId: user.id,
+      responderId: listing.userId,
+      listingId,
+      status: "pending",
+    })
+    .returning();
+
+  return Response.json({ tradeId: trade.id, exists: false });
+}
+
 export async function loader({ request }: LoaderFunctionArgs) {
   const { user } = await requireAuth(request);
 
