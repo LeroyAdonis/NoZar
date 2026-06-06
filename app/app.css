@@ -203,3 +203,35 @@ button, a {
     transform: translateX(420%);
   }
 }
+
+/* ─── NoZar Driver.js Tour Theme ─── */
+
+.nozar-tour-popover {
+  --driver-popover-bg: #0F172A !important;
+  --driver-popover-color: #f1f5f9 !important;
+  --driver-popover-border-color: rgba(255, 255, 255, 0.08) !important;
+  --driver-popover-padding: 24px !important;
+  --driver-popover-border-radius: 16px !important;
+  --driver-popover-title-color: #ffffff !important;
+  --driver-popover-title-font-size: 15px !important;
+  --driver-popover-description-font-size: 12px !important;
+  --driver-popover-btn-bg: #10b981 !important;
+  --driver-popover-btn-color: #030712 !important;
+  --driver-popover-btn-border: none !important;
+  --driver-popover-btn-border-radius: 10px !important;
+  --driver-popover-btn-font-size: 11px !important;
+  --driver-popover-btn-padding: 8px 18px !important;
+  --driver-popover-close-btn-bg: transparent !important;
+  --driver-popover-close-btn-color: #64748b !important;
+  --driver-popover-close-btn-size: 18px !important;
+  --driver-popover-box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif !important;
+}
+
+.nozar-tour-popover .driver-popover-progress-text {
+  color: #64748b !important;
+  font-size: 10px !important;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}

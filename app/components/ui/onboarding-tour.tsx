@@ -1,11 +1,10 @@
 // app/components/ui/onboarding-tour.tsx
 // Driver.js-powered onboarding tour for NoZar — 9 steps covering key features,
-// with SPA navigation for the chat page detour (which works reliably).
-// Profile info is shown on the dashboard itself to avoid cross-page navigation
-// issues with Driver.js element targets.
+// with SPA navigation for the chat page detour.
+// Visibility-aware element targeting: picks sidebar or bottom-nav based on viewport.
 
 import { useEffect, useRef, useCallback } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { driver, type Driver, type DriveStep, type Config } from "driver.js";
 import "driver.js/dist/driver.css";
 
@@ -19,11 +18,28 @@ const NAV_STEPS: Record<number, string> = {
   4: "/dashboard",         // Step 4 → click → go home for step 5
 };
 
+// Resolve element selector: sidebar (data-tour-d) on desktop, bottom-nav (data-tour) on mobile.
+// On desktop (>=768px) the sidebar is visible; on mobile the bottom-nav is visible.
+const TAB_ATTRS: Record<string, { desktop: string; mobile: string }> = {
+  add:      { desktop: '[data-tour-d="add"]',      mobile: '[data-tour="add"]' },
+  map:      { desktop: '[data-tour-d="map"]',      mobile: '[data-tour="map"]' },
+  messages: { desktop: '[data-tour-d="messages"]', mobile: '[data-tour="messages"]' },
+  profile:  { desktop: '[data-tour-d="profile"]',  mobile: '[data-tour="profile"]' },
+};
+
+function resolveElement(tabName: string): string {
+  const attrs = TAB_ATTRS[tabName];
+  if (!attrs) return "";
+  if (typeof window !== "undefined" && window.innerWidth >= 768) {
+    return attrs.desktop;
+  }
+  return attrs.mobile;
+}
+
 export function OnboardingTour({ onDismiss }: OnboardingTourProps) {
   const driverRef = useRef<Driver | null>(null);
   const activeStepRef = useRef(0);
   const dismissedRef = useRef(false);
-  const location = useLocation();
   const navigate = useNavigate();
 
   // ── Central advance handler ────────────────────────────────────────────
@@ -34,7 +50,7 @@ export function OnboardingTour({ onDismiss }: OnboardingTourProps) {
     const currentIdx = activeStepRef.current;
     const nextIdx = currentIdx + 1;
 
-    // Last step — tour complete (now 9 steps, index 8 is the last)
+    // Last step — tour complete
     if (nextIdx >= 9) {
       dismissedRef.current = true;
       onDismiss();
@@ -43,14 +59,12 @@ export function OnboardingTour({ onDismiss }: OnboardingTourProps) {
 
     const navTarget = NAV_STEPS[currentIdx];
     if (navTarget) {
-      // SPA navigation — works reliably for /pings and /dashboard
       navigate(navTarget);
       setTimeout(() => {
         drv.moveNext();
         activeStepRef.current = nextIdx;
       }, 500);
     } else {
-      // Same-page step — advance after a short buffer
       setTimeout(() => {
         drv.moveNext();
         activeStepRef.current = nextIdx;
@@ -61,7 +75,6 @@ export function OnboardingTour({ onDismiss }: OnboardingTourProps) {
   const advanceRef = useRef(advance);
   advanceRef.current = advance;
 
-  // Close handler — called when close button (×) is clicked on any step
   const handleClose = useCallback(() => {
     if (!dismissedRef.current) {
       dismissedRef.current = true;
@@ -72,6 +85,8 @@ export function OnboardingTour({ onDismiss }: OnboardingTourProps) {
   // ── Step definitions ───────────────────────────────────────────────────
   const getSteps = useCallback((): DriveStep[] => {
     const a = () => advanceRef.current();
+    const c = () => handleClose();
+
     return [
       // Step 0: Welcome (Dashboard, center)
       {
@@ -85,12 +100,12 @@ export function OnboardingTour({ onDismiss }: OnboardingTourProps) {
           showButtons: ["next", "close"],
           nextBtnText: "Let's go →",
           onNextClick: a,
-          onCloseClick: handleClose,
+          onCloseClick: c,
         },
       },
       // Step 1: List an Item (Dashboard, highlight add)
       {
-        element: '[data-tour="add"], [data-tour-d="add"]',
+        element: resolveElement("add"),
         popover: {
           title: "📸 List an Item",
           description:
@@ -98,12 +113,12 @@ export function OnboardingTour({ onDismiss }: OnboardingTourProps) {
           side: "right",
           showButtons: ["next", "close"],
           onNextClick: a,
-          onCloseClick: handleClose,
+          onCloseClick: c,
         },
       },
       // Step 2: Explore (Dashboard, highlight map)
       {
-        element: '[data-tour="map"], [data-tour-d="map"]',
+        element: resolveElement("map"),
         popover: {
           title: "🔍 Explore with AI",
           description:
@@ -111,12 +126,12 @@ export function OnboardingTour({ onDismiss }: OnboardingTourProps) {
           side: "right",
           showButtons: ["next", "close"],
           onNextClick: a,
-          onCloseClick: handleClose,
+          onCloseClick: c,
         },
       },
       // Step 3: Chat (Dashboard, highlight messages — SPA nav to /pings)
       {
-        element: '[data-tour="messages"], [data-tour-d="messages"]',
+        element: resolveElement("messages"),
         popover: {
           title: "💬 Chat Safely",
           description:
@@ -125,7 +140,7 @@ export function OnboardingTour({ onDismiss }: OnboardingTourProps) {
           showButtons: ["next", "close"],
           nextBtnText: "Take me there →",
           onNextClick: a,
-          onCloseClick: handleClose,
+          onCloseClick: c,
         },
       },
       // Step 4: Chat Page (/pings — SPA nav back to dashboard)
@@ -139,7 +154,7 @@ export function OnboardingTour({ onDismiss }: OnboardingTourProps) {
           showButtons: ["next", "close"],
           nextBtnText: "Back to tour ←",
           onNextClick: a,
-          onCloseClick: handleClose,
+          onCloseClick: c,
         },
       },
       // Step 5: AI Features (Dashboard, body/no spotlight)
@@ -151,7 +166,7 @@ export function OnboardingTour({ onDismiss }: OnboardingTourProps) {
           side: "over",
           showButtons: ["next", "close"],
           onNextClick: a,
-          onCloseClick: handleClose,
+          onCloseClick: c,
         },
       },
       // Step 6: Safety & Trust (Dashboard, body/no spotlight)
@@ -163,20 +178,20 @@ export function OnboardingTour({ onDismiss }: OnboardingTourProps) {
           side: "over",
           showButtons: ["next", "close"],
           onNextClick: a,
-          onCloseClick: handleClose,
+          onCloseClick: c,
         },
       },
       // Step 7: Your Profile (Dashboard, highlight profile — stays on dashboard)
       {
-        element: '[data-tour="profile"], [data-tour-d="profile"]',
+        element: resolveElement("profile"),
         popover: {
           title: "👤 Your Profile",
           description:
-            "Trade history, ratings, and billing — all in one place. Update your avatar, manage your Plus subscription, and adjust settings. Keep your profile updated to build trust.",
+            "Trade history, ratings, and billing — all in one place. Update your avatar, manage your Plus subscription, and adjust settings.",
           side: "right",
           showButtons: ["next", "close"],
           onNextClick: a,
-          onCloseClick: handleClose,
+          onCloseClick: c,
         },
       },
       // Step 8: Done (Dashboard, body/no spotlight — last step)
@@ -189,11 +204,11 @@ export function OnboardingTour({ onDismiss }: OnboardingTourProps) {
           showButtons: ["next", "close"],
           doneBtnText: "Done 🚀",
           onNextClick: a,
-          onCloseClick: handleClose,
+          onCloseClick: c,
         },
       },
     ];
-  }, []);
+  }, [handleClose]);
 
   // ── Initialize Driver.js and start the tour ────────────────────────────
   useEffect(() => {
@@ -208,9 +223,8 @@ export function OnboardingTour({ onDismiss }: OnboardingTourProps) {
       stagePadding: 8,
       stageRadius: 12,
       popoverClass: "nozar-tour-popover",
-      showProgress: true,
-      progressText: "Step {current} of {total}",
-      doneBtnText: "Done 🚀",
+      showProgress: false,
+      progressText: "",
       nextBtnText: "Next",
       prevBtnText: "Back",
       showButtons: ["next", "close"],
