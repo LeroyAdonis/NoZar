@@ -1043,9 +1043,10 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
           {/* Sign out */}
           <div className="pt-2 pb-4">
             <Form method="post" onSubmit={() => {
-              // Clear tutorial flag so it shows on next login
+              // Clear tutorial flags so they show on next login
               localStorage.removeItem("nozar_tutorial_seen");
               localStorage.removeItem("nozar_location_dismissed");
+              localStorage.removeItem("nozar_tour_completed");
             }}>
               <input type="hidden" name="intent" value="logout" />
               <button

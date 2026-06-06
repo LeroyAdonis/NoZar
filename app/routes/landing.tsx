@@ -29,6 +29,7 @@ import { LanguageSelector } from "~/components/ui/language-selector";
 import type { Route } from "./+types/landing";
 import { ScrollReveal } from "~/components/motion/scroll-reveal";
 import { MagneticButton } from "~/components/motion/magnetic-button";
+import { authClient } from "~/lib/auth.client";
 import { getOptionalSession } from "~/lib/auth.server";
 import { BUSINESS_PRODUCTS_LIVE } from "~/lib/tier-limits";
 import { resolveLanguage, DEFAULT_LANGUAGE } from "~/lib/sa-languages";
@@ -148,6 +149,13 @@ export default function LandingPage({
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
+  const handleSignOut = useCallback(async () => {
+    await authClient.signOut();
+    // Clear any local flags
+    localStorage.removeItem("nozar_tour_completed");
+    window.location.href = "/";
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#030712] text-slate-50 font-sans selection:bg-emerald-500/30 overflow-x-hidden">
       {/* Background ambient effects */}
@@ -234,12 +242,20 @@ export default function LandingPage({
               compact
             />
             {isLoggedIn ? (
-              <Link
-                to="/dashboard"
-                className="text-sm font-bold bg-emerald-500 text-slate-950 px-6 py-2.5 rounded-lg hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all flex items-center gap-2"
-              >
-                Go to Dashboard
-              </Link>
+              <>
+                <button
+                  onClick={handleSignOut}
+                  className="text-xs font-mono uppercase tracking-widest text-slate-500 hover:text-red-400 transition-colors px-4"
+                >
+                  Sign out
+                </button>
+                <Link
+                  to="/dashboard"
+                  className="text-sm font-bold bg-emerald-500 text-slate-950 px-6 py-2.5 rounded-lg hover:bg-emerald-400 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all flex items-center gap-2"
+                >
+                  Go to Dashboard
+                </Link>
+              </>
             ) : (
               <>
                 <Link
@@ -317,12 +333,21 @@ export default function LandingPage({
             </div>
             <hr className="border-white/10 my-2" />
             {isLoggedIn ? (
-              <Link
-                to="/dashboard"
-                className="w-full bg-emerald-500 text-slate-950 py-4 rounded-xl font-bold mt-2 text-center"
-              >
-                Go to Dashboard
-              </Link>
+              <>
+                <button
+                  onClick={() => { handleSignOut(); setMobileMenuOpen(false); }}
+                  className="w-full text-left text-slate-400 hover:text-red-400 transition-colors"
+                >
+                  Sign out
+                </button>
+                <Link
+                  to="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="w-full bg-emerald-500 text-slate-950 py-4 rounded-xl font-bold mt-2 text-center"
+                >
+                  Go to Dashboard
+                </Link>
+              </>
             ) : (
               <>
                 <Link to="/login" className="w-full text-left text-slate-300">
