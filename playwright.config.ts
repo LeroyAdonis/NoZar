@@ -23,12 +23,6 @@ export default defineConfig({
     
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
-    
-    /* Take screenshot on failure */
-    screenshot: 'only-on-failure',
-    
-    /* Record video on failure */
-    video: 'retain-on-failure',
   },
 
   /* Local dev: Chromium + Mobile Chrome only to keep the feedback loop fast.
@@ -36,12 +30,12 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], channel: 'chrome', headless: true },
     },
 
     {
       name: 'Mobile Chrome',
-      use: { ...devices['Pixel 5'] },
+      use: { ...devices['Pixel 5'], channel: 'chrome', headless: true },
     },
 
     // --- CI-only browsers (uncomment in CI config) ---

@@ -142,6 +142,7 @@ export default function Pings({ loaderData }: Route.ComponentProps) {
 
   return (
     <div className="max-w-2xl mx-auto px-3 sm:px-4 pt-4 sm:pt-6 pb-28 space-y-3">
+      <div id="tour-chat-page" className="hidden" />
       {/* Header */}
       <div className="flex justify-between items-end">
         <div>

@@ -91,7 +91,7 @@ export default function RegisterPage() {
           haptics.success();
           // If Better Auth auto-signed the user in (e.g. test mode or future config),
           // navigate directly to dashboard. Otherwise, require email verification.
-          if (ctx.data?.session) {
+          if (ctx.data?.session || ctx.data?.token) {
             navigate("/dashboard");
           } else {
             setVerificationSent(true);
@@ -190,7 +190,7 @@ export default function RegisterPage() {
               }
               setLoading(false);
               haptics.success();
-              if (ctx.data?.session) {
+              if (ctx.data?.session || ctx.data?.token) {
                 navigate("/dashboard");
               } else {
                 setVerificationSent(true);

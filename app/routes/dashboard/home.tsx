@@ -452,6 +452,7 @@ export default function DashboardHome({
 
   return (
     <div className="space-y-6">
+      <div id="tour-welcome" className="hidden" />
       {isMatching && <LoadingBar />}
       {loaderData.needsLocation && (
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl px-4 py-3 flex items-start gap-3 animate-in slide-in-from-top-4 duration-500">

@@ -86,6 +86,7 @@ export function BottomNav({ activeTab, isPending = false, hasUnread = false }: B
               <div key={tab.id} className="relative -top-5 sm:-top-6">
                 <Link
                   to={tab.href}
+                  data-tour={tab.id}
                   aria-disabled={isPending}
                   tabIndex={isPending ? -1 : undefined}
                   onClick={(e) => {
@@ -116,6 +117,7 @@ export function BottomNav({ activeTab, isPending = false, hasUnread = false }: B
             <Link
               key={tab.id}
               to={tab.href}
+              data-tour={tab.id}
               aria-disabled={isPending}
               tabIndex={isPending ? -1 : undefined}
               onClick={(e) => {

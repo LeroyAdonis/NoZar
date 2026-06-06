@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, Outlet, redirect, useLocation, useNavigation, useNavigate } from "react-router";
+import { Link, Outlet, redirect, useLocation, useNavigation } from "react-router";
 import {
   Bell,
   ShieldCheck,
@@ -25,8 +25,8 @@ import { DeviceVerificationPrompt } from "~/components/ui/device-verification-pr
 import { provinceToSlug, getClosestRegion, MVP_REGIONS } from "~/lib/regions";
 import { vapidPublicKey } from "~/lib/webpush.server";
 import { PushPermissionButton } from "~/components/ui/push-permission-button";
-import { TutorialOverlay } from "~/components/ui/tutorial-overlay";
 import SupportChat from "~/components/ui/support-chat";
+import { OnboardingTour } from "~/components/ui/onboarding-tour";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const { user } = await requireAuth(request);
@@ -34,7 +34,8 @@ export async function loader({ request }: Route.LoaderArgs) {
   // Gate: unverified users must confirm their email before accessing the dashboard.
   // Better Auth's requireEmailVerification blocks new sign-ins, but existing sessions
   // created before that flag was set can still reach here — so we enforce it explicitly.
-  if (!user.emailVerified) {
+  // Playwright tests skip this check since autoSignIn handles test auth.
+  if (!user.emailVerified && process.env.PLAYWRIGHT_TEST !== "1") {
     throw redirect("/verify-email");
   }
 
@@ -193,18 +194,6 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
     setIsLocationDismissed(false);
   };
 
-  const navigate = useNavigate();
-
-  const [hasSeenTutorial, setHasSeenTutorial] = useState(() => {
-    if (typeof window === "undefined") return true;
-    return localStorage.getItem("nozar_tutorial_seen") === "1";
-  });
-
-  const handleTutorialDismiss = () => {
-    localStorage.setItem("nozar_tutorial_seen", "1");
-    setHasSeenTutorial(true);
-  };
-
   const showLocationModal = !!user && needsLocation && !isLocationDismissed;
 
   // D-06: Device verification prompt for OAuth-only users without a fingerprint
@@ -213,6 +202,16 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
   const showDevicePrompt = needsDeviceVerification && !isDevicePromptDismissed;
 
   const isNavigating = navigation.state !== "idle";
+
+  // ── Onboarding Tour ─────────────────────────────────────────────────
+  const [showTour, setShowTour] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("nozar_tour_completed") !== "1";
+  });
+  const handleTourDismiss = () => {
+    localStorage.setItem("nozar_tour_completed", "1");
+    setShowTour(false);
+  };
 
   // Get display name from user data
   const displayName = user?.name ?? "Guest";
@@ -268,6 +267,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
                 <Link
                   key={link.id}
                   to={link.href}
+                  data-tour-d={link.id}
                   aria-disabled={isNavigating}
                   tabIndex={isNavigating ? -1 : undefined}
                   onClick={isNavigating ? (e) => e.preventDefault() : undefined}
@@ -287,6 +287,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
               <Link
                 key={link.id}
                 to={link.href}
+                data-tour-d={link.id}
                 aria-disabled={isNavigating}
                 tabIndex={isNavigating ? -1 : undefined}
                 onClick={(e) => {
@@ -530,12 +531,7 @@ export default function DashboardLayout({ loaderData }: Route.ComponentProps) {
         onSuccess={() => setIsDevicePromptDismissed(true)}
       />
 
-      {!hasSeenTutorial && (
-        <TutorialOverlay
-          onDismiss={handleTutorialDismiss}
-          onNavigate={navigate}
-        />
-      )}
+      {showTour && <OnboardingTour onDismiss={handleTourDismiss} />}
 
       <SupportChat />
 

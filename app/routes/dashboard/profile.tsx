@@ -648,6 +648,7 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
 
   return (
     <div className="space-y-6">
+      <div id="tour-profile-page" className="hidden" />
       {isSubmitting && <LoadingBar />}
       {/* Tab navigation */}
       <div className="flex gap-1 bg-[#0F172A] border border-white/10 rounded-2xl p-1 mt-2">
@@ -1041,7 +1042,11 @@ export default function Profile({ loaderData, actionData }: Route.ComponentProps
 
           {/* Sign out */}
           <div className="pt-2 pb-4">
-            <Form method="post" onSubmit={() => localStorage.clear()}>
+            <Form method="post" onSubmit={() => {
+              // Clear tutorial flag so it shows on next login
+              localStorage.removeItem("nozar_tutorial_seen");
+              localStorage.removeItem("nozar_location_dismissed");
+            }}>
               <input type="hidden" name="intent" value="logout" />
               <button
                 type="submit"
