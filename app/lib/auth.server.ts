@@ -397,6 +397,8 @@ export const auth = betterAuth({
       const { Resend } = await import("resend");
       const resend = new Resend(process.env.RESEND_API_KEY);
 
+      console.log("[auth] sendResetPassword: sending to", user.email);
+
       // Wrap in .catch so a Resend failure logs gracefully and doesn't
       // surface an internal error to the user during password-reset flow.
       const promise = resend.emails.send({
@@ -404,10 +406,19 @@ export const auth = betterAuth({
         to: user.email,
         subject: "Reset Your NoZar Password",
         html: getResetPasswordEmailHtml(url, user.name),
+      }).then((result) => {
+        // Check for Resend quota or error responses embedded in the result
+        if ('error' in result && result.error) {
+          console.error("[auth] sendResetPassword: Resend error:", JSON.stringify(result.error));
+        } else {
+          console.log("[auth] sendResetPassword: sent successfully, id:", JSON.stringify(result.data?.id ?? result));
+        }
+        return result;
       }).catch((err: unknown) => {
         console.error(
           "[auth] sendResetPassword failed:",
           err instanceof Error ? err.message : err,
+          err instanceof Error ? err.stack : "",
         );
       });
 
