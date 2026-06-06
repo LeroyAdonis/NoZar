@@ -1,27 +1,21 @@
 /**
- * Africa's Talking OTP — SMS-based phone verification.
+ * Brevo OTP — SMS-based phone verification via Brevo.
  *
  * Storage: reuses Better Auth's `verifications` table.
  *   identifier = "phone_otp:<E.164 number>"  (prefix avoids collision with email flows)
  *   value      = 6-digit code
  *   expiresAt  = now + 10 min
  *
- * AT docs: https://developers.africastalking.com/docs/sms/sending
- *
- * Production AT API key updated May 31 2025. Deploy v2.
+ * Brevo SMS API: https://developers.brevo.com/reference/sendtransacsms
  */
 
 import { randomInt } from "node:crypto";
 import { eq, and, gt } from "drizzle-orm";
 import { db } from "./db.server";
 import { verifications } from "./schema";
+import { brevo } from "./brevo.server";
 
 // ─── Config ────────────────────────────────────────────────────
-
-const SANDBOX = process.env.AFRICASTALKING_SANDBOX === "true";
-const AT_BASE = SANDBOX
-  ? "https://api.sandbox.africastalking.com"
-  : "https://api.africastalking.com";
 
 // Prefix keeps our OTP records isolated from Better Auth email identifiers.
 const OTP_PREFIX = "phone_otp:";
@@ -29,10 +23,7 @@ const OTP_PREFIX = "phone_otp:";
 // ─── Public helpers ─────────────────────────────────────────────
 
 export function isOtpConfigured(): boolean {
-  return !!(
-    process.env.AFRICASTALKING_API_KEY &&
-    process.env.AFRICASTALKING_USERNAME
-  );
+  return !!(process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.trim() !== "");
 }
 
 /**
@@ -68,7 +59,7 @@ function generateCode(): string {
 /**
  * Generate, store, and send an OTP to the given E.164 phone number.
  *
- * If AT credentials are not configured the code is stored but not sent —
+ * If Brevo credentials are not configured the code is stored but not sent —
  * useful during local development (the code is printed to the server log).
  *
  * Returns { code } so callers can log it in non-production environments.
@@ -92,49 +83,20 @@ export async function sendOtp(phone: string): Promise<{ code: string }> {
     updatedAt: now,
   });
 
-  // Send via Africa's Talking SMS API when credentials are available.
+  // Send via Brevo SMS API when credentials are configured.
   if (isOtpConfigured()) {
-    const apiKey = process.env.AFRICASTALKING_API_KEY!;
-    const username = process.env.AFRICASTALKING_USERNAME!;
     const message = `Your NoZar verification code is ${code}. It expires in 10 minutes.`;
-    const body = new URLSearchParams({ username, to: phone, message });
+    const result = await brevo.sendSms(phone, message);
 
-    // Try apiKey header first, fall back to Bearer token (both supported by AT)
-    const res = await fetch(`${AT_BASE}/version1/messaging`, {
-      method: "POST",
-      headers: {
-        apiKey,
-        Accept: "application/json",
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: body.toString(),
-    });
-
-    if (!res.ok) {
-      // Try Bearer auth as fallback (newer AT auth format)
-      const bearerRes = await fetch(`${AT_BASE}/version1/messaging`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${apiKey}`,
-          Accept: "application/json",
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: body.toString(),
-      });
-      if (!bearerRes.ok) {
-        const text1 = await res.text();
-        const text2 = await bearerRes.text();
-        throw new Error(
-          `Africa's Talking SMS failed. apiKey header: ${res.status} ${text1}. ` +
-            `Bearer fallback: ${bearerRes.status} ${text2}.`,
-        );
-      }
+    if (!result.success) {
+      console.error("[otp] Brevo SMS failed:", result.error);
+      throw new Error(`SMS sending failed: ${result.error ?? "unknown"}`);
     }
   } else {
     console.warn(
-      "[otp] Africa's Talking not configured — OTP stored but NOT sent. " +
+      "[otp] Brevo not configured — OTP stored but NOT sent. " +
         `Code for ${phone}: ${code}. ` +
-        "Set AFRICASTALKING_API_KEY and AFRICASTALKING_USERNAME in Vercel env vars.",
+        "Set BREVO_API_KEY in your environment variables.",
     );
   }
 

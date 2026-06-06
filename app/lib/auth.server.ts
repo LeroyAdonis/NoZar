@@ -6,6 +6,7 @@ import { expo } from "@better-auth/expo";
 import { redirect } from "react-router";
 import { db } from "./db.server";
 import * as schema from "./schema";
+import { brevo } from "./brevo.server";
 
 // ─── Base URL Resolution ─────────────────────
 /**
@@ -364,13 +365,11 @@ export const auth = betterAuth({
       // For verified users: send a confirmation email to the OLD address
       // before proceeding with the change. We reuse Resend for this.
       sendChangeEmailConfirmation: async ({ user, newEmail, url }) => {
-        const { Resend } = await import("resend");
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        await resend.emails.send({
-          from: "NoZar <noreply@nozar.co.za>",
+        await brevo.sendEmail({
           to: user.email,
+          toName: user.name || "NoZar User",
           subject: "Confirm Your Email Change — NoZar",
-          html: getVerificationEmailHtml(url, user.name), // Reuse verify template
+          html: getVerificationEmailHtml(url, user.name),
         }).catch((err: unknown) => {
           console.error(
             "[auth] sendChangeEmailConfirmation failed:",
@@ -394,26 +393,15 @@ export const auth = betterAuth({
     // route checks (sign-up.mjs line 239, sign-in.mjs line 229).
     requireEmailVerification: process.env.PLAYWRIGHT_TEST !== "1",
     async sendResetPassword({ user, url }) {
-      const { Resend } = await import("resend");
-      const resend = new Resend(process.env.RESEND_API_KEY);
-
       console.log("[auth] sendResetPassword: sending to", user.email);
 
-      // Wrap in .catch so a Resend failure logs gracefully and doesn't
-      // surface an internal error to the user during password-reset flow.
-      const promise = resend.emails.send({
-        from: "NoZar <noreply@nozar.co.za>",
+      const promise = brevo.sendEmail({
         to: user.email,
+        toName: user.name || "NoZar User",
         subject: "Reset Your NoZar Password",
         html: getResetPasswordEmailHtml(url, user.name),
-      }).then((result) => {
-        // Check for Resend quota or error responses embedded in the result
-        if ('error' in result && result.error) {
-          console.error("[auth] sendResetPassword: Resend error:", JSON.stringify(result.error));
-        } else {
-          console.log("[auth] sendResetPassword: sent successfully, id:", JSON.stringify(result.data?.id ?? result));
-        }
-        return result;
+      }).then(() => {
+        console.log("[auth] sendResetPassword: sent successfully");
       }).catch((err: unknown) => {
         console.error(
           "[auth] sendResetPassword failed:",
@@ -441,11 +429,9 @@ export const auth = betterAuth({
     sendVerificationEmail: async ({ user, url }) => {
       // Skip email sending during Playwright E2E tests
       if (process.env.PLAYWRIGHT_TEST === "1") return;
-      const { Resend } = await import("resend");
-      const resend = new Resend(process.env.RESEND_API_KEY);
-      const result = await resend.emails.send({
-        from: "NoZar <noreply@nozar.co.za>",
+      const result = await brevo.sendEmail({
         to: user.email,
+        toName: user.name || "NoZar User",
         subject: "Verify Your NoZar Email",
         html: getVerificationEmailHtml(url, user.name),
       }).catch((err: unknown) => {
@@ -456,7 +442,7 @@ export const auth = betterAuth({
         return null;
       });
       if (result === null) {
-        console.error("[auth] sendVerificationEmail: Resend returned null — check API key or Resend dashboard");
+        console.error("[auth] sendVerificationEmail: Brevo call failed — check API key or Brevo dashboard");
       }
     },
     // In E2E tests, auto-sign-in so registration flows work end-to-end

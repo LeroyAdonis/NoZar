@@ -115,7 +115,7 @@ Copy `.env.example` to `.env.local` and fill in real values. **Never commit `.en
 | `NVIDIA_API_KEY` | ✅ | NVIDIA NIM API key for AI features |
 | `GOOGLE_MAPS_API_KEY` | ✅ | Google Maps JavaScript API key |
 | `BLOB_READ_WRITE_TOKEN` | ✅ | Vercel Blob read/write token |
-| `RESEND_API_KEY` | ✅ | Resend API key for transactional email |
+|| `BREVO_API_KEY` | ✅ | Brevo (Sendinblue) API key for transactional email + SMS |
 | `VAPID_PUBLIC_KEY` | ✅ | VAPID public key for Web Push |
 | `VAPID_PRIVATE_KEY` | ✅ | VAPID private key for Web Push |
 | `VAPID_SUBJECT` | ✅ | VAPID subject (e.g. `mailto:hello@nozar.co.za`) |
