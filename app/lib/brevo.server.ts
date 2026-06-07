@@ -1,9 +1,8 @@
 /**
  * Brevo (formerly Sendinblue) transactional email + SMS service.
+ * Falls back to Resend for email when Brevo is not configured.
  *
- * Replaces Resend for email and Africa's Talking for SMS.
- * Graceful degradation — if no BREVO_API_KEY is set, everything
- * logs to the console and returns without error.
+ * Priority: Brevo > Resend > console log (for local dev)
  *
  * Brevo API docs:
  *   Email: https://developers.brevo.com/reference/sendtransacemail
@@ -12,26 +11,37 @@
 
 // ── Config ────────────────────────────────────────────────────
 
-const API_KEY = process.env.BREVO_API_KEY;
+const BREVO_KEY = process.env.BREVO_API_KEY;
+const RESEND_KEY = process.env.RESEND_API_KEY;
 const API_BASE = "https://api.brevo.com/v3";
 const FROM_NAME = "NoZar";
 const FROM_EMAIL = "noreply@nozar.co.za";
 
 let warnedOnce = false;
 
-function apiHeaders(): Record<string, string> | null {
-  if (API_KEY && API_KEY.trim() !== "") {
+function brevoHeaders(): Record<string, string> | null {
+  if (BREVO_KEY && BREVO_KEY.trim() !== "") {
     return {
-      "api-key": API_KEY,
+      "api-key": BREVO_KEY,
       "Content-Type": "application/json",
       Accept: "application/json",
     };
   }
+  return null;
+}
+
+function hasResend(): boolean {
+  return !!(RESEND_KEY && RESEND_KEY.trim() !== "");
+}
+
+function logDisabled(to: string, type: string, subject: string) {
   if (!warnedOnce) {
     warnedOnce = true;
-    console.warn("[brevo] BREVO_API_KEY not configured — emails/SMS disabled");
+    console.warn(
+      "[brevo] Neither BREVO_API_KEY nor RESEND_API_KEY configured — emails/SMS disabled",
+    );
   }
-  return null;
+  console.log(`[brevo] (disabled) ${type} → ${to} | ${subject}`);
 }
 
 // ── Email ──────────────────────────────────────────────────────
@@ -44,35 +54,56 @@ interface EmailParams {
 }
 
 async function sendEmail({ to, toName, subject, html }: EmailParams): Promise<void> {
-  const headers = apiHeaders();
-  if (!headers) {
-    console.log(`[brevo] (disabled) email → ${to} | ${subject}`);
-    return;
-  }
+  // Try Brevo first
+  const headers = brevoHeaders();
+  if (headers) {
+    try {
+      const res = await fetch(`${API_BASE}/smtp/email`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          sender: { name: FROM_NAME, email: FROM_EMAIL },
+          to: [{ email: to, name: toName ?? to }],
+          subject,
+          htmlContent: html,
+        }),
+      });
 
-  try {
-    const res = await fetch(`${API_BASE}/smtp/email`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        sender: { name: FROM_NAME, email: FROM_EMAIL },
-        to: [{ email: to, name: toName ?? to }],
-        subject,
-        htmlContent: html,
-      }),
-    });
-
-    if (!res.ok) {
-      const body = await res.text();
-      console.error(`[brevo] email send failed: ${res.status} ${body}`);
-      return;
+      if (!res.ok) {
+        const body = await res.text();
+        console.error(`[brevo] email send failed: ${res.status} ${body}`);
+        // Fall through to Resend fallback
+      } else {
+        const data = await res.json();
+        console.log(`[brevo] email sent (Brevo) → ${to} | ${subject} | id: ${data.messageId}`);
+        return;
+      }
+    } catch (err) {
+      console.error("[brevo] email exception (Brevo):", err instanceof Error ? err.message : err);
+      // Fall through to Resend fallback
     }
-
-    const data = await res.json();
-    console.log(`[brevo] email sent → ${to} | ${subject} | id: ${data.messageId}`);
-  } catch (err) {
-    console.error("[brevo] email exception:", err instanceof Error ? err.message : err);
   }
+
+  // Fallback: Resend
+  if (hasResend()) {
+    try {
+      const { Resend } = await import("resend");
+      const resend = new Resend(RESEND_KEY);
+      const result = await resend.emails.send({
+        from: `${FROM_NAME} <${FROM_EMAIL}>`,
+        to,
+        subject,
+        html,
+      });
+      console.log(`[brevo] email sent (Resend) → ${to} | ${subject} | id: ${result.data?.id}`);
+      return;
+    } catch (err) {
+      console.error("[brevo] email exception (Resend):", err instanceof Error ? err.message : err);
+    }
+  }
+
+  // Neither configured
+  logDisabled(to, "email", subject);
 }
 
 // ── SMS ────────────────────────────────────────────────────────
@@ -81,9 +112,9 @@ async function sendSms(
   to: string,
   content: string,
 ): Promise<{ success: boolean; error?: string }> {
-  const headers = apiHeaders();
+  const headers = brevoHeaders();
   if (!headers) {
-    console.log(`[brevo] (disabled) SMS → ${to}: ${content}`);
+    logDisabled(to, "SMS", content.slice(0, 40));
     return { success: false, error: "Brevo not configured" };
   }
 
