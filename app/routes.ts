@@ -18,7 +18,6 @@ export default [
   route("api/chat-stream/:tradeId", "routes/api.chat-stream.$tradeId.ts"),
   route("api/chat", "routes/api.chat.ts"),
   route("api/support/chat", "routes/api.support.chat.ts"),
-  route("api/debug-ai", "routes/api.debug-ai.ts"),
   route("api/seed-demo", "routes/api.seed-demo.ts"),
   route("api/pay/upgrade", "routes/api.pay.upgrade.ts"),
   route("api/pay/webhook", "routes/api.pay.webhook.ts"),
