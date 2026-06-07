@@ -10,7 +10,7 @@ export type NvidiaCallOptions = {
 };
 
 // Recommended default for NIM — free endpoint via NVIDIA NIM
-const DEFAULT_MODEL = "deepseek-ai/deepseek-v4-flash";
+const DEFAULT_MODEL = "moonshotai/kimi-k2.6";
 
 async function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));

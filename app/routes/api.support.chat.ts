@@ -56,7 +56,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
   try {
     const answer = await callNvidiaModel(question, {
-      model: "deepseek-ai/deepseek-v4-flash",
+      model: "moonshotai/kimi-k2.6",
       temperature: 0.3,
       maxTokens: 512,
       systemPrompt,
