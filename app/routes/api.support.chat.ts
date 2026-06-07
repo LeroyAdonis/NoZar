@@ -56,7 +56,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
   try {
     const answer = await callNvidiaModel(question, {
-      model: "nvidia/nemotron-3-super-120b-a12b",
+      model: "meta/llama-3.1-8b-instruct",
       temperature: 0.3,
       maxTokens: 512,
       systemPrompt,
