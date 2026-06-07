@@ -57,7 +57,7 @@ export async function callNvidiaVision(
   const key = getConfiguredNvidiaApiKey();
   if (!key) throw new Error("NVIDIA_API_KEY not configured on server");
 
-  const model = "qwen/qwen3.5-397b-a17b";
+  const model = "google/gemma-3n-e4b-it";
   const url = "https://integrate.api.nvidia.com/v1/chat/completions";
 
   const payload = {
