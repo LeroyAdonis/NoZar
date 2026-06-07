@@ -1,4 +1,3 @@
-import { brevo } from "~/lib/brevo.server";
 import type { Route } from "./+types/api.test-email";
 
 export async function action({ request }: Route.ActionArgs) {
@@ -6,36 +5,31 @@ export async function action({ request }: Route.ActionArgs) {
     return new Response(null, { status: 405 });
   }
 
-  const apiKey = process.env.BREVO_API_KEY;
-  if (!apiKey) {
-    return Response.json({ error: "BREVO_API_KEY not set" }, { status: 500 });
-  }
+  const brevoKey = process.env.BREVO_API_KEY;
+  const resendKey = process.env.RESEND_API_KEY;
 
-  const keyPrefix = apiKey.startsWith("xkeysib-")
-    ? "✅ starts with xkeysib-"
-    : `⚠️ unexpected prefix: ${apiKey.slice(0, 10)}...`;
-
-  try {
+  // Try to send via whichever provider is available
+  if (brevoKey) {
+    const { brevo } = await import("~/lib/brevo.server");
     await brevo.sendEmail({
-      to: "delivered@resend.dev", // Resend's test inbox (Brevo doesn't have one, but real inboxes work)
-      subject: "NoZar test email from Brevo",
-      html: "<p>Test from Ricky</p>",
+      to: "info@alientomd.com",
+      subject: "Test from Ricky — forwarding check",
+      html: "<p>Hey Lee! Test from Ricky via Brevo.</p>",
     });
-
-    // Also try SMS (send to a test number if configured)
-    let smsResult = "Skipped (no test number provided)";
-
-    return Response.json({
-      keyPrefix,
-      emailSent: true,
-      smsResult,
-    });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return Response.json({
-      keyPrefix,
-      success: false,
-      error: msg,
-    });
+    return Response.json({ sentVia: "brevo" });
   }
+
+  if (resendKey) {
+    const { Resend } = await import("resend");
+    const resend = new Resend(resendKey);
+    const result = await resend.emails.send({
+      from: "NoZar <noreply@nozar.co.za>",
+      to: "info@alientomd.com",
+      subject: "Test from Ricky — forwarding check",
+      html: "<p>Hey Lee! This is Ricky testing the alientomd.com email forwarding.</p><p>If you got this, info@alientomd.com → leegale@me.com is working! 🙌</p>",
+    });
+    return Response.json({ sentVia: "resend", id: result.data?.id });
+  }
+
+  return Response.json({ error: "No BREVO_API_KEY or RESEND_API_KEY set" }, { status: 500 });
 }
