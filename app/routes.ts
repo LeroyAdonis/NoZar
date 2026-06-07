@@ -29,6 +29,8 @@ export default [
   route("api/ai-listing-from-photo", "routes/api.ai-listing-from-photo.ts"),
   route("api/push-subscribe", "routes/api.push-subscribe.ts"),
   route("api/push-subscribe-mobile", "routes/api.push-subscribe-mobile.ts"),
+  route("api/n8n/inactive-users", "routes/api.n8n.inactive-users.ts"),
+  route("api/n8n/campaign-email", "routes/api.n8n.campaign-email.ts"),
   route("api/device-fingerprint", "routes/api.device-fingerprint.ts"),
   route("api/device-verify", "routes/api.device-verify.ts"),
   route("api/test-email", "routes/api.test-email.ts"),

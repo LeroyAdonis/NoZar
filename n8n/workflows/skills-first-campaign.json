@@ -1,0 +1,189 @@
+{
+  "name": "NoZar - Skills First Campaign",
+  "nodes": [
+    {
+      "name": "Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "a0da3738-c7ad-41ec-91b4-1774ac8cb6bf"
+    },
+    {
+      "name": "Fetch Users",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        450,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.nozar.co.za/api/n8n/inactive-users?hours=24&limit=20",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer dbe0eef4283fce98a57646beed839a7fe6f9c98a97dea11f90dfaddb55400107"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a2c1ffa6-7d4e-4ec0-bbf9-502c8caaf7b3"
+    },
+    {
+      "name": "Split Users",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ],
+      "parameters": {
+        "options": {},
+        "fieldToSplitOut": "users"
+      },
+      "id": "822a2eba-8d54-4c7f-819b-1d54fe6e2eb8"
+    },
+    {
+      "name": "Loop Users",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        850,
+        300
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "5fa978ad-caa5-4c79-83ef-7ecdc7cba969"
+    },
+    {
+      "name": "Send Nudge",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1050,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.nozar.co.za/api/n8n/campaign-email",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer dbe0eef4283fce98a57646beed839a7fe6f9c98a97dea11f90dfaddb55400107"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "userId",
+              "value": "={{$json[\"id\"]}}"
+            },
+            {
+              "name": "email",
+              "value": "={{$json[\"email\"]}}"
+            },
+            {
+              "name": "name",
+              "value": "={{$json[\"name\"]}}"
+            },
+            {
+              "name": "campaign",
+              "value": "skills-first-v1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "af674c74-60bb-48fa-9f66-6cbe54f595f2"
+    }
+  ],
+  "connections": {
+    "Schedule": {
+      "main": [
+        [
+          {
+            "node": "Fetch Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Users": {
+      "main": [
+        [
+          {
+            "node": "Split Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Users": {
+      "main": [
+        [
+          {
+            "node": "Loop Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Users": {
+      "main": [
+        [
+          {
+            "node": "Send Nudge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Nudge": {
+      "main": [
+        [
+          {
+            "node": "Loop Users",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:Schedule": {
+      "recurrenceRules": []
+    }
+  },
+  "tags": []
+}
