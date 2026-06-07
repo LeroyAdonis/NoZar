@@ -116,6 +116,9 @@ Copy `.env.example` to `.env.local` and fill in real values. **Never commit `.en
 | `GOOGLE_MAPS_API_KEY` | ✅ | Google Maps JavaScript API key |
 | `BLOB_READ_WRITE_TOKEN` | ✅ | Vercel Blob read/write token |
 || `BREVO_API_KEY` | ✅ | Brevo (Sendinblue) API key for transactional email + SMS |
+| `AFRICASTALKING_API_KEY` | ○ | Fallback SMS provider (when Brevo not configured) |
+| `AFRICASTALKING_USERNAME` | ○ | AT username (fallback SMS) |
+| `AFRICASTALKING_SANDBOX` | ○ | `true` for local AT test, `false` in production |
 | `VAPID_PUBLIC_KEY` | ✅ | VAPID public key for Web Push |
 | `VAPID_PRIVATE_KEY` | ✅ | VAPID private key for Web Push |
 | `VAPID_SUBJECT` | ✅ | VAPID subject (e.g. `mailto:hello@nozar.co.za`) |

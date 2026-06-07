@@ -1,12 +1,12 @@
 /**
- * Brevo OTP — SMS-based phone verification via Brevo.
+ * OTP — SMS-based phone verification.
+ *
+ * Sending priority: Brevo SMS > Africa's Talking SMS > console log (dev mode).
  *
  * Storage: reuses Better Auth's `verifications` table.
  *   identifier = "phone_otp:<E.164 number>"  (prefix avoids collision with email flows)
  *   value      = 6-digit code
  *   expiresAt  = now + 10 min
- *
- * Brevo SMS API: https://developers.brevo.com/reference/sendtransacsms
  */
 
 import { randomInt } from "node:crypto";
@@ -17,13 +17,20 @@ import { brevo } from "./brevo.server";
 
 // ─── Config ────────────────────────────────────────────────────
 
-// Prefix keeps our OTP records isolated from Better Auth email identifiers.
 const OTP_PREFIX = "phone_otp:";
+
+const SANDBOX = process.env.AFRICASTALKING_SANDBOX === "true";
+const AT_BASE = SANDBOX
+  ? "https://api.sandbox.africastalking.com"
+  : "https://api.africastalking.com";
 
 // ─── Public helpers ─────────────────────────────────────────────
 
 export function isOtpConfigured(): boolean {
-  return !!(process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.trim() !== "");
+  return !!(
+    (process.env.BREVO_API_KEY && process.env.BREVO_API_KEY.trim() !== "") ||
+    (process.env.AFRICASTALKING_API_KEY && process.env.AFRICASTALKING_USERNAME)
+  );
 }
 
 /**
@@ -34,19 +41,61 @@ export function isOtpConfigured(): boolean {
 export function normalizeZaPhone(raw: string): string | null {
   const digits = raw.replace(/\D/g, "");
 
-  // Already prefixed without leading +
   if (digits.startsWith("27") && digits.length === 11) {
     return `+${digits}`;
   }
-  // Local format 0XX
   if (digits.startsWith("0") && digits.length === 10) {
     return `+27${digits.slice(1)}`;
   }
-  // Passed in as +27 (raw.startsWith is the guard; digits gives 27...)
   if (raw.startsWith("+27") && digits.length === 11) {
     return `+${digits}`;
   }
   return null;
+}
+
+// ─── OTP senders ────────────────────────────────────────────────
+
+/** Send SMS via Brevo. Returns true on success. */
+async function tryBrevoSms(phone: string, code: string): Promise<boolean> {
+  const msg = `Your NoZar verification code is ${code}. It expires in 10 minutes.`;
+  const result = await brevo.sendSms(phone, msg);
+  return result.success;
+}
+
+/** Send SMS via Africa's Talking. Returns true on success. */
+async function tryATSms(phone: string, code: string): Promise<boolean> {
+  const apiKey = process.env.AFRICASTALKING_API_KEY;
+  const username = process.env.AFRICASTALKING_USERNAME;
+  if (!apiKey || !username) return false;
+
+  const message = `Your NoZar verification code is ${code}. It expires in 10 minutes.`;
+  const body = new URLSearchParams({ username, to: phone, message });
+
+  // Try apiKey header first
+  const res = await fetch(`${AT_BASE}/version1/messaging`, {
+    method: "POST",
+    headers: {
+      apiKey,
+      Accept: "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: body.toString(),
+  });
+
+  if (res.ok) return true;
+
+  // Fallback to Bearer auth
+  const bearerRes = await fetch(`${AT_BASE}/version1/messaging`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      Accept: "application/json",
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: body.toString(),
+  });
+
+  return bearerRes.ok;
 }
 
 // ─── OTP core ───────────────────────────────────────────────────
@@ -59,8 +108,7 @@ function generateCode(): string {
 /**
  * Generate, store, and send an OTP to the given E.164 phone number.
  *
- * If Brevo credentials are not configured the code is stored but not sent —
- * useful during local development (the code is printed to the server log).
+ * Priority: Brevo SMS > Africa's Talking SMS > console log.
  *
  * Returns { code } so callers can log it in non-production environments.
  */
@@ -68,9 +116,9 @@ export async function sendOtp(phone: string): Promise<{ code: string }> {
   const code = generateCode();
   const identifier = `${OTP_PREFIX}${phone}`;
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + 10 * 60 * 1000); // 10 min TTL
+  const expiresAt = new Date(now.getTime() + 10 * 60 * 1000);
 
-  // Remove any previous OTP for this number (prevents stale code reuse).
+  // Remove any previous OTP for this number.
   await db.delete(verifications).where(eq(verifications.identifier, identifier));
 
   // Persist the new OTP.
@@ -83,20 +131,16 @@ export async function sendOtp(phone: string): Promise<{ code: string }> {
     updatedAt: now,
   });
 
-  // Send via Brevo SMS API when credentials are configured.
-  if (isOtpConfigured()) {
-    const message = `Your NoZar verification code is ${code}. It expires in 10 minutes.`;
-    const result = await brevo.sendSms(phone, message);
-
-    if (!result.success) {
-      console.error("[otp] Brevo SMS failed:", result.error);
-      throw new Error(`SMS sending failed: ${result.error ?? "unknown"}`);
-    }
+  // Try Brevo first, then AT, then log.
+  if (await tryBrevoSms(phone, code)) {
+    console.log(`[otp] sent via Brevo → ${phone}`);
+  } else if (await tryATSms(phone, code)) {
+    console.log(`[otp] sent via Africa's Talking → ${phone}`);
   } else {
     console.warn(
-      "[otp] Brevo not configured — OTP stored but NOT sent. " +
+      "[otp] No SMS provider configured — OTP stored but NOT sent. " +
         `Code for ${phone}: ${code}. ` +
-        "Set BREVO_API_KEY in your environment variables.",
+        "Set BREVO_API_KEY or AFRICASTALKING_API_KEY/AFRICASTALKING_USERNAME.",
     );
   }
 
@@ -129,8 +173,6 @@ export async function verifyOtp(
 
   if (!record) return false;
 
-  // Consume the token — prevents replay attacks.
   await db.delete(verifications).where(eq(verifications.id, record.id));
-
   return true;
 }
