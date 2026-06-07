@@ -34,6 +34,7 @@ export default [
   route("api/n8n/campaign-sms", "routes/api.n8n.campaign-sms.ts"),
   route("api/n8n/pending-trades", "routes/api.n8n.pending-trades.ts"),
   route("api/n8n/referral-candidates", "routes/api.n8n.referral-candidates.ts"),
+  route("api/n8n/nim-alert", "routes/api.n8n.nim-alert.ts"),
   route("api/device-fingerprint", "routes/api.device-fingerprint.ts"),
   route("api/device-verify", "routes/api.device-verify.ts"),
   route("api/test-email", "routes/api.test-email.ts"),
