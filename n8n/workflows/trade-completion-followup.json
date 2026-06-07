@@ -1,0 +1,178 @@
+{
+  "name": "NoZar - Trade Completion Followup",
+  "nodes": [
+    {
+      "name": "Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 12
+            }
+          ]
+        }
+      },
+      "id": "b1e2f3a4-5b6c-7d8e-9f0a-1b2c3d4e5f6a"
+    },
+    {
+      "name": "Fetch Pending Trades",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [450, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.nozar.co.za/api/n8n/pending-trades?hours=48",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer dbe0eef4283fce98a57646beed839a7fe6f9c98a97dea11f90dfaddb55400107"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b2c3d4e5-f6a7-8b9c-0d1e-2f3a4b5c6d7e"
+    },
+    {
+      "name": "Split Trades",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "parameters": {
+        "options": {},
+        "fieldToSplitOut": "trades"
+      },
+      "id": "c3d4e5f6-a7b8-9c0d-1e2f-3a4b5c6d7e8f"
+    },
+    {
+      "name": "Loop Trades",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [850, 300],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "d4e5f6a7-b8c9-0d1e-2f3a-4b5c6d7e8f9a"
+    },
+    {
+      "name": "Send Followup SMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1050, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://www.nozar.co.za/api/n8n/campaign-sms",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer dbe0eef4283fce98a57646beed839a7fe6f9c98a97dea11f90dfaddb55400107"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "userId",
+              "value": "={{$json[\"initiatorId\"]}}"
+            },
+            {
+              "name": "phone",
+              "value": "={{$json[\"initiatorPhone\"]}}"
+            },
+            {
+              "name": "name",
+              "value": "={{$json[\"initiatorName\"]}}"
+            },
+            {
+              "name": "campaign",
+              "value": "trade-followup-v1"
+            },
+            {
+              "name": "tradeId",
+              "value": "={{$json[\"tradeId\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e5f6a7b8-c9d0-1e2f-3a4b-5c6d7e8f9a0b"
+    }
+  ],
+  "connections": {
+    "Schedule": {
+      "main": [
+        [
+          {
+            "node": "Fetch Pending Trades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Pending Trades": {
+      "main": [
+        [
+          {
+            "node": "Split Trades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Trades": {
+      "main": [
+        [
+          {
+            "node": "Loop Trades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Trades": {
+      "main": [
+        [
+          {
+            "node": "Send Followup SMS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Followup SMS": {
+      "main": [
+        [
+          {
+            "node": "Loop Trades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "staticData": {
+    "node:Schedule": {
+      "recurrenceRules": []
+    }
+  },
+  "tags": []
+}

@@ -78,6 +78,49 @@ export async function action({ request }: ActionFunctionArgs) {
 </p>
 </div>`,
     },
+    "trade-followup-v1": {
+      subject: `Hey ${userName}, your trade is ready to complete`,
+      html: `<div style="font-family:system-ui,-apple-system,sans-serif;color:#e2e8f0;background:#030712;padding:24px;border-radius:12px;max-width:480px;margin:auto">
+<h2 style="margin:0 0 12px;color:#f59e0b;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em">Hey ${userName}! ⏳</h2>
+<p style="margin:0 0 16px;color:#94a3b8;font-size:14px;line-height:1.6">
+  Your trade has been accepted but hasn't been marked as complete yet.
+  Don't let a good swap slip away!
+</p>
+<p style="margin:0 0 16px;color:#94a3b8;font-size:14px;line-height:1.6">
+  <strong>Next steps:</strong><br>
+  • Confirm your meetup time &amp; place<br>
+  • Complete the exchange<br>
+  • Mark the trade as done on NoZar<br>
+</p>
+<a href="https://www.nozar.co.za/dashboard" style="display:inline-block;background:#f59e0b;color:#030712;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:0.05em">Check Trade Status →</a>
+<p style="margin:16px 0 0;color:#64748b;font-size:12px">
+  Need help? Just reply to this email.<br>
+  Ricky &amp; the NoZar Team
+</p>
+</div>`,
+    },
+    "referral-invite-v1": {
+      subject: `${userName}, you're a NoZar power trader!`,
+      html: `<div style="font-family:system-ui,-apple-system,sans-serif;color:#e2e8f0;background:#030712;padding:24px;border-radius:12px;max-width:480px;margin:auto">
+<h2 style="margin:0 0 12px;color:#10b981;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em">Hey ${userName}! 🏆</h2>
+<p style="margin:0 0 16px;color:#94a3b8;font-size:14px;line-height:1.6">
+  You're one of NoZar's most active traders — and that's worth sharing!
+</p>
+<p style="margin:0 0 16px;color:#94a3b8;font-size:14px;line-height:1.6">
+  Invite a friend to NoZar and you'll both get <strong>priority matching</strong>
+  on your next trade. The more people trade, the more everyone wins.
+</p>
+<div style="background:#0f172a;border-radius:8px;padding:16px;margin:0 0 16px">
+  <p style="margin:0 0 8px;color:#f59e0b;font-size:13px;font-weight:700">✨ YOUR REFERRAL LINK:</p>
+  <p style="margin:0;color:#10b981;font-size:14px;font-weight:700;word-break:break-all">https://www.nozar.co.za/invite</p>
+</div>
+<a href="https://www.nozar.co.za/dashboard/refer" style="display:inline-block;background:#10b981;color:#030712;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:0.05em">Share Your Invite →</a>
+<p style="margin:16px 0 0;color:#64748b;font-size:12px">
+  Thanks for being part of the NoZar community,<br>
+  Ricky &amp; the NoZar Team
+</p>
+</div>`,
+    },
   };
 
   const template = campaigns[body.campaign];
