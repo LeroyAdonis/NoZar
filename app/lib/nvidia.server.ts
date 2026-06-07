@@ -10,7 +10,7 @@ export type NvidiaCallOptions = {
 };
 
 // Recommended default for NIM — free endpoint via NVIDIA NIM
-const DEFAULT_MODEL = "moonshotai/kimi-k2.6";
+const DEFAULT_MODEL = "meta/llama-4-maverick-17b-128e-instruct";
 
 async function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));

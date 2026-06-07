@@ -8,7 +8,7 @@ import { getConfiguredNvidiaApiKey } from "./nvidia-config.server";
 
 const NVIDIA_CHAT_URL =
   "https://integrate.api.nvidia.com/v1/chat/completions";
-const NVIDIA_MODEL = "moonshotai/kimi-k2.6";
+const NVIDIA_MODEL = "meta/llama-4-maverick-17b-128e-instruct";
 
 export type AiFraudResult = {
   risk: "safe" | "suspicious" | "dangerous";
