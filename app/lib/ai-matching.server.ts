@@ -38,7 +38,7 @@ function setCachedEmbedding(key: string, embedding: number[]): void {
 // ─── NVIDIA Embedding API ─────────────────────────────────────
 
 const EMBEDDING_URL = "https://integrate.api.nvidia.com/v1/embeddings";
-const EMBEDDING_MODEL = "nvidia/nv-embed-qa-4";
+const EMBEDDING_MODEL = "nvidia/nv-embedqa-e5-v5";
 
 async function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
