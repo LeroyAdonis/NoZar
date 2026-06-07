@@ -8,7 +8,7 @@ import { getConfiguredNvidiaApiKey } from "./nvidia-config.server";
 
 const NVIDIA_CHAT_URL =
   "https://integrate.api.nvidia.com/v1/chat/completions";
-const NVIDIA_MODEL = "nvidia/llama-3.1-nemotron-70b-instruct";
+const NVIDIA_MODEL = "deepseek-ai/deepseek-v4-flash";
 
 export type AiFraudResult = {
   risk: "safe" | "suspicious" | "dangerous";

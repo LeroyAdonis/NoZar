@@ -9,8 +9,8 @@ export type NvidiaCallOptions = {
   systemPrompt?: string;
 };
 
-// Recommended default for NIM
-const DEFAULT_MODEL = "z-ai/glm-5.1";
+// Recommended default for NIM — free endpoint via NVIDIA NIM
+const DEFAULT_MODEL = "deepseek-ai/deepseek-v4-flash";
 
 async function delay(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
