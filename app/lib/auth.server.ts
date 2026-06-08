@@ -210,8 +210,11 @@ function getVerificationEmailHtml(url: string, name: string): string {
       <p class="nz-slate" style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
         Hey ${escapeHtml(name)}, welcome to NoZar! 👋
       </p>
-      <p class=\"nz-slate\" style=\"color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;\">
+      <p class="nz-slate" style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
         Apologies — there was a technical hiccup
+      </p>
+      <p class="nz-slate" style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0 0 24px 0;">
+        Please verify your email below to activate your account.
       </p>
       <div style="text-align:center;">
         <a href="${escapeHtml(url)}" class="nz-btn"

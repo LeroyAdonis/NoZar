@@ -417,6 +417,31 @@ export const paymentEvents = pgTable(
   (t) => [unique("payment_events_dedup_uq").on(t.mPaymentId, t.pfPaymentId)],
 );
 
+// ─── Campaign Log (n8n campaign tracking) ──────────────────────
+
+export const campaignLog = pgTable(
+  "campaign_log",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    campaign: text("campaign").notNull(), // e.g. "skills-first-v1", "trade-followup-v1"
+    channel: text("channel").notNull(), // "email" | "sms"
+    status: text("status").notNull().default("sent"), // sent | failed | opened | clicked
+    recipient: text("recipient").notNull(), // email address or phone number
+    tradeId: integer("trade_id"), // optional, for trade-specific campaigns
+    errorMessage: text("error_message"), // if failed, store the error
+    metadata: jsonb("metadata").default({}),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    index("campaign_log_user_idx").on(t.userId),
+    index("campaign_log_campaign_idx").on(t.campaign),
+    index("campaign_log_created_idx").on(t.createdAt),
+  ],
+);
+
 // ─── Web Push Tables ──────────────────────────────────────────
 
 export const pushSubscriptions = pgTable("push_subscriptions", {

@@ -1,14 +1,15 @@
 import { db } from "~/lib/db.server";
-import { users, listings, trustProfiles } from "~/lib/schema";
-import { sql, and, gt } from "drizzle-orm";
+import { users, listings, trustProfiles, campaignLog } from "~/lib/schema";
+import { sql } from "drizzle-orm";
 import type { LoaderFunctionArgs } from "react-router";
 
 /**
- * GET /api/n8n/referral-candidates?minTrades=1&limit=50
+ * GET /api/n8n/referral-candidates?minTrades=1&limit=50&exclude_campaign=referral-invite-v1
  *
  * Finds users who are good referral candidates — users with
  * completed trades or multiple listings. Ordered by activity
  * (most trades first, then most listings).
+ * Optionally excludes users who've already received a specific campaign.
  *
  * Auth: Bearer token in Authorization header matching N8N_API_KEY env var.
  */
@@ -31,10 +32,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const minTrades = Math.max(0, parseInt(url.searchParams.get("minTrades") ?? "1", 10) || 1);
   const limit = Math.min(200, Math.max(1, parseInt(url.searchParams.get("limit") ?? "50", 10) || 50));
+  const excludeCampaign = url.searchParams.get("exclude_campaign");
 
   // ── Query ───────────────────────────────────────────────────────
   // Find users with completedTrades > 0 or multiple listings,
-  // ordered by activity (completion count desc, listing count desc)
+  // ordered by activity, excluding anyone who already got {excludeCampaign}
 
   const referralCandidates = await db.execute(
     sql`
@@ -55,6 +57,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
       WHERE
         (COALESCE(tp.completed_trades, 0) > ${minTrades - 1}
          OR COALESCE(lc.cnt, 0) >= 2)
+        ${excludeCampaign ? sql`AND u.id NOT IN (
+          SELECT userId FROM ${campaignLog}
+          WHERE campaign = ${excludeCampaign}
+            AND status = 'sent'
+        )` : sql``}
       ORDER BY
         tp.completed_trades DESC NULLS LAST,
         lc.cnt DESC NULLS LAST,
@@ -67,6 +74,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   return Response.json({
     count: rows.length,
+    excludeCampaign: excludeCampaign ?? null,
     users: rows.map((r: Record<string, unknown>) => ({
       id: r.id,
       name: r.name,

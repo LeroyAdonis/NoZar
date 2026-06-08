@@ -73,7 +73,7 @@ function Dropdown({
   showNative: boolean;
 }) {
   return (
-    <div className="absolute top-full right-0 mt-1 z-50 w-56 bg-[#0F172A] border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden backdrop-blur-xl">
+    <div className="absolute top-full right-0 mt-1 z-50 w-56 bg-nz-surface border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden backdrop-blur-xl">
       <div className="px-3 py-2 text-[10px] font-mono uppercase tracking-widest text-slate-500 border-b border-white/5">
         🌍 SA Languages
       </div>

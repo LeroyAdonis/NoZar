@@ -56,7 +56,7 @@ export function ListingsNearbyModal({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 30, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 max-h-[85dvh] rounded-t-3xl border-t border-white/10 bg-[#0F172A] shadow-2xl"
+            className="fixed bottom-0 left-0 right-0 z-50 max-h-[85dvh] rounded-t-3xl border-t border-white/10 bg-nz-surface shadow-2xl"
           >
             {/* Handle */}
             <div className="mx-auto mt-2 h-1 w-10 rounded-full bg-white/20" />

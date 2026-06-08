@@ -55,19 +55,19 @@ export default function VerifyEmailPage({ loaderData, actionData }: Route.Compon
   const error = actionData?.error ?? null;
 
   return (
-    <div className="min-h-screen bg-[#030712] flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-[#030712] flex items-center justify-center px-4 nz-grid-pattern relative overflow-hidden">
+      <div className="noise-overlay absolute inset-0" />
+      <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-emerald-500/5 blur-[120px] pointer-events-none" />
+      <div className="w-full max-w-md relative z-10">
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-block">
-            <span className="font-black uppercase tracking-tighter text-2xl text-emerald-500">
-              NoZar
-            </span>
+            <img src="/logo.svg" alt="NoZar" className="w-12 h-12 rounded-xl inline-block transition-transform duration-300 hover:scale-105" />
           </Link>
         </div>
 
         {/* Card */}
-        <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-8">
+        <div className="bg-[rgba(15,23,42,0.6)] border border-white/10 rounded-2xl p-8 backdrop-blur-md">
           {/* Icon */}
           <div className="flex justify-center mb-6">
             <div className="w-14 h-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">

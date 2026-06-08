@@ -19,8 +19,8 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Login — NoZar" },
-    { name: "description", content: "Sign in to your NoZar account" },
+    { title: "Sign In — NoZar" },
+    { name: "description", content: "Sign in to continue trading without cash on NoZar." },
   ];
 }
 
@@ -159,22 +159,35 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#030712] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-[#030712] flex items-center justify-center px-4 nz-grid-pattern relative overflow-hidden">
+      {/* Subtle noise texture */}
+      <div className="noise-overlay absolute inset-0" />
+      {/* Ambient emerald glow (top-right) */}
+      <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-emerald-500/5 blur-[120px] pointer-events-none" />
+
       {/* Show loading skeleton while initial submission is in progress */}
       {loading ? (
         <LoginFormSkeleton />
       ) : (
-        <div className="w-full max-w-sm space-y-8">
-          {/* Logo */}
+        <div className="w-full max-w-sm space-y-8 relative z-10">
+          {/* Logo & Brand */}
           <div className="text-center">
-            <Link to="/" className="inline-flex items-center gap-2 group">
-              <img src="/logo.svg" alt="NoZar" className="w-12 h-12 rounded-xl" />
+            <Link to="/" className="inline-flex items-center gap-3 group justify-center mb-4">
+              <div className="relative">
+                <img src="/logo.svg" alt="NoZar" className="w-14 h-14 rounded-xl transition-transform duration-300 group-hover:scale-105" />
+                <div className="absolute -inset-1 rounded-xl bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              </div>
             </Link>
-            <h1 className="mt-4 text-2xl font-black uppercase tracking-tight text-white">
-              Sign In
+            <h1 className="text-3xl font-black uppercase tracking-tighter text-white">
+              <span className="nz-gradient-text">Sign In</span>
             </h1>
-            <p className="mt-1 text-sm text-slate-400">Access your barter network</p>
+            <p className="mt-2 text-sm text-slate-400 leading-relaxed max-w-xs mx-auto">
+              Welcome back. Continue trading without cash.
+            </p>
           </div>
+
+          {/* Form card */}
+          <div className="bg-[rgba(15,23,42,0.6)] border border-white/10 rounded-2xl p-6 backdrop-blur-md space-y-4">
 
           {/* Error message */}
           {error && (
@@ -236,6 +249,7 @@ export default function LoginPage() {
               Forgot your password?
             </Link>
           </p>
+          </div>
 
           {/* Divider */}
           <div className="flex items-center gap-3">

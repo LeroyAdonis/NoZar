@@ -189,7 +189,7 @@ export default function BillingPage() {
 
       {/* ── Active subscription / Cancel section ── */}
       {subscription?.status === "active" && (
-        <section className="bg-[#0F172A] border border-emerald-500/20 rounded-2xl p-5">
+        <section className="bg-nz-surface border border-emerald-500/20 rounded-2xl p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-400">
@@ -261,7 +261,7 @@ export default function BillingPage() {
       )}
 
       {/* ── Current plan card ── */}
-      <section className="bg-[#0F172A] border border-white/10 rounded-2xl p-5 space-y-4">
+      <section className="bg-nz-surface border border-white/10 rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <span className="font-mono text-[10px] uppercase tracking-widest text-slate-500">
             Current Plan
@@ -342,7 +342,7 @@ export default function BillingPage() {
             return (
               <div
                 key={tier.code}
-                className={`bg-[#0F172A] rounded-2xl border p-5 flex flex-col gap-4 transition-colors ${
+                className={`bg-nz-surface rounded-2xl border p-5 flex flex-col gap-4 transition-colors ${
                   isCurrent
                     ? "border-emerald-500/40"
                     : "border-white/5 hover:border-white/10"
@@ -437,10 +437,10 @@ export default function BillingPage() {
                     </button>
                     {/* Tooltip */}
                     <div className="absolute -top-9 left-1/2 -translate-x-1/2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 whitespace-nowrap">
-                      <div className="bg-[#0F172A] border border-white/10 rounded-lg px-3 py-1.5 text-[10px] font-mono text-slate-400 shadow-xl">
+                      <div className="bg-nz-surface border border-white/10 rounded-lg px-3 py-1.5 text-[10px] font-mono text-slate-400 shadow-xl">
                         Payment processing coming soon — powered by Paystack
                       </div>
-                      <div className="w-2 h-2 bg-[#0F172A] border-r border-b border-white/10 rotate-45 mx-auto -mt-1" />
+                      <div className="w-2 h-2 bg-nz-surface border-r border-b border-white/10 rotate-45 mx-auto -mt-1" />
                     </div>
                   </div>
                 )}
@@ -472,7 +472,7 @@ export default function BillingPage() {
       )}
 
       {/* ── Feature highlights ── */}
-      <section className="bg-[#0F172A] border border-white/5 rounded-2xl p-5">
+      <section className="bg-nz-surface border border-white/5 rounded-2xl p-5">
         <span className="font-mono text-[10px] uppercase tracking-widest text-slate-500 block mb-4">
           // What&apos;s included in paid tiers
         </span>

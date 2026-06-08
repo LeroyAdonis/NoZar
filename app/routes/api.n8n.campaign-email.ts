@@ -1,4 +1,7 @@
+import { db } from "~/lib/db.server";
+import { campaignLog } from "~/lib/schema";
 import { brevo } from "~/lib/brevo.server";
+import { sql, eq, and } from "drizzle-orm";
 import type { ActionFunctionArgs } from "react-router";
 
 /**
@@ -6,6 +9,7 @@ import type { ActionFunctionArgs } from "react-router";
  *
  * Sends a campaign email to a specific user on behalf of n8n.
  * Uses the existing Brevo/Resend infrastructure.
+ * Logs every send attempt to campaign_log for dedup + analytics.
  *
  * Body: { userId, email, name, campaign, location? }
  *
@@ -41,6 +45,33 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const userName = body.name || "there";
   const location = body.location ? ` in ${body.location}` : "";
+
+  // ── Dedup: check if already sent to this user for this campaign ──
+  if (body.userId) {
+    const existing = await db
+      .select({ id: campaignLog.id })
+      .from(campaignLog)
+      .where(
+        and(
+          eq(campaignLog.userId, body.userId),
+          eq(campaignLog.campaign, body.campaign),
+          eq(campaignLog.channel, "email"),
+          eq(campaignLog.status, "sent"),
+        ),
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      console.log(`[n8n] SKIP campaign "${body.campaign}" → ${body.email} (already sent)`);
+      return Response.json({
+        success: true,
+        skipped: true,
+        reason: "already_sent",
+        campaign: body.campaign,
+        sentTo: body.email,
+      });
+    }
+  }
 
   // ── Campaign templates ──────────────────────────────────────────
   const campaigns: Record<string, { subject: string; html: string }> = {
@@ -128,7 +159,7 @@ export async function action({ request }: ActionFunctionArgs) {
     return Response.json({ error: `Unknown campaign: ${body.campaign}` }, { status: 400 });
   }
 
-  // ── Send ────────────────────────────────────────────────────────
+  // ── Send + Log ──────────────────────────────────────────────────
   try {
     await brevo.sendEmail({
       to: body.email,
@@ -139,10 +170,36 @@ export async function action({ request }: ActionFunctionArgs) {
 
     console.log(`[n8n] Campaign "${body.campaign}" sent → ${body.email} (${body.userId ?? "?"})`);
 
+    // Log success
+    if (body.userId) {
+      await db.insert(campaignLog).values({
+        userId: body.userId,
+        campaign: body.campaign,
+        channel: "email",
+        status: "sent",
+        recipient: body.email,
+      });
+    }
+
     return Response.json({ success: true, campaign: body.campaign, sentTo: body.email });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[n8n] Campaign send failed for ${body.email}:`, msg);
+
+    // Log failure
+    if (body.userId) {
+      await db.insert(campaignLog).values({
+        userId: body.userId,
+        campaign: body.campaign,
+        channel: "email",
+        status: "failed",
+        recipient: body.email,
+        errorMessage: msg,
+      }).catch((logErr) => {
+        console.error(`[n8n] Failed to log campaign failure:`, logErr);
+      });
+    }
+
     return Response.json({ error: msg }, { status: 500 });
   }
 }

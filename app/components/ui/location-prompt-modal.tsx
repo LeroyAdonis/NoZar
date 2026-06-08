@@ -133,14 +133,14 @@ export function LocationPromptModal({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={!isLoading ? onClose : undefined}
-            className="absolute inset-0 bg-[#030712]/80 backdrop-blur-sm"
+            className="absolute inset-0 bg-nz-dark/80 backdrop-blur-sm"
           />
 
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-[#0F172A] p-6 shadow-2xl sm:p-8"
+            className="relative w-full max-w-md overflow-hidden rounded-3xl border border-white/10 bg-nz-surface p-6 shadow-2xl sm:p-8"
           >
             {/* Header / Icon */}
             <div className="flex flex-col items-center text-center">

@@ -27,7 +27,7 @@ export function MapPinTooltip({
       transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className="absolute z-[100] w-64 overflow-hidden rounded-xl border border-gray-800 bg-sa-black/90 shadow-2xl backdrop-blur-md"
+      className="absolute z-[100] w-64 overflow-hidden rounded-xl border border-white/10 bg-nz-surface/90 shadow-2xl backdrop-blur-md"
       style={{
         left: x,
         top: y,
@@ -49,7 +49,7 @@ export function MapPinTooltip({
             className="h-32 w-full object-cover transition-transform duration-500 hover:scale-110"
           />
         ) : (
-          <div className="flex h-32 w-full items-center justify-center bg-gray-800 text-xs text-gray-500">
+          <div className="flex h-32 w-full items-center justify-center bg-nz-surface text-xs text-slate-500">
             No image available
           </div>
         )}
@@ -69,29 +69,29 @@ export function MapPinTooltip({
           >
             {pin.title}
           </h4>
-          <span className="shrink-0 rounded-full bg-gray-800 px-1.5 py-0.5 text-[10px] font-medium text-gray-400 uppercase">
+          <span className="shrink-0 rounded-full bg-white/5 px-1.5 py-0.5 text-[10px] font-medium text-slate-400 uppercase">
             {pin.type}
           </span>
         </Link>
 
-        <p className="mt-1.5 line-clamp-2 text-xs text-gray-400">
+        <p className="mt-1.5 line-clamp-2 text-xs text-slate-400">
           {pin.description}
         </p>
 
-        <div className="mt-4 flex items-center justify-between border-t border-gray-800 pt-3">
+        <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-3">
           <div className="flex items-center gap-2">
             {pin.user.avatarUrl ? (
               <img
                 src={pin.user.avatarUrl}
                 alt={pin.user.name}
-                className="h-6 w-6 rounded-full object-cover ring-1 ring-gray-700"
+                className="h-6 w-6 rounded-full object-cover ring-1 ring-white/10"
               />
             ) : (
-              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gray-800 text-[10px] font-bold text-gray-500 ring-1 ring-gray-700">
+              <div className="flex h-6 w-6 items-center justify-center rounded-full bg-nz-surface text-[10px] font-bold text-slate-500 ring-1 ring-white/10">
                 {pin.user.name.charAt(0)}
               </div>
             )}
-            <span className="text-[11px] font-semibold text-gray-300 truncate max-w-[100px]">
+            <span className="text-[11px] font-semibold text-slate-300 truncate max-w-[100px]">
               {pin.user.name}
             </span>
           </div>

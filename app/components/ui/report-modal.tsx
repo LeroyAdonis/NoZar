@@ -38,7 +38,7 @@ export function ReportModal({ isOpen, onClose, onSubmit, isSubmitting }: Props) 
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md bg-[#111827] border border-white/10 rounded-t-3xl p-6 pb-safe"
+        className="w-full max-w-md bg-nz-surface border border-white/10 rounded-t-3xl p-6 pb-safe"
         onClick={(e) => e.stopPropagation()}
       >
         {/* drag handle */}

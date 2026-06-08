@@ -1,14 +1,15 @@
 import { db } from "~/lib/db.server";
-import { trades, users, listings, profiles } from "~/lib/schema";
+import { trades, users, listings, profiles, campaignLog } from "~/lib/schema";
 import { sql } from "drizzle-orm";
 import type { LoaderFunctionArgs } from "react-router";
 
 /**
- * GET /api/n8n/pending-trades?hours=48
+ * GET /api/n8n/pending-trades?hours=48&exclude_campaign=trade-followup-v1
  *
  * Finds trades with status="accepted" that haven't been completed
  * within the specified number of hours. Returns user details for
  * both parties involved so n8n can follow up via SMS/email.
+ * Optionally excludes users who've already received a specific campaign.
  *
  * Auth: Bearer token in Authorization header matching N8N_API_KEY env var.
  */
@@ -30,9 +31,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
   // ── Params ──────────────────────────────────────────────────────
   const url = new URL(request.url);
   const hours = Math.max(1, parseInt(url.searchParams.get("hours") ?? "48", 10) || 48);
+  const excludeCampaign = url.searchParams.get("exclude_campaign");
 
   // ── Query trades ─────────────────────────────────────────────────
   // Find trades with status "accepted" that are older than {hours}
+  // Exclude users who've already received {excludeCampaign}
   const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
 
   // Use raw SQL query for the multi-join to avoid Drizzle alias complexity
@@ -58,6 +61,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
       LEFT JOIN ${profiles} responder_profile ON responder_profile.user_id = t.responder_id
       WHERE t.status = 'accepted'
         AND t.updated_at < ${cutoff.toISOString()}::timestamp
+        ${excludeCampaign ? sql`AND NOT EXISTS (
+          SELECT 1 FROM ${campaignLog}
+          WHERE (
+            ${campaignLog.userId} = t.initiator_id
+            OR ${campaignLog.userId} = t.responder_id
+          )
+            AND ${campaignLog.campaign} = ${excludeCampaign}
+            AND ${campaignLog.status} = 'sent'
+        )` : sql``}
       ORDER BY t.updated_at ASC
     `,
   );
@@ -67,6 +79,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   return Response.json({
     count: rows.length,
     hours,
+    excludeCampaign: excludeCampaign ?? null,
     trades: rows.map((r: Record<string, unknown>) => ({
       tradeId: r.tradeId,
       initiatorId: r.initiatorId,
