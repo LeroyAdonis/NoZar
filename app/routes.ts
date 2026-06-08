@@ -42,6 +42,7 @@ export default [
   route("api/trade-balance", "routes/api.trade-balance.ts"),
   route("api/photo-quality", "routes/api.photo-quality.ts"),
   route("api/listings", "routes/api.listings.ts"),
+  route("api/listings/:id", "routes/api.listings.$id.ts"),
   route("api/ai-match", "routes/api.ai-match.ts"),
   route("api/upload-mobile", "routes/api.upload-mobile.ts"),
   route("api/profile", "routes/api.profile.ts"),

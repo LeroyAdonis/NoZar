@@ -1,4 +1,4 @@
-import type { LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { requireAuth } from "~/lib/auth.server";
 import { db } from "~/lib/db.server";
 import {
@@ -95,5 +95,86 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       imageUrl: listingImgRows[0]?.url ?? null,
     },
     currentUserId: user.id,
+  });
+}
+
+/**
+ * PATCH /api/trades/:id
+ * Updates a trade's status (e.g. agree → progressing, share contact, complete)
+ * Body: { action: "agree" | "complete" | "cancel" }
+ */
+export async function action({ request, params }: ActionFunctionArgs) {
+  if (request.method !== "PATCH") {
+    return Response.json({ error: "Method not allowed" }, { status: 405 });
+  }
+
+  const { user } = await requireAuth(request);
+  const tradeId = Number(params.id);
+  if (Number.isNaN(tradeId)) {
+    return Response.json({ error: "Invalid trade ID" }, { status: 400 });
+  }
+
+  const body = await request.json();
+  const { action: statusAction } = body;
+
+  if (!statusAction || !["agree", "complete", "cancel"].includes(statusAction)) {
+    return Response.json({ error: "Invalid action" }, { status: 400 });
+  }
+
+  // Fetch trade
+  const [trade] = await db
+    .select()
+    .from(trades)
+    .where(eq(trades.id, tradeId))
+    .limit(1);
+
+  if (!trade) {
+    return Response.json({ error: "Trade not found" }, { status: 404 });
+  }
+
+  // Verify user is a participant
+  if (trade.initiatorId !== user.id && trade.responderId !== user.id) {
+    return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Map action to new status
+  const statusMap: Record<string, string> = {
+    agree: "negotiating",
+    complete: "completed",
+    cancel: "cancelled",
+  };
+
+  const newStatus = statusMap[statusAction];
+
+  // Prevent invalid transitions
+  if (trade.status === "completed" || trade.status === "cancelled") {
+    return Response.json({ error: "Trade already completed or cancelled" }, { status: 400 });
+  }
+
+  // Update
+  const [updated] = await db
+    .update(trades)
+    .set({ status: newStatus, updatedAt: new Date() })
+    .where(eq(trades.id, tradeId))
+    .returning();
+
+  // Insert a system message so both users see the status change in chat
+  const statusLabels: Record<string, string> = {
+    negotiating: "Trade agreed! 🤝 Both parties are now negotiating.",
+    completed: "Swap completed! 🎉",
+    cancelled: "Trade cancelled.",
+  };
+
+  await db.insert(messages).values({
+    tradeId,
+    senderId: user.id,
+    text: statusLabels[newStatus] ?? `Status changed to ${newStatus}`,
+    type: "system",
+  });
+
+  return Response.json({
+    tradeId: updated.id,
+    status: updated.status,
+    message: statusLabels[newStatus] ?? "Status updated",
   });
 }

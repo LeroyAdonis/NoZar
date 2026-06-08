@@ -390,7 +390,39 @@ export default function DashboardHome({
   const fetcher = useFetcher<typeof action>();
   const { currentRegion, searchQuery, canUseAiMatching } = loaderData;
 
-  // ── Search with explicit submit ──
+  // ── AI Match state — cleared on filter/search change ──
+  const [aiMatchResult, setAiMatchResult] = useState<{
+    matchedIds: number[];
+    swapScores: Record<number, number>;
+  } | null>(null);
+
+  // Reset AI match results whenever search params change
+  useEffect(() => {
+    setAiMatchResult(null);
+  }, [activeCategory, searchQuery, scope]);
+
+  // Capture fetcher results into our managed state
+  useEffect(() => {
+    const data = fetcher.data;
+    if (data && "matchedIds" in data) {
+      setAiMatchResult(data as { matchedIds: number[]; swapScores: Record<number, number> });
+    }
+  }, [fetcher.data]);
+
+  const isMatching = fetcher.state !== "idle";
+  const matchedIds = aiMatchResult ? new Set(aiMatchResult.matchedIds) : null;
+  const swapScores = aiMatchResult?.swapScores ?? null;
+  const matchData = fetcher.data;
+  const matchError = matchData && "error" in matchData ? (matchData as any).error : null;
+
+  function handleCategoryClick(value: string) {
+    setSearchParams(
+      value === "All" ? {} : { category: value },
+      { preventScrollReset: true },
+    );
+  }
+
+  // ── Search state and handlers ──
   const [inputValue, setInputValue] = useState(searchQuery ?? "");
 
   useEffect(() => {
@@ -434,20 +466,6 @@ export default function DashboardHome({
       }
       return p;
     }, { preventScrollReset: true });
-  }
-
-  const isMatching = fetcher.state !== "idle";
-  const matchData = fetcher.data;
-  const matchedIds = matchData && "matchedIds" in matchData ? new Set(matchData.matchedIds) : null;
-  const swapScores: Record<number, number> | null =
-    matchData && "swapScores" in matchData ? (matchData as any).swapScores ?? null : null;
-  const matchError = matchData && "error" in matchData ? matchData.error : null;
-
-  function handleCategoryClick(value: string) {
-    setSearchParams(
-      value === "All" ? {} : { category: value },
-      { preventScrollReset: true },
-    );
   }
 
   return (
@@ -716,7 +734,7 @@ export default function DashboardHome({
               )}
               <AssetCard
                 listing={listing}
-                youHaveMatch={listing.youHaveMatch}
+                youHaveMatch={matchedIds ? false : listing.youHaveMatch}
                 swapScore={swapScores?.[listing.id] ?? undefined}
                 onClick={() => navigate(`/dashboard/asset/${listing.id}`)}
               />
