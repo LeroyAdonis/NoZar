@@ -5,7 +5,10 @@
       "name": "Schedule",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
-      "position": [250, 300],
+      "position": [
+        250,
+        300
+      ],
       "parameters": {
         "rule": {
           "interval": [
@@ -22,16 +25,19 @@
       "name": "Fetch Referral Candidates",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [450, 300],
+      "position": [
+        450,
+        300
+      ],
       "parameters": {
         "method": "GET",
-        "url": "https://www.nozar.co.za/api/n8n/referral-candidates?minTrades=1&limit=50",
+        "url": "https://www.nozar.co.za/api/n8n/referral-candidates?minTrades=1&limit=50&exclude_campaign=referral-invite-v1",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer dbe0eef4283fce98a57646beed839a7fe6f9c98a97dea11f90dfaddb55400107"
+              "value": "Bearer 4d9830d2e717b64bf199e881a5370632450dba54f2cef7ec22ebcd22c8ff89b5"
             }
           ]
         },
@@ -43,7 +49,10 @@
       "name": "Split Users",
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1,
-      "position": [650, 300],
+      "position": [
+        650,
+        300
+      ],
       "parameters": {
         "options": {},
         "fieldToSplitOut": "users"
@@ -54,7 +63,10 @@
       "name": "Loop Users",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [850, 300],
+      "position": [
+        850,
+        300
+      ],
       "parameters": {
         "batchSize": 1,
         "options": {}
@@ -65,7 +77,10 @@
       "name": "Send Referral SMS",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1050, 200],
+      "position": [
+        1050,
+        200
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://www.nozar.co.za/api/n8n/campaign-sms",
@@ -74,7 +89,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer dbe0eef4283fce98a57646beed839a7fe6f9c98a97dea11f90dfaddb55400107"
+              "value": "Bearer 4d9830d2e717b64bf199e881a5370632450dba54f2cef7ec22ebcd22c8ff89b5"
             }
           ]
         },
@@ -107,7 +122,10 @@
       "name": "Send Referral Email",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1050, 400],
+      "position": [
+        1050,
+        400
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://www.nozar.co.za/api/n8n/campaign-email",
@@ -116,7 +134,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer dbe0eef4283fce98a57646beed839a7fe6f9c98a97dea11f90dfaddb55400107"
+              "value": "Bearer 4d9830d2e717b64bf199e881a5370632450dba54f2cef7ec22ebcd22c8ff89b5"
             }
           ]
         },
@@ -223,10 +241,5 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "staticData": {
-    "node:Schedule": {
-      "recurrenceRules": []
-    }
-  },
-  "tags": []
+  "active": true
 }
