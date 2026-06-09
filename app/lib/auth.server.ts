@@ -394,7 +394,8 @@ export const auth = betterAuth({
     // sending (via sendOnSignUp fallback) AND sign-in blocking in v1.6.11.
     // Do NOT move — it lives in emailAndPassword per Better Auth's internal
     // route checks (sign-up.mjs line 239, sign-in.mjs line 229).
-    requireEmailVerification: process.env.PLAYWRIGHT_TEST !== "1",
+    // Disabled — let users in first, nag them to verify later.
+    requireEmailVerification: false,
     async sendResetPassword({ user, url }) {
       console.log("[auth] sendResetPassword: sending to", user.email);
 
@@ -426,9 +427,10 @@ export const auth = betterAuth({
     // Better Auth checks this FIRST (sign-up.mjs line 239), falling back
     // to emailAndPassword.requireEmailVerification only if unset.
     sendOnSignUp: true,
-    // Block sign-in for users who have not yet verified their email address.
-    // Better Auth defaults this to false; we must opt-in explicitly.
-    requireEmailVerification: process.env.PLAYWRIGHT_TEST !== "1",
+    // Let users in first without verification.
+    // The verify gate was killing our funnel — new users couldn't
+    // get past the email they never received.
+    requireEmailVerification: false,
     sendVerificationEmail: async ({ user, url }) => {
       // Skip email sending during Playwright E2E tests
       if (process.env.PLAYWRIGHT_TEST === "1") return;
