@@ -2,7 +2,7 @@ import type { ActionFunctionArgs } from "react-router";
 import { requireAuth } from "~/lib/auth.server";
 import { AiServiceError } from "~/lib/ai.server";
 import { callNvidiaModel } from "~/lib/nvidia.server";
-import { supportEscalationEmail } from "~/lib/email.server";
+import { escalateUnansweredQuestion } from "~/lib/support-chat";
 import { readFile } from "node:fs/promises";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,7 +62,7 @@ export async function action({ request }: ActionFunctionArgs) {
       systemPrompt,
     });
 
-    // If AI couldn't answer, escalate to human support via email
+    // If AI couldn't answer, escalate to human support (Telegram + email fallback)
     const cantAnswer = "i'm not sure about that one";
     if (answer.toLowerCase().startsWith(cantAnswer)) {
       const userName = user.name ?? user.email ?? "Unknown";
@@ -71,13 +71,13 @@ export async function action({ request }: ActionFunctionArgs) {
         hour12: false,
       });
       // Fire and forget — don't block the user's response
-      supportEscalationEmail({
+      escalateUnansweredQuestion({
         userEmail: user.email,
         userName,
         question,
         timestamp,
       }).catch((err) =>
-        console.error("[support-chat] escalation email failed:", err)
+        console.error("[support-chat] escalation failed:", err)
       );
     }
 
